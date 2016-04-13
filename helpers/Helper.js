@@ -4,14 +4,6 @@ var $rootScope = angular.injector(['ng']).get('$rootScope');
 var $http = angular.injector(['ng']).get('$http');
 var $q = angular.injector(['ng']).get('$q');
 
-$timeout.cancel = function (param) {
-    clearTimeout(param);
-};
-
-$interval.cancel = function (param) {
-    clearInterval(param);
-};
-
 //$http.post = function (url, data, options) {
 //    options = options || {};
 //
