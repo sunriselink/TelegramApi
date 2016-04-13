@@ -88,10 +88,6 @@ var telegramApi = (function () {
                 appMessagesManager = _AppMessagesManager;
                 appPeersManager = _AppPeersManager;
                 appUsersManager = _AppUsersManager;
-                //appUsersManager = angular.element(document.body).injector().get('AppUsersManager');
-                //appPeersManager = angular.element(document.body).injector().get('AppPeersManager');
-                //mtpApiManager = angular.element(document.body).injector().get('MtpApiManager');
-                //appMessagesManager = angular.element(document.body).injector().get('AppMessagesManager');
 
                 _isInit = true;
             } catch (err) {
