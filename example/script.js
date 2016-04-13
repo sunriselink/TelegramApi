@@ -14,8 +14,8 @@ $('#signInButton').click(function () {
             $('#phone-code').append(
                 '<div id="reg">' +
                     '<h1>Input first name and last name</h1>' +
-                    '<input type="text" placeholder="Имя" id="firstName">' +
-                    '<input type="text" placeholder="Фамилия" id="lastName">' +
+                    '<input type="text" placeholder="First name" id="firstName">' +
+                    '<input type="text" placeholder="Last name" id="lastName">' +
                     '<button onclick="signUn()">Sign up</button>' +
                 '</div>'
             );
