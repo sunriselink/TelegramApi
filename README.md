@@ -36,7 +36,7 @@ telegramApi.signUp(phone_number, phone_code_hash, phone_code, first_name, last_n
 ```
 
 ### Работа с сообщениями
-Получение списка диалогов (последнеи 20 штук)
+Получение списка диалогов (последние 20 штук)
 ```
 telegramApi.getDialogs();
 ```
@@ -48,7 +48,8 @@ telegramApi.sendMessage(id, message);
 ```
 
 ### Работа с ботами
-* botName - имя бота (боту автоматически отправляется команда /start)
+Добавление бота (боту автоматически отправляется команда /start)
+* botName - имя бота
 ```
 telegramApi.startBot(botName);
 ```
