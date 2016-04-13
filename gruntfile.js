@@ -53,14 +53,40 @@ module.exports = function (grunt) {
                     'out/telegramApi-full.min.js': ['out/telegramApi-full.js']
                 }
             }
+        },
+        copy: {
+            main: {
+                files: [
+                    {
+                        expand: true,
+                        cwd: 'out/',
+                        src: [ '*.js' ],
+                        dest: 'example/js/'
+                    },
+                    {
+                        expand: true,
+                        cwd: 'js/lib/',
+                        src: [ 'crypto_worker.js' ],
+                        dest: 'example/js/lib/'
+                    },
+                    {
+                        expand: true,
+                        cwd: 'nacl',
+                        src: [ '**' ],
+                        dest: 'example/nacl/'
+                    }
+                ]
+            }
         }
     });
 
     grunt.loadNpmTasks('grunt-contrib-concat');
     grunt.loadNpmTasks('grunt-contrib-uglify');
+    grunt.loadNpmTasks('grunt-contrib-copy');
 
     grunt.registerTask('build', [
         'concat',
-        'uglify'
+        'uglify',
+        'copy'
     ]);
 };

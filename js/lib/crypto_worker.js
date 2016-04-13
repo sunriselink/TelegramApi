@@ -5,15 +5,15 @@
  * https://github.com/zhukov/webogram/blob/master/LICENSE
  */
 
-importScripts(
-  'polyfill.js',
-  'bin_utils.js',
-  '../../vendor/jsbn/jsbn_combined.js',
-  '../../vendor/leemon_bigint/bigint.js',
-  '../../vendor/closure/long.js',
-  '../../vendor/cryptoJS/crypto.js',
-  '../../vendor/rusha/rusha.js'
-);
+//importScripts(
+//  'polyfill.js',
+//  'bin_utils.js',
+//  '../../vendor/jsbn/jsbn_combined.js',
+//  '../../vendor/leemon_bigint/bigint.js',
+//  '../../vendor/closure/long.js',
+//  '../../vendor/cryptoJS/crypto.js',
+//  '../../vendor/rusha/rusha.js'
+//);
 
 onmessage = function (e) {
   var taskID = e.data.taskID,

@@ -1,0 +1,48 @@
+<html>
+
+<head>
+  <style>
+    input, button, span, select {
+      margin: 10px;
+      padding: 10px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <script src="../vendor/jquery/jquery.min.js"></script>
+  <script src="../out/telegramApi-full.js"></script>
+
+  <div>
+    <h1>Input phone number</h1>
+    <input id="phone" type="text" placeholder="Phone" value="79823663413">
+    <button id="sendButton">Send code</button>
+  </div>
+
+  <div id="phone-code">
+    <h1>Input phone code</h1>
+    <input id="code" type="text" placeholder="code">
+    <button id="signInButton">Sign in</button>
+    <span>Phone code hash: </span>
+    <span id="phoneHash"></span>
+  </div>
+
+  <div>
+    <h1>Send Message</h1>
+    <select id="select"></select>
+    <button id="getDialogsButton">Get dialogs</button>
+    <input id="message" type="text" placeholder="Message">
+    <button id="sendMessageButton">SendMessage</button>
+  </div>
+
+  <div>
+    <h1>Start bot</h1>
+    <button id="addBotButton">Add selinkBot</button>
+  </div>
+
+  <script src="js/script.js"></script>
+
+</body>
+
+</html>
