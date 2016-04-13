@@ -12,7 +12,7 @@ grunt build
 
 На странице так же необходимо подключить jQuery.
 
-telegramApi-full.js следует подключать в блоке <body>
+telegramApi-full.js следует подключать в блоке &lt;body&gt;
 
 ## Methods
 
