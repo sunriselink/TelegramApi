@@ -2,6 +2,8 @@
 
 Основано на проекте [**webogram**](https://github.com/zhukov/webogram)  
 
+Для использования библиотеки необходимо зарегистрировать свое приложение на https://my.telegram.org/, затем прописать app_id и app_hash в js/lib/config.js и сервера в helpers/MtpDcConfiguration.js
+
 Для сборки выполнить
 ```
 npm install
