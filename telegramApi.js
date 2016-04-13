@@ -5,9 +5,9 @@ var telegramApi = (function () {
 
     /* Public Functions */
 
-    var sendCode = function (phone) {
+    var sendCode = function (phone_number) {
         return _MtpApiManager.invokeApi('auth.sendCode', {
-            phone_number: phone,
+            phone_number: phone_number,
             sms_type: 5,
             api_id: Config.App.id,
             api_hash: Config.App.hash,
