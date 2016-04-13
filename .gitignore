@@ -1,6 +1,5 @@
 .idea
 node_modules
 out
-example/js/telegramApi*
-example/js/lib
-example/nacl
+example/js/
+example/nacl/
