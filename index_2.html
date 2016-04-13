@@ -1,0 +1,115 @@
+<html>
+<body>
+
+  <script type="text/javascript" src="js/lib/polyfill.js"></script>
+  <script type="text/javascript" src="vendor/jquery/jquery.min.js"></script>
+  <script type="text/javascript" src="js/lib/config.js"></script>
+
+  <script type="text/javascript" src="vendor/angular/angular.js"></script>
+  <script type="text/javascript" src="vendor/jsbn/jsbn_combined.js"></script>
+  <script type="text/javascript" src="vendor/cryptoJS/crypto.js"></script>
+  <script type="text/javascript" src="vendor/rusha/rusha.js"></script>
+  <script type="text/javascript" src="vendor/zlib/gunzip.min.js"></script>
+  <script type="text/javascript" src="vendor/closure/long.js"></script>
+  <script type="text/javascript" src="vendor/leemon_bigint/bigint.js"></script>
+  <script type="text/javascript" src="vendor/libwebpjs/libwebp-0.2.0.js"></script>
+
+  <script type="text/javascript" src="js/lib/utils.js"></script>
+  <script type="text/javascript" src="js/lib/bin_utils.js"></script>
+  <script type="text/javascript" src="js/lib/tl_utils.js"></script>
+
+
+
+  <script src="helpers/_.js"></script>
+  <script src="helpers/Filter.js"></script>
+  <script src="helpers/qSync.js"></script>
+  <script src="helpers/Helper.js"></script>
+  <script src="helpers/Storage.js"></script>
+  <script src="helpers/CryptoWorker.js"></script>
+  <script src="helpers/IdleManager.js"></script>
+  <script src="helpers/TelegramMeWebService.js"></script>
+  <script src="helpers/NotificationsManager.js"></script>
+
+  <script src="helpers/MtpDcConfigurator.js"></script>
+  <script src="helpers/MtpTimeManager.js"></script>
+  <script src="helpers/MtpSecureRandom.js"></script>
+  <script src="helpers/MtpNetworkerFactory.js"></script>
+  <script src="helpers/MtpSingleInstanceService.js"></script>
+  <script src="helpers/MtpApiManager.js"></script>
+
+  <script src="helpers/AppPeersManager.js"></script>
+  <script src="helpers/AppChatsManager.js"></script>
+  <script src="helpers/AppMessagesManager.js"></script>
+  <script src="helpers/AppUsersManager.js"></script>
+  <script src="helpers/ApiUpdatesManager.js"></script>
+
+  <script src="telegramApi.js"></script>
+
+  <style>
+    input, button, span, select {
+      margin: 10px;
+      padding: 10px;
+    }
+  </style>
+
+  <input id="phone" type="text" placeholder="Phone" value="79823663413">
+  <button id="sendButton">Send code</button>
+
+  <br>
+
+  <input id="code" type="text" placeholder="code">
+  <button id="signInButton">Sign in</button>
+  <span>Phone code hash: </span>
+  <span id="phoneHash"></span>
+
+  <br>
+
+  <select name="Контакты" id="select"></select>
+  <input id="message" type="text" placeholder="Message">
+  <button id="sendMessageButton">SendMessage</button>
+
+  <br>
+
+  <button id="getDialogsButton">Get dialogs</button>
+
+  <br>
+
+  <button id="addBotButton">Add selinkBot</button>
+
+  <script>
+    $('#sendButton').click(function() {
+      telegramApi.sendCode($('#phone').val()).then(function (sentCode) {
+        $('#phoneHash').text(sentCode.phone_code_hash);
+      });
+    });
+
+    $('#signInButton').click(function () {
+      var phone = $('#phone').val();
+      var hash = $('#phoneHash').text();
+      var code = $('#code').val();
+      telegramApi.signIn(phone, hash, code);
+    });
+
+    $('#sendMessageButton').click(function () {
+      var id = $('#select').val();
+      var message = $('#message').val();
+      telegramApi.sendMessage(id, message);
+    });
+
+    $('#getDialogsButton').click(function () {
+      telegramApi.getDialogs().then(function (result) {
+        $('#select').empty();
+        result.forEach(function (dialog) {
+          var text = dialog._ == 'chat' ? dialog.title : dialog.first_name + (dialog.last_name ? ' ' + dialog.last_name : '');
+          $('#select').append('<option value="' + dialog.id + '">' + text + '</option>');
+        });
+      });
+    });
+
+    $('#addBotButton').click(function () {
+      telegramApi.startBot('selinkbot');
+    });
+  </script>
+
+</body>
+</html>

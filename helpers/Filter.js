@@ -1,0 +1,268 @@
+var $filter = new _Filter();
+var $sFilter = angular.injector(['ng']).get('$filter');
+
+$filter
+
+    .filter('userName', function () {
+        return function (user) {
+            if (!user || !user.first_name && !user.last_name) {
+                return __('user_name_deleted');
+            }
+            return user.first_name + (user.last_name ? ' ' + user.last_name : '');
+        }
+    })
+
+    .filter('userFirstName', function () {
+        return function (user) {
+            if (!user || !user.first_name && !user.last_name) {
+                return __('user_first_name_deleted');
+            }
+            return user.first_name || user.last_name;
+        }
+    })
+
+    .filter('userStatus', function () {
+        var relativeTimeFilter = $filter.call('relativeTime');
+        return function (user, botChatPrivacy) {
+            var statusType = user && user.status && user.status._;
+            if (!statusType) {
+                statusType = user && user.pFlags && user.pFlags.bot ? 'userStatusBot' : 'userStatusEmpty';
+            }
+            switch (statusType) {
+                case 'userStatusOnline':
+                    return __('user_status_online');
+
+                case 'userStatusOffline':
+                    return __('user_status_last_seen', relativeTimeFilter(user.status.was_online));
+
+                case 'userStatusRecently':
+                    return __('user_status_recently');
+
+                case 'userStatusLastWeek':
+                    return __('user_status_last_week');
+
+                case 'userStatusLastMonth':
+                    return __('user_status_last_month');
+
+                case 'userStatusBot':
+                    if (botChatPrivacy) {
+                        if (user.pFlags.bot_chat_history) {
+                            return __('user_status_bot_noprivacy');
+                        } else {
+                            return __('user_status_bot_privacy');
+                        }
+                    }
+                    return __('user_status_bot');
+
+                case 'userStatusEmpty':
+                default:
+                    return __('user_status_long_ago');
+            }
+        }
+    })
+
+    .filter('chatTitle', function () {
+        return function (chat) {
+            if (!chat || !chat.title) {
+                return __('chat_title_deleted');
+            }
+            return chat.title;
+        }
+    })
+
+    .filter('dateOrTime', function () {
+        var dateFilter = $sFilter('date');
+
+        return function (timestamp, extended) {
+            if (!timestamp) {
+                return '';
+            }
+            var ticks = timestamp * 1000,
+                diff = Math.abs(tsNow() - ticks),
+                format = 'shortTime';
+
+            if (diff > 518400000) { // 6 days
+                format = extended ? 'mediumDate' : 'shortDate';
+            }
+            else if (diff > 43200000) { // 12 hours
+                format = extended ? 'EEEE' : 'EEE';
+            }
+
+            return dateFilter(ticks, format);
+        }
+    })
+
+    .filter('time', function () {
+        var cachedDates = {},
+            dateFilter = $sFilter('date');
+            format = Config.Mobile ? 'shortTime' : 'mediumTime';
+
+        return function (timestamp) {
+            if (cachedDates[timestamp]) {
+                return cachedDates[timestamp];
+            }
+
+            return cachedDates[timestamp] = dateFilter(timestamp * 1000, format);
+        }
+    })
+
+    .filter('myDate', function () {
+        var cachedDates = {},
+            dateFilter = $sFilter('date');
+
+        return function (timestamp) {
+            if (cachedDates[timestamp]) {
+                return cachedDates[timestamp];
+            }
+
+            return cachedDates[timestamp] = dateFilter(timestamp * 1000, 'fullDate');
+        }
+    })
+
+    .filter('duration', function () {
+        return function (duration) {
+            duration = parseInt(duration);
+            if (isNaN(duration)) {
+                duration = 0;
+            }
+            var secs = duration % 60,
+                mins = Math.floor((duration - secs) / 60.0);
+
+            if (secs < 10) {
+                secs = '0' + secs;
+            }
+
+            return mins + ':' + secs;
+        }
+    })
+
+    .filter('durationRemains', function () {
+        var durationFilter = $filter.call('duration');
+
+        return function (done, total) {
+            return '-' + durationFilter(total - done);
+        }
+    })
+
+    .filter('phoneNumber', function () {
+        return function (phoneRaw) {
+            var nbsp = ' ';
+            phoneRaw = (phoneRaw || '').replace(/\D/g, '');
+            if (phoneRaw.charAt(0) == '7' && phoneRaw.length == 11) {
+                return '+' + phoneRaw.charAt(0) + nbsp + '(' + phoneRaw.substr(1, 3) + ')' + nbsp + phoneRaw.substr(4, 3) + '-' + phoneRaw.substr(7, 2) + '-' + phoneRaw.substr(9, 2);
+            }
+            return '+' + phoneRaw;
+        }
+    })
+
+    .filter('formatSize', function () {
+        return function (size, progressing) {
+            if (!size) {
+                return '0';
+            }
+            else if (size < 1024) {
+                return size + ' b';
+            }
+            else if (size < 1048576) {
+                return Math.round(size / 1024) + ' KB';
+            }
+            var mbs = size / 1048576;
+            if (progressing) {
+                mbs = mbs.toFixed(1);
+            } else {
+                mbs = (Math.round(mbs * 10) / 10);
+            }
+            return mbs + ' MB';
+        }
+    })
+
+    .filter('formatSizeProgress', function () {
+        var formatSizeFilter = $filter.call('formatSize');
+        return function (progress) {
+            if (!progress.total) {
+                return '';
+            }
+            var done = formatSizeFilter(progress.done, true),
+                doneParts = done.split(' '),
+                total = formatSizeFilter(progress.total),
+                totalParts = total.split(' ');
+
+            if (totalParts[1] === doneParts[1]) {
+                return __('format_size_progress_mulitple', {
+                    done: doneParts[0],
+                    total: totalParts[0],
+                    parts: (doneParts[1] || '')
+                });
+            }
+            return __('format_size_progress', {done: done, total: total});
+        }
+    })
+
+    .filter('formatShortNumber', function () {
+        return function (num) {
+            if (!num) {
+                return '0';
+            }
+            else if (num < 1000) {
+                return num.toString();
+            }
+            else if (num < 900000) {
+                var mult = num > 10000 ? 1 : 10;
+                return (Math.round(num / 1000 * mult) / mult) + 'K';
+            }
+            var mult = num > 10000000 ? 1 : 10;
+            return (Math.round(num / 1000000 * mult) / mult) + 'M';
+        }
+    })
+
+    .filter('nl2br', function () {
+        return function (text) {
+            return text.replace(/\n/g, '<br/>');
+        }
+    })
+
+    .filter('richText', function () {
+        var linkyFilter = $filter.call('linky');
+        return function (text) {
+            return linkyFilter(text, '_blank').replace(/\n|&#10;/g, '<br/>');
+        }
+    })
+
+    .filter('relativeTime', function () {
+        var langMinutesPluralize = __.pluralize('relative_time_pluralize_minutes_ago'),
+            langHoursPluralize = __.pluralize('relative_time_pluralize_hours_ago'),
+            dateOrTimeFilter = $filter.call('dateOrTime');
+
+        return function (timestamp) {
+            var diff = Math.abs(tsNow(true) - timestamp);
+
+            if (diff < 60) {
+                return __('relative_time_just_now');
+            }
+            if (diff < 3600) {
+                var minutes = Math.floor(diff / 60);
+                return langMinutesPluralize(minutes);
+            }
+            if (diff < 86400) {
+                var hours = Math.floor(diff / 3600);
+                return langHoursPluralize(hours);
+            }
+            return dateOrTimeFilter(timestamp, true);
+        }
+    });
+
+function _Filter(param) {
+    this.methods = [];
+    this.filter = function (name, constructor) {
+        this.methods[name] = constructor;
+        return this;
+    };
+    this.call = function (name) {
+        try {
+            return this.methods[name]();
+        } catch (err) {
+            debugger;
+            // TODO
+        }
+    }
+}
