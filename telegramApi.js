@@ -130,8 +130,8 @@ var telegramApi = (function () {
 
     return {
         addChatUser: addChatUser,
-        getDialogs: getDialogs,
         createChat: createChat,
+        getDialogs: getDialogs,
         sendCode: sendCode,
         sendMessage: sendMessage,
         sendSms: sendSms,
