@@ -50,6 +50,12 @@ telegramApi.setConfig({
 ```
 telegramApi.sendCode(phone_number);
 ```
+Отправка кода по смс
+* phone_number - номер телефона (начинается с 7)
+* phone_code_hash - хеш кода авторизации (был получен из sendCode)
+```
+telegramApi.sendSms(phone_number, phone_code_hash);
+```
 Авторизация пользователя
 * phone_number - номер телефона (начинается с 7)
 * phone_code_hash - хеш кода авторизации (был получен из sendCode)
