@@ -1,10 +1,14 @@
 <html>
 
 <head>
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
   <style>
-    input, button, span, select {
-      margin: 10px;
-      padding: 10px;
+    input, select {
+      width: 200px !important;
+      display: inline-block !important;
+    }
+    div {
+      margin-bottom: 40px;;
     }
   </style>
 </head>
@@ -16,30 +20,30 @@
 
   <div>
     <h1>Input phone number</h1>
-    <input id="phone" type="text" placeholder="Phone" value="79823663413">
-    <button id="sendButton">Send code</button>
-    <button id="sendSmsButton">Send sms</button>
+    <input class="form-control" id="phone" type="text" placeholder="Phone" value="79823663413">
+    <button class="btn btn-success" id="sendButton">Send code</button>
+    <button class="btn btn-success" id="sendSmsButton">Send sms</button>
   </div>
 
   <div id="phone-code">
     <h1>Input phone code</h1>
-    <input id="code" type="text" placeholder="code">
-    <button id="signInButton">Sign in</button>
+    <input class="form-control "id="code" type="text" placeholder="code">
+    <button class="btn btn-success" id="signInButton">Sign in</button>
     <span>Phone code hash: </span>
     <span id="phoneHash"></span>
   </div>
 
   <div>
     <h1>Send Message</h1>
-    <select id="select"></select>
-    <button id="getDialogsButton">Get dialogs</button>
-    <input id="message" type="text" placeholder="Message">
-    <button id="sendMessageButton">SendMessage</button>
+    <select class="form-control" id="select"></select>
+    <button class="btn btn-success" id="getDialogsButton">Get dialogs</button>
+    <input class="form-control" id="message" type="text" placeholder="Message">
+    <button class="btn btn-success" id="sendMessageButton">SendMessage</button>
   </div>
 
   <div>
     <h1>Start bot</h1>
-    <button id="addBotButton">Add selinkBot</button>
+    <button class="btn btn-success" id="addBotButton">Add selinkBot</button>
   </div>
 
   <script src="script.js"></script>

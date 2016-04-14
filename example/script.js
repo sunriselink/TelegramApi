@@ -44,9 +44,9 @@ $('#signInButton').click(function () {
             $('#phone-code').append(
                 '<div id="reg">' +
                     '<h1>Input first name and last name</h1>' +
-                    '<input type="text" placeholder="First name" id="firstName">' +
-                    '<input type="text" placeholder="Last name" id="lastName">' +
-                    '<button onclick="signUn()">Sign up</button>' +
+                    '<input class="form-control" type="text" placeholder="First name" id="firstName">' +
+                    '<input class="form-control" type="text" placeholder="Last name" id="lastName">' +
+                    '<button class="btn btn-success" onclick="signUn()">Sign up</button>' +
                 '</div>'
             );
         });
