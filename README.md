@@ -85,6 +85,20 @@ telegramApi.getDialogs();
 telegramApi.sendMessage(id, message);
 ```
 
+### Чаты
+Создать чат
+* title - Название чата
+* userIDs - массив идентификаторов пользователей (для приглашения)
+```
+telegramApi.createChat(title, userIDs);
+```
+Добавить пользователя в чат
+* chatID - идентификатор чата
+* userID - идентификтор пользователя
+```
+telegramApi.addChatUser(chatID, userID);
+```
+
 ### Работа с ботами
 Добавление бота (боту автоматически отправляется команда /start)
 * botName - имя бота
