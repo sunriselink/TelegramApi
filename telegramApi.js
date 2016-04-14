@@ -96,8 +96,42 @@ var telegramApi = (function () {
         Config.Server.Production = config.server.production;
     };
 
+    var createChat = function (title, userIDs) {
+        title = title || '';
+        userIDs = userIDs || [];
+
+        if (!Array.isArray(userIDs)) {
+            throw new Error('[userIDs] is not array');
+        }
+
+        var inputUsers = [];
+
+        for (var i = 0; i < userIDs.length; i++) {
+            inputUsers.push(_AppUsersManager.getUserInput(userIDs[i]))
+        }
+
+        _MtpApiManager.invokeApi('messages.createChat', {
+            title: title,
+            users: inputUsers
+        }).then(function (updates) {
+            _ApiUpdatesManager.processUpdateMessage(updates);
+        });
+    };
+
+    var addChatUser = function (chatID, userID) {
+        return _MtpApiManager.invokeApi('messages.addChatUser', {
+            chat_id: _AppChatsManager.getChatInput(chatID),
+            user_id: _AppUsersManager.getUserInput(userID),
+            fwd_limit: 100
+        }).then(function (updates) {
+            _ApiUpdatesManager.processUpdateMessage(updates);
+        });
+    };
+
     return {
+        addChatUser: addChatUser,
         getDialogs: getDialogs,
+        createChat: createChat,
         sendCode: sendCode,
         sendMessage: sendMessage,
         sendSms: sendSms,

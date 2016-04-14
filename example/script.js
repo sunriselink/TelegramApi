@@ -61,15 +61,31 @@ $('#sendMessageButton').click(function () {
 $('#getDialogsButton').click(function () {
     telegramApi.getDialogs().then(function (result) {
         $('#select').empty();
+        $('#chatUsers').empty();
+        $('#chatInvite').empty();
         result.forEach(function (dialog) {
             var text = dialog._ == 'chat' ? dialog.title : dialog.first_name + (dialog.last_name ? ' ' + dialog.last_name : '');
             $('#select').append('<option value="' + dialog.id + '">' + text + '</option>');
+            $('#chatUsers').append('<option value="' + dialog.id + '">' + text + '</option>');
+            $('#chatInvite').append('<option value="' + dialog.id + '">' + text + '</option>');
         });
     });
 });
 
 $('#addBotButton').click(function () {
     telegramApi.startBot('selinkbot');
+});
+
+$('#createChatButton').click(function () {
+    var title = $('#chatTitle').val();
+    var userIDs = $('#chatUsers').val();
+    telegramApi.createChat(title, userIDs);
+});
+
+$('#inviteButton').click(function () {
+    var chatID = $('#chatInvite').val();
+    var userID = $('#chatUsers').val()[0];
+    telegramApi.addChatUser(chatID, userID);
 });
 
 function signUn() {
