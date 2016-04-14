@@ -2,7 +2,33 @@
 
 Основано на проекте [**webogram**](https://github.com/zhukov/webogram)  
 
-Для использования библиотеки необходимо зарегистрировать свое приложение на https://my.telegram.org/, затем прописать app_id и app_hash в js/lib/config.js и сервера в helpers/MtpDcConfiguration.js
+Для использования библиотеки необходимо зарегистрировать свое приложение на https://my.telegram.org/.
+
+Настройки можно задать через метод setConfig
+```
+telegramApi.setConfig({
+  app: {
+    id: 0, /* ID приложения */
+    hash: 'qwertyasdfghzxcvbnqwertyasd' /* Хеш приложения */
+  },
+  server: {
+    test: [
+      {
+        id: 2, /* DC */
+        host: '0.0.0.0', /* Адрес тестового сервера */
+        port: 123 /* Порт тестового сервера */
+      }
+    ],
+    production: [
+      {
+        id: 2, /* DC */
+        host: '0.0.0.0', /* Адрес продакшн сервера */
+        port: 123 /* Порт продакшн сервера */
+      }
+    ]
+  }
+});
+```
 
 Для сборки выполнить
 ```
@@ -58,4 +84,11 @@ telegramApi.sendMessage(id, message);
 * botName - имя бота
 ```
 telegramApi.startBot(botName);
+```
+
+### Кофигурация
+Установить настройки приложения
+* config - объект конфигурации
+```
+telegramApi.setConfig(config);
 ```
