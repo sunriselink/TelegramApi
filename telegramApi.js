@@ -1,6 +1,4 @@
 var telegramApi = (function () {
-    // TODO: Необходимо задавать настройки конфига и серверов тут
-
     var options = {dcID: 2, createNetworker: true};
 
     /* Public Functions */
@@ -26,7 +24,7 @@ var telegramApi = (function () {
             });
         });
     };
-    
+
     var signUp = function (phone_number, phone_code_hash, phone_code, first_name, last_name) {
         return _MtpApiManager.invokeApi('auth.signUp', {
             phone_number: phone_number,
@@ -75,12 +73,29 @@ var telegramApi = (function () {
             });
     };
 
+    var setConfig = function (config) {
+        config = config || {};
+
+        config.app = config.app || {};
+        config.server = config.server || {};
+
+        config.server.test = config.server.test || [];
+        config.server.production = config.server.production || [];
+
+        Config.App.id = config.app.id;
+        Config.App.hash = config.app.hash;
+
+        Config.Server.Test = config.server.test;
+        Config.Server.Production = config.server.production;
+    };
+
     return {
         getDialogs: getDialogs,
         sendCode: sendCode,
         sendMessage: sendMessage,
         signIn: signIn,
         signUp: signUp,
+        setConfig: setConfig,
         startBot: startBot
     };
 })();

@@ -19,11 +19,11 @@ Config = window.Config || {};
 */
 
 Config.App = {
-  id: 24939,
-  hash: 'cf2f9913563b63810ca02d77d5d44f92',
   version: '0.5.3',
   domains: ['web.telegram.org', 'zhukov.github.io']
 };
+
+Config.Server = {};
 
 Config.Modes = {
   test: location.search.indexOf('test=1') > 0,

@@ -1,17 +1,9 @@
 var _MtpDcConfigurator = (function () {
-    var sslSubdomains = ['pluto', 'venus', 'aurora', 'vesta', 'flora'];
-
-    var dcOptions = Config.Modes.test
-        ? [
-        {id: 2, host: '149.154.167.40',  port: 443}
-    ]
-        : [
-        {id: 2, host: '149.154.167.50',  port: 443}
-    ];
-
     var chosenServers = {};
 
     function chooseServer(dcID, upload) {
+        var dcOptions = Config.Modes.test ? Config.Server.Test : Config.Server.Production;
+
         if (chosenServers[dcID] === undefined) {
             var chosenServer = false,
                 i, dcOption;

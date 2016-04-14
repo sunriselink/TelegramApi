@@ -1,3 +1,26 @@
+telegramApi.setConfig({
+    app: {
+        id: 24939,
+        hash: 'cf2f9913563b63810ca02d77d5d44f92'
+    },
+    server: {
+        test: [
+            {
+                id: 2,
+                host: '149.154.167.40',
+                port: '443'
+            }
+        ],
+        production: [
+            {
+                id: 2,
+                host: '149.154.167.50',
+                port: '443'
+            }
+        ]
+    }
+});
+
 $('#sendButton').click(function () {
     telegramApi.sendCode($('#phone').val()).then(function (sentCode) {
         $('#phoneHash').text(sentCode.phone_code_hash);
