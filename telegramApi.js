@@ -73,6 +73,13 @@ var telegramApi = (function () {
             });
     };
 
+    var sendSms = function (phone_number, phone_code_hash) {
+        return _MtpApiManager.invokeApi('auth.sendSms', {
+            phone_number: phone_number,
+            phone_code_hash: phone_code_hash
+        }, options)
+    };
+
     var setConfig = function (config) {
         config = config || {};
 
@@ -93,6 +100,7 @@ var telegramApi = (function () {
         getDialogs: getDialogs,
         sendCode: sendCode,
         sendMessage: sendMessage,
+        sendSms: sendSms,
         signIn: signIn,
         signUp: signUp,
         setConfig: setConfig,

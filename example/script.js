@@ -27,6 +27,13 @@ $('#sendButton').click(function () {
     });
 });
 
+$('#sendSmsButton').click(function () {
+    var phone = $('#phone').val();
+    var hash = $('#phoneHash').text();
+
+    telegramApi.sendSms(phone, hash);
+});
+
 $('#signInButton').click(function () {
     var phone = $('#phone').val();
     var hash = $('#phoneHash').text();
