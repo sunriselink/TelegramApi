@@ -92,9 +92,10 @@ telegramApi.sendMessage(id, message);
 ```
 telegramApi.createChat(title, userIDs);
 ```
+> Необходимо указать минимух двух пользователей
 Добавить пользователя в чат
 * chatID - идентификатор чата
-* userID - идентификтор пользователя
+* userID - идентификатор пользователя
 ```
 telegramApi.addChatUser(chatID, userID);
 ```
