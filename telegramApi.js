@@ -110,7 +110,7 @@ var telegramApi = (function () {
             inputUsers.push(_AppUsersManager.getUserInput(userIDs[i]))
         }
 
-        _MtpApiManager.invokeApi('messages.createChat', {
+        return _MtpApiManager.invokeApi('messages.createChat', {
             title: title,
             users: inputUsers
         }).then(function (updates) {

@@ -96,7 +96,7 @@ var _MtpApiManager = (function () {
                 return $q.reject({type: 'AUTH_KEY_EMPTY', code: 401});
             }
 
-            return MtpAuthorizer.auth(dcID).then(function (auth) {
+            return _MtpAuthorizer.auth(dcID).then(function (auth) {
                 var storeObj = {};
                 storeObj[akk] = bytesToHex(auth.authKey);
                 storeObj[ssk] = bytesToHex(auth.serverSalt);

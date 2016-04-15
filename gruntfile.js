@@ -32,6 +32,8 @@ module.exports = function (grunt) {
                     'helpers/MtpDcConfigurator.js',
                     'helpers/MtpTimeManager.js',
                     'helpers/MtpSecureRandom.js',
+                    'helpers/MtpRsaKeysManager.js',
+                    'helpers/MtpAuthorizer.js',
                     'helpers/MtpNetworkerFactory.js',
                     'helpers/MtpSingleInstanceService.js',
                     'helpers/MtpApiManager.js',
