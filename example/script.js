@@ -88,6 +88,12 @@ $('#inviteButton').click(function () {
     telegramApi.addChatUser(chatID, userID);
 });
 
+$('#getChatLinkButton').click(function () {
+    telegramApi.getChatLink($('#chatInvite').val()).then(function (link) {
+        $('#chat').append('<br><span>' + link + '</span>');
+    });
+});
+
 function signUn() {
     var phone = $('#phone').val();
     var hash = $('#phoneHash').text();

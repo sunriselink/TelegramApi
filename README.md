@@ -92,12 +92,18 @@ telegramApi.sendMessage(id, message);
 ```
 telegramApi.createChat(title, userIDs);
 ```
-> Необходимо указать минимух двух пользователей
+> Необходимо указать минимум одного пользователя
+
 Добавить пользователя в чат
 * chatID - идентификатор чата
 * userID - идентификатор пользователя
 ```
 telegramApi.addChatUser(chatID, userID);
+```
+Получить ссылку на чат
+* chatID - идентификатор чата
+```
+telegramApi.getChatLink(chatID);
 ```
 
 ### Работа с ботами

@@ -134,9 +134,14 @@ var telegramApi = (function () {
         });
     };
 
+    var getChatLink = function (chatID) {
+        return _AppProfileManager.getChatInviteLink(chatID);
+    };
+
     return {
         addChatUser: addChatUser,
         createChat: createChat,
+        getChatLink: getChatLink,
         getDialogs: getDialogs,
         sendCode: sendCode,
         sendMessage: sendMessage,
