@@ -94,6 +94,12 @@ var telegramApi = (function () {
 
         Config.Server.Test = config.server.test;
         Config.Server.Production = config.server.production;
+
+        _MtpApiManager.invokeApi('help.getNearestDc', {}, options).then(function (nearestDcResult) {
+            if (nearestDcResult.nearest_dc != nearestDcResult.this_dc) {
+                _MtpApiManager.getNetworker(nearestDcResult.nearest_dc, {createNetworker: true});
+            }
+        })
     };
 
     var createChat = function (title, userIDs) {

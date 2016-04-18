@@ -68,7 +68,11 @@ module.exports = function (grunt) {
                     {
                         expand: true,
                         cwd: 'js/lib/',
-                        src: [ 'crypto_worker.js' ],
+                        src: [
+                            'crypto_worker.js',
+                            'polyfill.js',
+                            'bin_utils.js'
+                        ],
                         dest: 'example/js/lib/'
                     },
                     {
@@ -79,12 +83,24 @@ module.exports = function (grunt) {
                     }
                 ]
             }
+        },
+        connect: {
+            http: {
+                options: {
+                    base: '.',
+                    protocol: 'http',
+                    hostname: 'localhost',
+                    port: 5666,
+                    keepalive: true
+                }
+            }
         }
     });
 
     grunt.loadNpmTasks('grunt-contrib-concat');
     grunt.loadNpmTasks('grunt-contrib-uglify');
     grunt.loadNpmTasks('grunt-contrib-copy');
+    grunt.loadNpmTasks('grunt-contrib-connect');
 
     grunt.registerTask('build', [
         'concat',
