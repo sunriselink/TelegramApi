@@ -52,17 +52,14 @@ var telegramApi = (function () {
 
     var getDialogs = function () {
         var dialogs = [];
-        var defer = $.Deferred();
 
-        _AppMessagesManager.getConversations('', 0, 20)
+        return _AppMessagesManager.getConversations('', 0, 20)
             .then(function (result) {
                 for (var i = 0, ii = result.dialogs.length; i < ii; i++) {
                     dialogs.push(_AppPeersManager.getPeer(result.dialogs[i].peerID));
                 }
-                defer.resolve(dialogs);
+                return dialogs;
             });
-
-        return defer;
     };
 
     var startBot = function (botName) {
@@ -138,17 +135,33 @@ var telegramApi = (function () {
         return _AppProfileManager.getChatInviteLink(chatID);
     };
 
+    var updateUsername = function (username) {
+        return _MtpApiManager.invokeApi('account.updateUsername', {
+            username: username || ''
+        }).then(function (user) {
+            _AppUsersManager.saveApiUser(user);
+        });
+    };
+
+    var getUserInfo = function () {
+        return _MtpApiManager.getUserID().then(function (id) {
+            return _AppUsersManager.getUser(id);
+        });
+    };
+
     return {
         addChatUser: addChatUser,
         createChat: createChat,
         getChatLink: getChatLink,
         getDialogs: getDialogs,
+        getUserInfo: getUserInfo,
         sendCode: sendCode,
         sendMessage: sendMessage,
         sendSms: sendSms,
         signIn: signIn,
         signUp: signUp,
         setConfig: setConfig,
-        startBot: startBot
+        startBot: startBot,
+        updateUsername: updateUsername
     };
 })();

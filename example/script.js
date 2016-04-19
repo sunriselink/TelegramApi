@@ -94,6 +94,18 @@ $('#getChatLinkButton').click(function () {
     });
 });
 
+$('#getUserInfoButton').click(function () {
+    telegramApi.getUserInfo().then(function (user) {
+        $('#firstName').val(user.first_name);
+        $('#secondName').val(user.last_name);
+        $('#userName').val(user.username);
+    });
+});
+
+$('#updateUsername').click(function () {
+    telegramApi.updateUsername($('#userName').val());
+});
+
 function signUn() {
     var phone = $('#phone').val();
     var hash = $('#phoneHash').text();

@@ -7,6 +7,11 @@
       width: 200px !important;
       display: inline-block !important;
     }
+    #chatUsers {
+      height: 200px;
+      position: relative;
+      top: 10px;
+    }
     div {
       margin-bottom: 40px;;
     }
@@ -31,6 +36,15 @@
     <button class="btn btn-success" id="signInButton">Sign in</button>
     <span>Phone code hash: </span>
     <span id="phoneHash"></span>
+  </div>
+
+  <div>
+    <h1>User info</h1>
+    <input id="firstName" type="text" class="form-control" placeholder="First name">
+    <input id="secondName" type="text" class="form-control" placeholder="Last name">
+    <input id="userName" type="text" class="form-control" placeholder="Username">
+    <button id="getUserInfoButton" class="btn btn-success">Get user info</button>
+    <button id="updateUsername" class="btn btn-success">Update username</button>
   </div>
 
   <div>
