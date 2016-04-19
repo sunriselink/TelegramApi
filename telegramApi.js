@@ -149,6 +149,15 @@ var telegramApi = (function () {
         });
     };
 
+    var updateProfile = function (first_name, last_name) {
+        return _MtpApiManager.invokeApi('account.updateProfile', {
+            first_name: first_name || '',
+            last_name: last_name || ''
+        }).then(function (user) {
+            _AppUsersManager.saveApiUser(user);
+        });
+    };
+
     return {
         addChatUser: addChatUser,
         createChat: createChat,
@@ -162,6 +171,7 @@ var telegramApi = (function () {
         signUp: signUp,
         setConfig: setConfig,
         startBot: startBot,
+        updateProfile: updateProfile,
         updateUsername: updateUsername
     };
 })();

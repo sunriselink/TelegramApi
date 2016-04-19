@@ -73,6 +73,23 @@ telegramApi.signIn(phone_number, phone_code_hash, phone_code);
 telegramApi.signUp(phone_number, phone_code_hash, phone_code, first_name, last_name);
 ```
 
+### Работа с информацией о пользователе
+Получение информации о пользователе
+```
+telegramApi.getUserInfo();
+```
+Изменение @username
+* username - Новый username пользователя
+```
+telegramApi.updateUsername(username);
+```
+Изменение имени и фамилии пользователя
+* first_name - Имя пользователя
+* last_name - Фамилия пользователя
+```
+telegramApi.updateProfile(first_name, last_name);
+```
+
 ### Работа с сообщениями
 Получение списка диалогов (последние 20 штук)
 ```
@@ -113,7 +130,7 @@ telegramApi.getChatLink(chatID);
 telegramApi.startBot(botName);
 ```
 
-### Кофигурация
+### Конфигурация
 Установить настройки приложения
 * config - объект конфигурации
 ```

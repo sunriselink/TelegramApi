@@ -96,14 +96,20 @@ $('#getChatLinkButton').click(function () {
 
 $('#getUserInfoButton').click(function () {
     telegramApi.getUserInfo().then(function (user) {
-        $('#firstName').val(user.first_name);
-        $('#secondName').val(user.last_name);
-        $('#userName').val(user.username);
+        $('#firstName_info').val(user.first_name);
+        $('#lastName_info').val(user.last_name);
+        $('#userName_info').val(user.username);
     });
 });
 
 $('#updateUsername').click(function () {
-    telegramApi.updateUsername($('#userName').val());
+    telegramApi.updateUsername($('#userName_info').val());
+});
+
+$('#updateProfile').click(function () {
+    var firstName = $('#firstName_info').val();
+    var lastName = $('#lastName_info').val();
+    telegramApi.updateProfile(firstName, lastName);
 });
 
 function signUn() {
