@@ -22,6 +22,7 @@ var telegramApi = (function () {
             _MtpApiManager.setUserAuth(options.dcID, {
                 id: result.user.id
             });
+            _saveUserInfo();
         });
     };
 
@@ -36,6 +37,7 @@ var telegramApi = (function () {
             _MtpApiManager.setUserAuth(options.dcID, {
                 id: result.user.id
             });
+            _saveUserInfo();
         });
     };
 
@@ -96,7 +98,9 @@ var telegramApi = (function () {
             if (nearestDcResult.nearest_dc != nearestDcResult.this_dc) {
                 _MtpApiManager.getNetworker(nearestDcResult.nearest_dc, {createNetworker: true});
             }
-        })
+        });
+
+        _saveUserInfo();
     };
 
     var createChat = function (title, userIDs) {
@@ -158,12 +162,31 @@ var telegramApi = (function () {
         });
     };
 
+    var getUserPhotos = function (userID) {
+        return _AppPhotosManager.getUserPhotos(userID, 0, 1000);
+        // TODO
+    };
+
+    /* Private Functions */
+
+    function _saveUserInfo() {
+        _MtpApiManager.invokeApi('users.getFullUser', {
+            id: {_: 'inputUserSelf'}
+        }).then(function (userFullResult) {
+            _AppUsersManager.saveApiUser(userFullResult.user);
+            _AppPhotosManager.savePhoto(userFullResult.profile_photo, {
+                user_id: userFullResult.user.id
+            });
+        });
+    }
+
     return {
         addChatUser: addChatUser,
         createChat: createChat,
         getChatLink: getChatLink,
         getDialogs: getDialogs,
         getUserInfo: getUserInfo,
+        getUserPhotos: getUserPhotos,
         sendCode: sendCode,
         sendMessage: sendMessage,
         sendSms: sendSms,

@@ -37,9 +37,9 @@ var _AppProfileManager = (function () {
                 _AppUsersManager.saveApiUser(userFull.user, true);
             }
 
-            //AppPhotosManager.savePhoto(userFull.profile_photo, {
-            //    user_id: id
-            //});
+            _AppPhotosManager.savePhoto(userFull.profile_photo, {
+                user_id: id
+            });
 
             _NotificationsManager.savePeerSettings(id, userFull.notify_settings);
 
@@ -96,7 +96,7 @@ var _AppProfileManager = (function () {
             _AppUsersManager.saveApiUsers(result.users);
             var fullChat = result.full_chat;
             if (fullChat && fullChat.chat_photo.id) {
-                //AppPhotosManager.savePhoto(fullChat.chat_photo);
+                _AppPhotosManager.savePhoto(fullChat.chat_photo);
             }
             _NotificationsManager.savePeerSettings(-id, fullChat.notify_settings);
             delete chatFullPromises[id];
@@ -183,7 +183,7 @@ var _AppProfileManager = (function () {
             var fullChannel = result.full_chat;
             var chat = _AppChatsManager.getChat(id);
             if (fullChannel && fullChannel.chat_photo.id) {
-                //AppPhotosManager.savePhoto(fullChannel.chat_photo);
+                _AppPhotosManager.savePhoto(fullChannel.chat_photo);
             }
             _NotificationsManager.savePeerSettings(-id, fullChannel.notify_settings);
             var participantsPromise;
@@ -293,11 +293,11 @@ var _AppProfileManager = (function () {
             return;
         }
         var smallUserpic = chat.photo.photo_small;
-        //var smallPhotoSize = AppPhotosManager.choosePhotoSize(fullChat.chat_photo, 0, 0);
-        //if (!angular.equals(smallUserpic, smallPhotoSize.location)) {
-        //    delete chatsFull[chatID];
-        //    $rootScope.$broadcast('chat_full_update', chatID);
-        //}
+        var smallPhotoSize = _AppPhotosManager.choosePhotoSize(fullChat.chat_photo, 0, 0);
+        if (!angular.equals(smallUserpic, smallPhotoSize.location)) {
+            delete chatsFull[chatID];
+            $rootScope.$broadcast('chat_full_update', chatID);
+        }
     });
 
     return {

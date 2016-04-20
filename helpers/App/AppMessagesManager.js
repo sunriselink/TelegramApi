@@ -1186,7 +1186,7 @@ var _AppMessagesManager = (function () {
             //            delete apiMessage.media;
             //            break;
             //        case 'messageMediaPhoto':
-            //            AppPhotosManager.savePhoto(apiMessage.media.photo, mediaContext);
+            //            _AppPhotosManager.savePhoto(apiMessage.media.photo, mediaContext);
             //            break;
             //        case 'messageMediaVideo':
             //            AppVideoManager.saveVideo(apiMessage.media.video, mediaContext);
@@ -1206,7 +1206,7 @@ var _AppMessagesManager = (function () {
                 var migrateFrom, migrateTo;
                 switch (apiMessage.action._) {
                     case 'messageActionChatEditPhoto':
-                        AppPhotosManager.savePhoto(apiMessage.action.photo, mediaContext);
+                        _AppPhotosManager.savePhoto(apiMessage.action.photo, mediaContext);
                         if (isBroadcast) {
                             apiMessage.action._ = 'messageActionChannelEditPhoto';
                         }
@@ -1651,7 +1651,7 @@ var _AppMessagesManager = (function () {
             case 'inputMediaPhoto':
                 media = {
                     _: 'messageMediaPhoto',
-                    photo: AppPhotosManager.getPhoto(inputMedia.id.id),
+                    photo: _AppPhotosManager.getPhoto(inputMedia.id.id),
                     caption: inputMedia.caption || ''
                 };
                 break;
@@ -2083,7 +2083,7 @@ var _AppMessagesManager = (function () {
 
             switch (message.media._) {
                 case 'messageMediaPhoto':
-                    message.media.photo = AppPhotosManager.wrapForHistory(message.media.photo.id);
+                    message.media.photo = _AppPhotosManager.wrapForHistory(message.media.photo.id);
                     break;
 
                 case 'messageMediaVideo':
@@ -2136,7 +2136,7 @@ var _AppMessagesManager = (function () {
             switch (message.action._) {
                 case 'messageActionChatEditPhoto':
                 case 'messageActionChannelEditPhoto':
-                    message.action.photo = AppPhotosManager.wrapForHistory(message.action.photo.id);
+                    message.action.photo = _AppPhotosManager.wrapForHistory(message.action.photo.id);
                     break;
 
                 case 'messageActionChatCreate':
@@ -2380,7 +2380,7 @@ var _AppMessagesManager = (function () {
         if (message.media) {
             switch (message.media._) {
                 case 'messageMediaPhoto':
-                    thumbPhotoSize = AppPhotosManager.choosePhotoSize(message.media.photo, thumbWidth, thumbHeight);
+                    thumbPhotoSize = _AppPhotosManager.choosePhotoSize(message.media.photo, thumbWidth, thumbHeight);
                     break;
 
                 case 'messageMediaDocument':
