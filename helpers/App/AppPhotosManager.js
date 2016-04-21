@@ -11,7 +11,7 @@ var _AppPhotosManager = (function () {
 
         angular.forEach(apiPhoto.sizes, function (photoSize) {
             if (photoSize._ == 'photoCachedSize') {
-                MtpApiFileManager.saveSmallFile(photoSize.location, photoSize.bytes);
+                _MtpApiFileManager.saveSmallFile(photoSize.location, photoSize.bytes);
 
                 // Memory
                 photoSize.size = photoSize.bytes.length;
@@ -71,7 +71,7 @@ var _AppPhotosManager = (function () {
         }
         var photo = photos[photoID];
         var fullWidth = $(window).width() - (Config.Mobile ? 20 : 32);
-        var fullHeight = $($window).height() - (Config.Mobile ? 150 : 116);
+        var fullHeight = $(window).height() - (Config.Mobile ? 150 : 116);
         if (fullWidth > 800) {
             fullWidth -= 208;
         }
@@ -80,14 +80,14 @@ var _AppPhotosManager = (function () {
         if (fullPhotoSize && !fullPhotoSize.preloaded) {
             fullPhotoSize.preloaded = true;
             if (fullPhotoSize.size) {
-                MtpApiFileManager.downloadFile(fullPhotoSize.location.dc_id, {
+                _MtpApiFileManager.downloadFile(fullPhotoSize.location.dc_id, {
                     _: 'inputFileLocation',
                     volume_id: fullPhotoSize.location.volume_id,
                     local_id: fullPhotoSize.location.local_id,
                     secret: fullPhotoSize.location.secret
                 }, fullPhotoSize.size);
             } else {
-                MtpApiFileManager.downloadSmallFile(fullPhotoSize.location);
+                _MtpApiFileManager.downloadSmallFile(fullPhotoSize.location);
             }
         }
     };
@@ -134,7 +134,7 @@ var _AppPhotosManager = (function () {
     function wrapForFull (photoID) {
         var photo = wrapForHistory(photoID);
         var fullWidth = $(window).width() - (Config.Mobile ? 0 : 32);
-        var fullHeight = $($window).height() - (Config.Mobile ? 0 : 116);
+        var fullHeight = $(window).height() - (Config.Mobile ? 0 : 116);
         if (!Config.Mobile && fullWidth > 800) {
             fullWidth -= 208;
         }
@@ -202,7 +202,7 @@ var _AppPhotosManager = (function () {
             mimeType = 'image/jpeg',
             fileName = 'photo' + photoID + '.' + ext,
             fullWidth = Math.max(screen.width || 0, $(window).width() - 36, 800),
-            fullHeight = Math.max(screen.height || 0, $($window).height() - 150, 800),
+            fullHeight = Math.max(screen.height || 0, $(window).height() - 150, 800),
             fullPhotoSize = choosePhotoSize(photo, fullWidth, fullHeight),
             inputFileLocation = {
                 _: 'inputFileLocation',
@@ -211,9 +211,9 @@ var _AppPhotosManager = (function () {
                 secret: fullPhotoSize.location.secret
             };
 
-        FileManager.chooseSave(fileName, ext, mimeType).then(function (writableFileEntry) {
+        _FileManager.chooseSave(fileName, ext, mimeType).then(function (writableFileEntry) {
             if (writableFileEntry) {
-                MtpApiFileManager.downloadFile(
+                _MtpApiFileManager.downloadFile(
                     fullPhotoSize.location.dc_id, inputFileLocation, fullPhotoSize.size, {
                         mime: mimeType,
                         toFileEntry: writableFileEntry
@@ -224,15 +224,15 @@ var _AppPhotosManager = (function () {
                 });
             }
         }, function () {
-            var cachedBlob = MtpApiFileManager.getCachedFile(inputFileLocation);
+            var cachedBlob = _MtpApiFileManager.getCachedFile(inputFileLocation);
             if (cachedBlob) {
-                return FileManager.download(cachedBlob, mimeType, fileName);
+                return _FileManager.download(cachedBlob, mimeType, fileName);
             }
 
-            MtpApiFileManager.downloadFile(
+            _MtpApiFileManager.downloadFile(
                 fullPhotoSize.location.dc_id, inputFileLocation, fullPhotoSize.size, {mime: mimeType}
             ).then(function (blob) {
-                FileManager.download(blob, mimeType, fileName);
+                _FileManager.download(blob, mimeType, fileName);
             }, function (e) {
                 console.log('photo download failed', e);
             });

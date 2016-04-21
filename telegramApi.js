@@ -162,9 +162,14 @@ var telegramApi = (function () {
         });
     };
 
-    var getUserPhotos = function (userID) {
-        return _AppPhotosManager.getUserPhotos(userID, 0, 1000);
-        // TODO
+    var getUserPhoto = function () {
+        return getUserInfo().then(function (user) {
+            _AppPhotosManager.preloadPhoto(user.photo.photo_id);
+            return 'filesystem:' + window.location.origin + '/temporary/' +
+                user.photo.photo_big.volume_id + '_' +
+                user.photo.photo_big.local_id + '_' +
+                user.photo.photo_big.secret + '.jpg';
+        });
     };
 
     /* Private Functions */
@@ -186,7 +191,7 @@ var telegramApi = (function () {
         getChatLink: getChatLink,
         getDialogs: getDialogs,
         getUserInfo: getUserInfo,
-        getUserPhotos: getUserPhotos,
+        getUserPhoto: getUserPhoto,
         sendCode: sendCode,
         sendMessage: sendMessage,
         sendSms: sendSms,

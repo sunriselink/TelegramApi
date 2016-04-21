@@ -27,6 +27,8 @@ module.exports = function (grunt) {
                     'helpers/Etc/IdleManager.js',
                     'helpers/Etc/TelegramMeWebService.js',
                     'helpers/Etc/NotificationsManager.js',
+                    'helpers/Etc/FileManager.js',
+                    'helpers/Etc/TmpfsFileStorage.js',
 
                     'helpers/Mtp/MtpDcConfigurator.js',
                     'helpers/Mtp/MtpTimeManager.js',
@@ -36,6 +38,7 @@ module.exports = function (grunt) {
                     'helpers/Mtp/MtpNetworkerFactory.js',
                     'helpers/Mtp/MtpSingleInstanceService.js',
                     'helpers/Mtp/MtpApiManager.js',
+                    'helpers/Mtp/MtpApiFileManager.js',
 
                     'helpers/App/AppPeersManager.js',
                     'helpers/App/AppChatsManager.js',

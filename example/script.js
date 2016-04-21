@@ -100,6 +100,9 @@ $('#getUserInfoButton').click(function () {
         $('#lastName_info').val(user.last_name);
         $('#userName_info').val(user.username);
     });
+    telegramApi.getUserPhoto().then(function (photo) {
+        $('#userPhoto').attr('src', photo);
+    })
 });
 
 $('#updateUsername').click(function () {

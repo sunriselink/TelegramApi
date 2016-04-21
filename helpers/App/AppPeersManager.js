@@ -91,13 +91,13 @@ var _AppPeersManager = (function () {
         if (foundUserID = _AppUsersManager.resolveUsername(searchUserName)) {
             foundUsername = _AppUsersManager.getUser(foundUserID).username;
             if (SearchIndexManager.cleanUsername(foundUsername) == searchUserName) {
-                return qSync.when(foundUserID);
+                return _qSync.when(foundUserID);
             }
         }
         if (foundChatID = _AppChatsManager.resolveUsername(searchUserName)) {
             foundUsername = _AppChatsManager.getChat(foundChatID).username;
             if (SearchIndexManager.cleanUsername(foundUsername) == searchUserName) {
-                return qSync.when(-foundChatID);
+                return _qSync.when(-foundChatID);
             }
         }
 
@@ -113,7 +113,7 @@ var _AppPeersManager = (function () {
             if (peerID > 0) {
                 var bot = _AppUsersManager.getUser(peerID);
                 if (bot.pFlags.bot && bot.bot_inline_placeholder !== undefined) {
-                    return qSync.when({
+                    return _qSync.when({
                         id: peerID,
                         placeholder: bot.bot_inline_placeholder
                     });
