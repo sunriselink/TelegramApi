@@ -181,7 +181,7 @@ var _AppChatsManager = (function () {
                         );
 
                     // just for order by last seen
-                    participant.user = AppUsersManager.getUser(participant.user_id);
+                    participant.user = _AppUsersManager.getUser(participant.user_id);
                 });
             });
         }
@@ -192,7 +192,7 @@ var _AppChatsManager = (function () {
                 participant.canKick = isAdmin && participant._ == 'channelParticipant';
 
                 // just for order by last seen
-                participant.user = AppUsersManager.getUser(participant.user_id);
+                participant.user = _AppUsersManager.getUser(participant.user_id);
             });
         }
 

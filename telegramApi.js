@@ -169,6 +169,39 @@ var telegramApi = (function () {
                 user.photo.photo_big.volume_id + '_' +
                 user.photo.photo_big.local_id + '_' +
                 user.photo.photo_big.secret + '.jpg';
+            // TODO
+        });
+    };
+
+    var updateProfilePhoto = function (photo) {
+        if (!photo || !photo.type || photo.type.indexOf('image') !== 0) {
+            return;
+        }
+
+        return _MtpApiFileManager.uploadFile(photo).then(function (inputFile) {
+            _MtpApiManager.invokeApi('photos.uploadProfilePhoto', {
+                file: inputFile,
+                caption: '',
+                geo_point: {_: 'inputGeoPointEmpty'},
+                crop: {_: 'inputPhotoCropAuto'}
+            }).then(function (updateResult) {
+                _AppUsersManager.saveApiUsers(updateResult.users);
+                _MtpApiManager.getUserID().then(function (id) {
+                    _AppPhotosManager.savePhoto(updateResult.photo, {
+                        user_id: id
+                    });
+                    _ApiUpdatesManager.processUpdateMessage({
+                        _: 'updateShort',
+                        update: {
+                            _: 'updateUserPhoto',
+                            user_id: id,
+                            date: tsNow(true),
+                            photo: _AppUsersManager.getUser(id).photo,
+                            previous: true
+                        }
+                    });
+                });
+            });
         });
     };
 
@@ -200,6 +233,7 @@ var telegramApi = (function () {
         setConfig: setConfig,
         startBot: startBot,
         updateProfile: updateProfile,
+        updateProfilePhoto: updateProfilePhoto,
         updateUsername: updateUsername
     };
 })();

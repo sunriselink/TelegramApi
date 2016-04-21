@@ -115,6 +115,10 @@ $('#updateProfile').click(function () {
     telegramApi.updateProfile(firstName, lastName);
 });
 
+$('#uploadPhoto').change(function () {
+    telegramApi.updateProfilePhoto(this.files[0]);
+});
+
 function signUn() {
     var phone = $('#phone').val();
     var hash = $('#phoneHash').text();
