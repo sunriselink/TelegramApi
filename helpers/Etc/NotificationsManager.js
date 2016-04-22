@@ -297,7 +297,7 @@ var _NotificationsManager = (function () {
 
         notification.onclick = function () {
             notification.close();
-            AppRuntimeManager.focus();
+            _AppRuntimeManager.focus();
             notificationsClear();
             if (data.onclick) {
                 data.onclick();

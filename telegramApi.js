@@ -205,6 +205,10 @@ var telegramApi = (function () {
         });
     };
 
+    var logOut = function () {
+        return _MtpApiManager.logOut();
+    };
+
     /* Private Functions */
 
     function _saveUserInfo() {
@@ -232,6 +236,7 @@ var telegramApi = (function () {
         signUp: signUp,
         setConfig: setConfig,
         startBot: startBot,
+        logOut: logOut,
         updateProfile: updateProfile,
         updateProfilePhoto: updateProfilePhoto,
         updateUsername: updateUsername

@@ -41,10 +41,10 @@ var _MtpSingleInstanceService = (function () {
 
         var scope = $rootScope.$new(true);
         scope.close = function () {
-            AppRuntimeManager.close();
+            _AppRuntimeManager.close();
         };
         scope.reload = function () {
-            AppRuntimeManager.reload();
+            _AppRuntimeManager.reload();
         };
         inactivePageCompiled(scope, function (clonedElement) {
             $('.page_wrap').hide();

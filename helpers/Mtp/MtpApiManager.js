@@ -134,7 +134,7 @@ var _MtpApiManager = (function () {
                                         location.href = location.href.replace(/^http:/, 'https:');
                                     } else {
                                         location.hash = '/login';
-                                        AppRuntimeManager.reload();
+                                        _AppRuntimeManager.reload();
                                     }
                                 });
                             } else {

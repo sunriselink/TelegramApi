@@ -47,6 +47,7 @@ module.exports = function (grunt) {
                     'helpers/App/ApiUpdatesManager.js',
                     'helpers/App/AppProfileManager.js',
                     'helpers/App/AppPhotosManager.js',
+                    'helpers/App/AppRuntimeManager.js',
 
                     'telegramApi.js'
                 ],
