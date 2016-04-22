@@ -89,6 +89,15 @@ telegramApi.updateUsername(username);
 ```
 telegramApi.updateProfile(first_name, last_name);
 ```
+Получить ссылку на фото пользователя
+```
+telegramApi.getUserPhoto();
+```
+Обновить фото пользователя
+* photo - объект с информацией о фотографии, полученный через элемент input[type="file"]
+```
+telegramApi.updateProfilePhoto(photo);
+```
 
 ### Работа с сообщениями
 Получение списка диалогов (последние 20 штук)
