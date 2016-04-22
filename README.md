@@ -72,6 +72,10 @@ telegramApi.signIn(phone_number, phone_code_hash, phone_code);
 ```
 telegramApi.signUp(phone_number, phone_code_hash, phone_code, first_name, last_name);
 ```
+Выйти из системы
+```
+telegramApi.logOut();
+```
 
 ### Работа с информацией о пользователе
 Получение информации о пользователе
