@@ -1964,7 +1964,7 @@ var _AppMessagesManager = (function () {
             } else {
                 chatTitle = chatInvite.title;
             }
-            ErrorService.confirm({
+            _ErrorService.confirm({
                 type: (chatInvite.pFlags.channel && !chatInvite.pFlags.megagroup) ? 'JOIN_CHANNEL_BY_LINK' : 'JOIN_GROUP_BY_LINK',
                 title: chatTitle
             }).then(function () {

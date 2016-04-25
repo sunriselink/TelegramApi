@@ -29,6 +29,7 @@ module.exports = function (grunt) {
                     'helpers/Etc/NotificationsManager.js',
                     'helpers/Etc/FileManager.js',
                     'helpers/Etc/TmpfsFileStorage.js',
+                    'helpers/Etc/ErrorService.js',
 
                     'helpers/Mtp/MtpDcConfigurator.js',
                     'helpers/Mtp/MtpTimeManager.js',

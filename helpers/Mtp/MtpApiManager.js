@@ -138,7 +138,7 @@ var _MtpApiManager = (function () {
                                     }
                                 });
                             } else {
-                                ErrorService.show({error: error});
+                                _ErrorService.show({error: error});
                             }
                             error.handled = true;
                         }

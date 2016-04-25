@@ -209,6 +209,15 @@ var telegramApi = (function () {
         return _MtpApiManager.logOut();
     };
 
+    var createChannel = function (title) {
+        // TODO: Создание каналов пока не поддерживается (только для избранных приложений)
+        return _MtpApiManager.invokeApi('channels.createChannel', {
+            title: title || '',
+            flags: 0,
+            about: 'This is test channel for telegramApi js library'
+        }, options);
+    };
+
     /* Private Functions */
 
     function _saveUserInfo() {
@@ -225,6 +234,7 @@ var telegramApi = (function () {
     return {
         addChatUser: addChatUser,
         createChat: createChat,
+        createChannel: createChannel,
         getChatLink: getChatLink,
         getDialogs: getDialogs,
         getUserInfo: getUserInfo,
