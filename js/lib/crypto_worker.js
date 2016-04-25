@@ -8,11 +8,11 @@
 importScripts(
   'polyfill.js',
   'bin_utils.js',
-  './../../../vendor/jsbn/jsbn_combined.js',
-  './../../../vendor/leemon_bigint/bigint.js',
-  './../../../vendor/closure/long.js',
-  './../../../vendor/cryptoJS/crypto.js',
-  './../../../vendor/rusha/rusha.js'
+  './vendor/jsbn/jsbn_combined.js',
+  './vendor/leemon_bigint/bigint.js',
+  './vendor/closure/long.js',
+  './vendor/cryptoJS/crypto.js',
+  './vendor/rusha/rusha.js'
 );
 
 onmessage = function (e) {

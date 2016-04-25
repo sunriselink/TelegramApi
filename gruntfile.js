@@ -83,6 +83,18 @@ module.exports = function (grunt) {
                     },
                     {
                         expand: true,
+                        cwd: 'vendor',
+                        src: [
+                            'jsbn/jsbn_combined.js',
+                            'leemon_bigint/bigint.js',
+                            'closure/long.js',
+                            'cryptoJS/crypto.js',
+                            'rusha/rusha.js'
+                        ],
+                        dest: 'example/js/lib/vendor'
+                    },
+                    {
+                        expand: true,
                         cwd: 'nacl',
                         src: [ '**' ],
                         dest: 'example/nacl/'
