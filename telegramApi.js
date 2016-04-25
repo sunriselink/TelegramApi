@@ -1,5 +1,6 @@
 var telegramApi = (function () {
     var options = {dcID: 2, createNetworker: true};
+    var userAuthPromise;
 
     /* Public Functions */
 
@@ -22,7 +23,7 @@ var telegramApi = (function () {
             _MtpApiManager.setUserAuth(options.dcID, {
                 id: result.user.id
             });
-            _saveUserInfo();
+            userAuthPromise = _saveUserInfo();
         });
     };
 
@@ -37,7 +38,7 @@ var telegramApi = (function () {
             _MtpApiManager.setUserAuth(options.dcID, {
                 id: result.user.id
             });
-            _saveUserInfo();
+            userAuthPromise = _saveUserInfo();
         });
     };
 
@@ -102,7 +103,7 @@ var telegramApi = (function () {
             }
         });
 
-        _saveUserInfo();
+        userAuthPromise = _saveUserInfo();
     };
 
     var createChat = function (title, userIDs) {
@@ -151,7 +152,9 @@ var telegramApi = (function () {
 
     var getUserInfo = function () {
         return _MtpApiManager.getUserID().then(function (id) {
-            return _AppUsersManager.getUser(id);
+            return userAuthPromise.then(function () {
+                return _AppUsersManager.getUser(id);
+            })
         });
     };
 
@@ -223,6 +226,8 @@ var telegramApi = (function () {
     /* Private Functions */
 
     function _saveUserInfo() {
+        var deferred = $.Deferred();
+
         _MtpApiManager.invokeApi('users.getFullUser', {
             id: {_: 'inputUserSelf'}
         }).then(function (userFullResult) {
@@ -230,7 +235,10 @@ var telegramApi = (function () {
             _AppPhotosManager.savePhoto(userFullResult.profile_photo, {
                 user_id: userFullResult.user.id
             });
+            deferred.resolve();
         });
+
+        return deferred;
     }
 
     return {
