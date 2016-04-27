@@ -80,14 +80,14 @@ var _AppPhotosManager = (function () {
         if (fullPhotoSize && !fullPhotoSize.preloaded) {
             fullPhotoSize.preloaded = true;
             if (fullPhotoSize.size) {
-                _MtpApiFileManager.downloadFile(fullPhotoSize.location.dc_id, {
+                return _MtpApiFileManager.downloadFile(fullPhotoSize.location.dc_id, {
                     _: 'inputFileLocation',
                     volume_id: fullPhotoSize.location.volume_id,
                     local_id: fullPhotoSize.location.local_id,
                     secret: fullPhotoSize.location.secret
                 }, fullPhotoSize.size);
             } else {
-                _MtpApiFileManager.downloadSmallFile(fullPhotoSize.location);
+                 return _MtpApiFileManager.downloadSmallFile(fullPhotoSize.location);
             }
         }
     };
