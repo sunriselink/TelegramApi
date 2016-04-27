@@ -428,6 +428,7 @@ var _MtpApiFileManager = (function () {
     return {
         getCachedFile: getCachedFile,
         getDownloadedFile: getDownloadedFile,
+        getFileName: getFileName,
         downloadFile: downloadFile,
         downloadSmallFile: downloadSmallFile,
         saveSmallFile: saveSmallFile,

@@ -173,10 +173,8 @@ var telegramApi = (function () {
         getUserInfo().then(function (user) {
             if(user.photo) {
                 _AppPhotosManager.preloadPhoto(user.photo.photo_id).then(function () {
-                    var result = 'filesystem:' + window.location.origin + '/temporary/' +
-                        user.photo.photo_big.volume_id + '_' +
-                        user.photo.photo_big.local_id + '_' +
-                        user.photo.photo_big.secret + '.jpg';
+                    var fileName = _MtpApiFileManager.getFileName(user.photo.photo_big);
+                    var result = 'filesystem:' + window.location.origin + '/temporary/' + fileName;
                     // TODO
                     deferred.resolve(result);
                 });
