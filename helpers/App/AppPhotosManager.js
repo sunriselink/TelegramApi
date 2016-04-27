@@ -90,6 +90,8 @@ var _AppPhotosManager = (function () {
                  return _MtpApiFileManager.downloadSmallFile(fullPhotoSize.location);
             }
         }
+
+        return $q.resolve();
     };
     $rootScope.preloadPhoto = preloadPhoto;
 
