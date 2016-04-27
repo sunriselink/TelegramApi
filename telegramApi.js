@@ -169,12 +169,16 @@ var telegramApi = (function () {
 
     var getUserPhoto = function () {
         return getUserInfo().then(function (user) {
-            _AppPhotosManager.preloadPhoto(user.photo.photo_id);
-            return 'filesystem:' + window.location.origin + '/temporary/' +
-                user.photo.photo_big.volume_id + '_' +
-                user.photo.photo_big.local_id + '_' +
-                user.photo.photo_big.secret + '.jpg';
-            // TODO
+            if(user.photo) {
+                _AppPhotosManager.preloadPhoto(user.photo.photo_id);
+                return 'filesystem:' + window.location.origin + '/temporary/' +
+                    user.photo.photo_big.volume_id + '_' +
+                    user.photo.photo_big.local_id + '_' +
+                    user.photo.photo_big.secret + '.jpg';
+                // TODO
+            } else {
+                return '';
+            }
         });
     };
 
