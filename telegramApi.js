@@ -183,7 +183,7 @@ var telegramApi = (function () {
             }
         });
 
-        return deferred;
+        return deferred.promise();
     };
 
     var updateProfilePhoto = function (photo) {
@@ -246,7 +246,7 @@ var telegramApi = (function () {
             deferred.resolve();
         });
 
-        return deferred;
+        return deferred.promise();
     }
 
     return {
