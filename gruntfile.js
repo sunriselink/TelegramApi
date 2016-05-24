@@ -3,14 +3,15 @@ module.exports = function (grunt) {
         concat: {
             main: {
                 src: [
-                    'vendor/angular/angular.min.js',
-                    'vendor/jsbn/jsbn_combined.js',
-                    'vendor/cryptoJS/crypto.js',
-                    'vendor/rusha/rusha.js',
-                    'vendor/zlib/gunzip.min.js',
-                    'vendor/closure/long.js',
-                    'vendor/leemon_bigint/bigint.js',
-                    'vendor/libwebpjs/libwebp-0.2.0.min.js',
+                    'bower_components/angular/angular.min.js',
+                    'bower_components/Rusha/rusha.min.js',
+                    'bower_components/long/dist/long.min.js',
+                    'bower_components/big-int/src/BigInt.js',
+
+                    'node_modules/zlibjs/bin/gunzip.min.js',
+
+                    'vendor/jsbn/jsbn_combined.min.js',
+                    'vendor/cryptoJS/crypto.min.js',
 
                     'js/lib/polyfill.js',
                     'js/lib/config.js',
@@ -85,11 +86,17 @@ module.exports = function (grunt) {
                         expand: true,
                         cwd: 'vendor',
                         src: [
-                            'jsbn/jsbn_combined.js',
-                            'leemon_bigint/bigint.js',
-                            'closure/long.js',
-                            'cryptoJS/crypto.js',
-                            'rusha/rusha.js'
+                            'jsbn/jsbn_combined.min.js',
+                            'cryptoJS/crypto.min.js',
+                        ],
+                        dest: 'example/js/lib/vendor'
+                    },
+                    {
+                        expand: true,
+                        cwd: 'bower_components',
+                        src: [
+                            'long/dist/long.min.js',
+                            'Rusha/rusha.min.js'
                         ],
                         dest: 'example/js/lib/vendor'
                     },
@@ -102,27 +109,21 @@ module.exports = function (grunt) {
                 ]
             }
         },
-        connect: {
-            http: {
-                options: {
-                    base: '.',
-                    protocol: 'http',
-                    hostname: 'localhost',
-                    port: 5666,
-                    keepalive: true
-                }
-            }
+        clean: {
+            js: ['example/js/**'],
+            nacl: ['example/nacl/**']
         }
     });
 
     grunt.loadNpmTasks('grunt-contrib-concat');
     grunt.loadNpmTasks('grunt-contrib-uglify');
     grunt.loadNpmTasks('grunt-contrib-copy');
-    grunt.loadNpmTasks('grunt-contrib-connect');
+    grunt.loadNpmTasks('grunt-contrib-clean');
 
     grunt.registerTask('build', [
+        'clean',
         'concat',
-        'uglify',
+        'uglify:main',
         'copy'
     ]);
 };

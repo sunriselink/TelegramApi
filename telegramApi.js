@@ -2,9 +2,30 @@ var telegramApi = (function () {
     var options = {dcID: 2, createNetworker: true};
     var userAuthPromise;
 
+    return {
+        addChatUser: addChatUser,
+        createChat: createChat,
+        createChannel: createChannel,
+        getChatLink: getChatLink,
+        getDialogs: getDialogs,
+        getUserInfo: getUserInfo,
+        getUserPhoto: getUserPhoto,
+        sendCode: sendCode,
+        sendMessage: sendMessage,
+        sendSms: sendSms,
+        signIn: signIn,
+        signUp: signUp,
+        setConfig: setConfig,
+        startBot: startBot,
+        logOut: logOut,
+        updateProfile: updateProfile,
+        updateProfilePhoto: updateProfilePhoto,
+        updateUsername: updateUsername
+    };
+
     /* Public Functions */
 
-    var sendCode = function (phone_number) {
+    function sendCode (phone_number) {
         return _MtpApiManager.invokeApi('auth.sendCode', {
             phone_number: phone_number,
             sms_type: 5,
@@ -12,9 +33,9 @@ var telegramApi = (function () {
             api_hash: Config.App.hash,
             lang_code: navigator.language || 'en'
         }, options);
-    };
+    }
 
-    var signIn = function (phone_number, phone_code_hash, phone_code) {
+    function signIn (phone_number, phone_code_hash, phone_code) {
         return _MtpApiManager.invokeApi('auth.signIn', {
             phone_number: phone_number,
             phone_code_hash: phone_code_hash,
@@ -25,9 +46,9 @@ var telegramApi = (function () {
             });
             userAuthPromise = _saveUserInfo();
         });
-    };
+    }
 
-    var signUp = function (phone_number, phone_code_hash, phone_code, first_name, last_name) {
+    function signUp (phone_number, phone_code_hash, phone_code, first_name, last_name) {
         return _MtpApiManager.invokeApi('auth.signUp', {
             phone_number: phone_number,
             phone_code_hash: phone_code_hash,
@@ -40,9 +61,9 @@ var telegramApi = (function () {
             });
             userAuthPromise = _saveUserInfo();
         });
-    };
+    }
 
-    var sendMessage = function (id, message) {
+    function sendMessage (id, message) {
         return _MtpApiManager.invokeApi('messages.sendMessage', {
             flags: 0,
             peer: _AppPeersManager.getInputPeerByID(id),
@@ -51,9 +72,9 @@ var telegramApi = (function () {
             reply_to_msg_id: 0,
             entities: []
         }); // TODO
-    };
+    }
 
-    var getDialogs = function () {
+    function getDialogs () {
         var dialogs = [];
 
         return _AppMessagesManager.getConversations('', 0, 20)
@@ -63,24 +84,24 @@ var telegramApi = (function () {
                 }
                 return dialogs;
             });
-    };
+    }
 
-    var startBot = function (botName) {
+    function startBot (botName) {
         return _MtpApiManager.invokeApi('contacts.search', {q: botName, limit: 1})
             .then(function (result) {
                 _AppUsersManager.saveApiUsers(result.users);
                 _AppMessagesManager.startBot(result.users[0].id, 0);
             });
-    };
+    }
 
-    var sendSms = function (phone_number, phone_code_hash) {
+    function sendSms (phone_number, phone_code_hash) {
         return _MtpApiManager.invokeApi('auth.sendSms', {
             phone_number: phone_number,
             phone_code_hash: phone_code_hash
         }, options)
-    };
+    }
 
-    var setConfig = function (config) {
+    function setConfig (config) {
         config = config || {};
 
         config.app = config.app || {};
@@ -95,8 +116,6 @@ var telegramApi = (function () {
         Config.Server.Test = config.server.test;
         Config.Server.Production = config.server.production;
 
-        console.info('Invoke "setConfig"');
-
         _MtpApiManager.invokeApi('help.getNearestDc', {}, options).then(function (nearestDcResult) {
             if (nearestDcResult.nearest_dc != nearestDcResult.this_dc) {
                 _MtpApiManager.getNetworker(nearestDcResult.nearest_dc, {createNetworker: true});
@@ -104,9 +123,9 @@ var telegramApi = (function () {
         });
 
         userAuthPromise = _saveUserInfo();
-    };
+    }
 
-    var createChat = function (title, userIDs) {
+    function createChat (title, userIDs) {
         title = title || '';
         userIDs = userIDs || [];
 
@@ -126,9 +145,9 @@ var telegramApi = (function () {
         }).then(function (updates) {
             _ApiUpdatesManager.processUpdateMessage(updates);
         });
-    };
+    }
 
-    var addChatUser = function (chatID, userID) {
+    function addChatUser (chatID, userID) {
         return _MtpApiManager.invokeApi('messages.addChatUser', {
             chat_id: _AppChatsManager.getChatInput(chatID),
             user_id: _AppUsersManager.getUserInput(userID),
@@ -136,38 +155,38 @@ var telegramApi = (function () {
         }).then(function (updates) {
             _ApiUpdatesManager.processUpdateMessage(updates);
         });
-    };
+    }
 
-    var getChatLink = function (chatID) {
+    function getChatLink (chatID) {
         return _AppProfileManager.getChatInviteLink(chatID);
-    };
+    }
 
-    var updateUsername = function (username) {
+    function updateUsername (username) {
         return _MtpApiManager.invokeApi('account.updateUsername', {
             username: username || ''
         }).then(function (user) {
             _AppUsersManager.saveApiUser(user);
         });
-    };
+    }
 
-    var getUserInfo = function () {
+    function getUserInfo () {
         return _MtpApiManager.getUserID().then(function (id) {
             return userAuthPromise.then(function () {
                 return _AppUsersManager.getUser(id);
             })
         });
-    };
+    }
 
-    var updateProfile = function (first_name, last_name) {
+    function updateProfile (first_name, last_name) {
         return _MtpApiManager.invokeApi('account.updateProfile', {
             first_name: first_name || '',
             last_name: last_name || ''
         }).then(function (user) {
             _AppUsersManager.saveApiUser(user);
         });
-    };
+    }
 
-    var getUserPhoto = function () {
+    function getUserPhoto () {
         var deferred = $.Deferred();
 
         getUserInfo().then(function (user) {
@@ -184,9 +203,9 @@ var telegramApi = (function () {
         });
 
         return deferred.promise();
-    };
+    }
 
-    var updateProfilePhoto = function (photo) {
+    function updateProfilePhoto (photo) {
         if (!photo || !photo.type || photo.type.indexOf('image') !== 0) {
             return;
         }
@@ -216,20 +235,20 @@ var telegramApi = (function () {
                 });
             });
         });
-    };
+    }
 
-    var logOut = function () {
+    function logOut () {
         return _MtpApiManager.logOut();
-    };
+    }
 
-    var createChannel = function (title) {
+    function createChannel (title) {
         // TODO: Создание каналов пока не поддерживается (только для избранных приложений)
         return _MtpApiManager.invokeApi('channels.createChannel', {
             title: title || '',
             flags: 0,
             about: 'This is test channel for telegramApi js library'
         }, options);
-    };
+    }
 
     /* Private Functions */
 
@@ -248,25 +267,4 @@ var telegramApi = (function () {
 
         return deferred.promise();
     }
-
-    return {
-        addChatUser: addChatUser,
-        createChat: createChat,
-        createChannel: createChannel,
-        getChatLink: getChatLink,
-        getDialogs: getDialogs,
-        getUserInfo: getUserInfo,
-        getUserPhoto: getUserPhoto,
-        sendCode: sendCode,
-        sendMessage: sendMessage,
-        sendSms: sendSms,
-        signIn: signIn,
-        signUp: signUp,
-        setConfig: setConfig,
-        startBot: startBot,
-        logOut: logOut,
-        updateProfile: updateProfile,
-        updateProfilePhoto: updateProfilePhoto,
-        updateUsername: updateUsername
-    };
 })();

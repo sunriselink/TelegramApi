@@ -1,0 +1,9 @@
+{
+  "name": "telegram-api",
+  "dependencies": {
+    "angular": "~1.5.5",
+    "Rusha": "rusha#~0.8.3",
+    "long": "~3.1.0",
+    "big-int": "~5.5.3"
+  }
+}

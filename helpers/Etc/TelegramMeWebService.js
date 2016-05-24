@@ -1,8 +1,6 @@
 var _TelegramMeWebService = (function () {
     var disabled =  Config.Modes.test ||
-        Config.App.domains.indexOf(location.hostname) == -1 ||
-        location.protocol != 'http:' && location.protocol != 'https:' ||
-        location.protocol == 'https:' && location.hostname != 'web.telegram.org';
+        location.protocol != 'http:' && location.protocol != 'https:';
 
     function sendAsyncRequest (canRedirect) {
         if (disabled) {

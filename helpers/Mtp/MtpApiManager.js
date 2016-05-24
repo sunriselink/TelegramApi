@@ -128,15 +128,7 @@ var _MtpApiManager = (function () {
                     setTimeout(function () {
                         if (!error.handled) {
                             if (error.code == 401) {
-                                mtpLogOut()['finally'](function () {
-                                    if (location.protocol == 'http:' && !Config.Modes.http &&
-                                        Config.App.domains.indexOf(location.hostname) != -1) {
-                                        location.href = location.href.replace(/^http:/, 'https:');
-                                    } else {
-                                        location.hash = '/login';
-                                        _AppRuntimeManager.reload();
-                                    }
-                                });
+                                mtpLogOut();
                             } else {
                                 _ErrorService.show({error: error});
                             }

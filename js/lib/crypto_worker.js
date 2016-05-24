@@ -8,11 +8,10 @@
 importScripts(
   'polyfill.js',
   'bin_utils.js',
-  './vendor/jsbn/jsbn_combined.js',
-  './vendor/leemon_bigint/bigint.js',
-  './vendor/closure/long.js',
-  './vendor/cryptoJS/crypto.js',
-  './vendor/rusha/rusha.js'
+  './vendor/jsbn/jsbn_combined.min.js',
+  './vendor/cryptoJS/crypto.min.js',
+  './vendor/long/dist/long.min.js',
+  './vendor/Rusha/rusha.min.js'
 );
 
 onmessage = function (e) {
@@ -45,6 +44,6 @@ onmessage = function (e) {
   }
 
   postMessage({taskID: taskID, result: result});
-}
+};
 
 postMessage('ready');
