@@ -6,7 +6,7 @@ module.exports = function (grunt) {
                     'bower_components/angular/angular.min.js',
                     'bower_components/Rusha/rusha.min.js',
                     'bower_components/long/dist/long.min.js',
-                    'bower_components/big-int/src/BigInt.js',
+                    'bower_components/big-int/src/BigInt.min.js',
 
                     'node_modules/zlibjs/bin/gunzip.min.js',
 
@@ -60,6 +60,11 @@ module.exports = function (grunt) {
             main: {
                 files: {
                     'out/telegramApi-full.min.js': ['out/telegramApi-full.js']
+                }
+            },
+            bigInt: {
+                files: {
+                    'bower_components/big-int/src/BigInt.min.js': ['bower_components/big-int/src/BigInt.js']
                 }
             }
         },
@@ -121,9 +126,10 @@ module.exports = function (grunt) {
     grunt.loadNpmTasks('grunt-contrib-clean');
 
     grunt.registerTask('build', [
+        'uglify:bigInt',
         'clean',
         'concat',
-        'uglify',
+        'uglify:main',
         'copy'
     ]);
 };
