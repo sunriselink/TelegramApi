@@ -51,8 +51,6 @@ var _AppMessagesManager = (function () {
     midnightOffseted.setSeconds(0);
     midnightOffset = midnightNoOffset - (Math.floor(+midnightOffseted / 1000));
 
-    _NotificationsManager.start();
-
     var allDialogsLoaded = false;
     var dialogsOffsetDate = 0;
     var dialogsNum = 0;
@@ -168,8 +166,6 @@ var _AppMessagesManager = (function () {
             historiesStorage[peerID] = historyStorage;
         }
 
-        _NotificationsManager.savePeerSettings(peerID, dialog.notify_settings);
-
         if (dialog.pts) {
             _ApiUpdatesManager.addChannelState(channelID, dialog.pts);
         }
@@ -237,23 +233,6 @@ var _AppMessagesManager = (function () {
                         historiesStorage[peerID] = historyStorage;
                         if (mergeReplyKeyboard(historyStorage, message)) {
                             $rootScope.$broadcast('history_reply_markup', {peerID: peerID});
-                        }
-                    }
-
-                    _NotificationsManager.savePeerSettings(peerID, dialog.notify_settings);
-
-                    if (
-                        dialog.unread_count > 0 &&
-                        maxSeenID &&
-                        dialog.top_message > maxSeenID
-                    ) {
-                        var notifyPeer = message.flags & 16 ? message.from_id : peerID;
-                        if (message.pFlags.unread && !message.pFlags.out) {
-                            _NotificationsManager.getPeerMuted(notifyPeer).then(function (muted) {
-                                if (!muted) {
-                                    notifyAboutMessage(message);
-                                }
-                            });
                         }
                     }
                 }
@@ -1069,12 +1048,9 @@ var _AppMessagesManager = (function () {
                     if (messagesForDialogs[messageID]) {
                         messagesForDialogs[messageID].pFlags.unread = false;
                     }
-                    _NotificationsManager.cancel('msg' + messageID);
                 }
             }
         }
-
-        _NotificationsManager.soundReset(_AppPeersManager.getPeerString(peerID))
 
         return historyStorage.readPromise;
     }
@@ -2432,16 +2408,9 @@ var _AppMessagesManager = (function () {
             notificationMessage = false,
             notificationPhoto;
 
-        var notifySettings = _NotificationsManager.getNotifySettings();
-
         if (message.fwdFromID && options.fwd_count) {
             notificationMessage = fwdMessagesPluralize(options.fwd_count);
         } else if (message.message) {
-            if (notifySettings.nopreview) {
-                notificationMessage = __('conversation_message_sent');
-            } else {
-                notificationMessage = RichTextProcessor.wrapPlainText(message.message);
-            }
         } else if (message.media) {
             switch (message.media._) {
                 case 'messageMediaPhoto':
@@ -2587,14 +2556,7 @@ var _AppMessagesManager = (function () {
         notification.tag = peerString;
 
         if (notificationPhoto.location && !notificationPhoto.location.empty) {
-            MtpApiFileManager.downloadSmallFile(notificationPhoto.location, notificationPhoto.size).then(function (blob) {
-                if (message.pFlags.unread) {
-                    notification.image = blob;
-                    _NotificationsManager.notify(notification);
-                }
-            });
-        } else {
-            _NotificationsManager.notify(notification);
+            MtpApiFileManager.downloadSmallFile(notificationPhoto.location, notificationPhoto.size);
         }
     }
 
@@ -2765,7 +2727,6 @@ var _AppMessagesManager = (function () {
                     var notifyPeerToHandle = notificationsToHandle[notifyPeer];
                     if (notifyPeerToHandle === undefined) {
                         notifyPeerToHandle = notificationsToHandle[notifyPeer] = {
-                            isMutedPromise: _NotificationsManager.getPeerMuted(notifyPeer),
                             fwd_count: 0,
                             from_id: 0
                         };
@@ -2836,7 +2797,6 @@ var _AppMessagesManager = (function () {
                             if (foundDialog) {
                                 newUnreadCount = --foundDialog[0].unread_count;
                             }
-                            _NotificationsManager.cancel('msg' + messageID);
                         }
                     }
                 }
@@ -2890,7 +2850,6 @@ var _AppMessagesManager = (function () {
 
                         if (!message.pFlags.out && message.pFlags.unread) {
                             history.unread++;
-                            _NotificationsManager.cancel('msg' + messageID);
                         }
                         history.count++;
                         history.msgs[messageID] = true;

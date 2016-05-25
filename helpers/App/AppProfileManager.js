@@ -41,8 +41,6 @@ var _AppProfileManager = (function () {
                 user_id: id
             });
 
-            _NotificationsManager.savePeerSettings(id, userFull.notify_settings);
-
             userFull.bot_info = saveBotInfo(userFull.bot_info);
 
             return userFull;
@@ -98,7 +96,6 @@ var _AppProfileManager = (function () {
             if (fullChat && fullChat.chat_photo.id) {
                 _AppPhotosManager.savePhoto(fullChat.chat_photo);
             }
-            _NotificationsManager.savePeerSettings(-id, fullChat.notify_settings);
             delete chatFullPromises[id];
             chatsFull[id] = fullChat;
             $rootScope.$broadcast('chat_full_update', id);
@@ -185,7 +182,6 @@ var _AppProfileManager = (function () {
             if (fullChannel && fullChannel.chat_photo.id) {
                 _AppPhotosManager.savePhoto(fullChannel.chat_photo);
             }
-            _NotificationsManager.savePeerSettings(-id, fullChannel.notify_settings);
             var participantsPromise;
             if (fullChannel.flags & 8) {
                 participantsPromise = getChannelParticipants(id).then(function (participants) {
