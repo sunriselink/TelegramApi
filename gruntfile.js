@@ -10,48 +10,48 @@ module.exports = function (grunt) {
 
                     'node_modules/zlibjs/bin/gunzip.min.js',
 
-                    'vendor/jsbn/jsbn_combined.min.js',
-                    'vendor/cryptoJS/crypto.min.js',
+                    'src/vendor/jsbn/jsbn_combined.min.js',
+                    'src/vendor/cryptoJS/crypto.min.js',
 
-                    'js/lib/polyfill.js',
-                    'js/lib/config.js',
-                    'js/lib/utils.js',
-                    'js/lib/bin_utils.js',
-                    'js/lib/tl_utils.js',
+                    'src/js/lib/polyfill.js',
+                    'src/js/lib/config.js',
+                    'src/js/lib/utils.js',
+                    'src/js/lib/bin_utils.js',
+                    'src/js/lib/tl_utils.js',
 
-                    'helpers/Etc/_.js',
-                    'helpers/Etc/Filter.js',
-                    'helpers/Etc/qSync.js',
-                    'helpers/Etc/Helper.js',
-                    'helpers/Etc/Storage.js',
-                    'helpers/Etc/CryptoWorker.js',
-                    'helpers/Etc/IdleManager.js',
-                    'helpers/Etc/TelegramMeWebService.js',
-                    'helpers/Etc/NotificationsManager.js',
-                    'helpers/Etc/FileManager.js',
-                    'helpers/Etc/TmpfsFileStorage.js',
-                    'helpers/Etc/ErrorService.js',
+                    'src/helpers/Etc/_.js',
+                    'src/helpers/Etc/Filter.js',
+                    'src/helpers/Etc/qSync.js',
+                    'src/helpers/Etc/Helper.js',
+                    'src/helpers/Etc/Storage.js',
+                    'src/helpers/Etc/CryptoWorker.js',
+                    'src/helpers/Etc/IdleManager.js',
+                    'src/helpers/Etc/TelegramMeWebService.js',
+                    'src/helpers/Etc/NotificationsManager.js',
+                    'src/helpers/Etc/FileManager.js',
+                    'src/helpers/Etc/TmpfsFileStorage.js',
+                    'src/helpers/Etc/ErrorService.js',
 
-                    'helpers/Mtp/MtpDcConfigurator.js',
-                    'helpers/Mtp/MtpTimeManager.js',
-                    'helpers/Mtp/MtpSecureRandom.js',
-                    'helpers/Mtp/MtpRsaKeysManager.js',
-                    'helpers/Mtp/MtpAuthorizer.js',
-                    'helpers/Mtp/MtpNetworkerFactory.js',
-                    'helpers/Mtp/MtpSingleInstanceService.js',
-                    'helpers/Mtp/MtpApiManager.js',
-                    'helpers/Mtp/MtpApiFileManager.js',
+                    'src/helpers/Mtp/MtpDcConfigurator.js',
+                    'src/helpers/Mtp/MtpTimeManager.js',
+                    'src/helpers/Mtp/MtpSecureRandom.js',
+                    'src/helpers/Mtp/MtpRsaKeysManager.js',
+                    'src/helpers/Mtp/MtpAuthorizer.js',
+                    'src/helpers/Mtp/MtpNetworkerFactory.js',
+                    'src/helpers/Mtp/MtpSingleInstanceService.js',
+                    'src/helpers/Mtp/MtpApiManager.js',
+                    'src/helpers/Mtp/MtpApiFileManager.js',
 
-                    'helpers/App/AppPeersManager.js',
-                    'helpers/App/AppChatsManager.js',
-                    'helpers/App/AppMessagesManager.js',
-                    'helpers/App/AppUsersManager.js',
-                    'helpers/App/ApiUpdatesManager.js',
-                    'helpers/App/AppProfileManager.js',
-                    'helpers/App/AppPhotosManager.js',
-                    'helpers/App/AppRuntimeManager.js',
+                    'src/helpers/App/AppPeersManager.js',
+                    'src/helpers/App/AppChatsManager.js',
+                    'src/helpers/App/AppMessagesManager.js',
+                    'src/helpers/App/AppUsersManager.js',
+                    'src/helpers/App/ApiUpdatesManager.js',
+                    'src/helpers/App/AppProfileManager.js',
+                    'src/helpers/App/AppPhotosManager.js',
+                    'src/helpers/App/AppRuntimeManager.js',
 
-                    'telegramApi.js'
+                    'src/telegramApi.js'
                 ],
                 dest: 'out/telegramApi-full.js'
             }
@@ -79,7 +79,7 @@ module.exports = function (grunt) {
                     },
                     {
                         expand: true,
-                        cwd: 'js/lib/',
+                        cwd: 'src/js/lib/',
                         src: [
                             'crypto_worker.js',
                             'polyfill.js',
@@ -89,7 +89,7 @@ module.exports = function (grunt) {
                     },
                     {
                         expand: true,
-                        cwd: 'vendor',
+                        cwd: 'src/vendor',
                         src: [
                             'jsbn/jsbn_combined.min.js',
                             'cryptoJS/crypto.min.js',
@@ -107,7 +107,7 @@ module.exports = function (grunt) {
                     },
                     {
                         expand: true,
-                        cwd: 'nacl',
+                        cwd: 'src/nacl',
                         src: [ '**' ],
                         dest: 'example/nacl/'
                     }
