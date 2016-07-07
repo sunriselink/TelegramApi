@@ -144,6 +144,7 @@ var telegramApi = (function () {
             users: inputUsers
         }).then(function (updates) {
             _ApiUpdatesManager.processUpdateMessage(updates);
+            return updates;
         });
     }
 
