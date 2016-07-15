@@ -172,6 +172,9 @@ var telegramApi = (function () {
 
     function getUserInfo() {
         return _MtpApiManager.getUserID().then(function (id) {
+            if(!id) {
+                return _AppUsersManager.getUser(id);
+            }
             return userAuthPromise.then(function () {
                 return _AppUsersManager.getUser(id);
             })
