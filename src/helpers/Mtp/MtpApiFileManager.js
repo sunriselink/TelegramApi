@@ -96,11 +96,11 @@ var _MtpApiFileManager = (function () {
             if (_TmpfsFileStorage.isAvailable()) {
                 return _TmpfsFileStorage;
             }
-            if (IdbFileStorage.isAvailable()) {
-                return IdbFileStorage;
+            if (_IdbFileStorage.isAvailable()) {
+                return _IdbFileStorage;
             }
         }
-        return MemoryFileStorage;
+        return _MemoryFileStorage;
     }
 
     function saveSmallFile (location, bytes) {

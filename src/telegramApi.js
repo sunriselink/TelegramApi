@@ -1,6 +1,11 @@
 var telegramApi = (function () {
     var options = {dcID: 2, createNetworker: true};
     var userAuthPromise;
+    var photoTypes = [
+        'base64',
+        'blob',
+        'byteArray'
+    ];
 
     return {
         addChatUser: addChatUser,
@@ -172,7 +177,7 @@ var telegramApi = (function () {
 
     function getUserInfo() {
         return _MtpApiManager.getUserID().then(function (id) {
-            if(!id) {
+            if (!id) {
                 return _AppUsersManager.getUser(id);
             }
             return userAuthPromise.then(function () {
@@ -190,19 +195,50 @@ var telegramApi = (function () {
         });
     }
 
-    function getUserPhoto() {
+    function getUserPhoto(type) {
+        type = type || 'base64';
+
+        if (photoTypes.indexOf(type) == -1) {
+            throw new Error('Invalid photo type "' + type + '"');
+        }
+
         var deferred = $.Deferred();
 
         getUserInfo().then(function (user) {
             if (user.photo) {
-                _AppPhotosManager.preloadPhoto(user.photo.photo_id).then(function () {
-                    var fileName = _MtpApiFileManager.getFileName(user.photo.photo_big);
-                    var result = 'filesystem:' + window.location.origin + '/temporary/' + fileName;
-                    // TODO
-                    deferred.resolve(result);
+                var location = {
+                    _: "inputFileLocation",
+                    local_id: user.photo.photo_big.local_id,
+                    secret: user.photo.photo_big.secret,
+                    volume_id: user.photo.photo_big.volume_id
+                };
+                var params = {
+                    dcID: options.dcID,
+                    fileDownload: true,
+                    singleInRequest: window.safari !== undefined,
+                    createNetworker: true
+                };
+                _MtpApiManager.invokeApi('upload.getFile', {
+                    location: location,
+                    offset: 0,
+                    limit: 524288
+                }, params).then(function (result) {
+                    switch (type) {
+                        case 'byteArray':
+                            deferred.resolve(result.bytes);
+                            break;
+                        case 'base64':
+                            deferred.resolve("data:image/jpeg;base64," + btoa(String.fromCharCode.apply(null, result.bytes)));
+                            break;
+                        case 'blob':
+                            deferred.resolve(new Blob([result.bytes], {type: 'image/jpeg'}));
+                            break;
+                    }
+                }, function () {
+                    deferred.resolve(null);
                 });
             } else {
-                deferred.resolve('');
+                deferred.resolve(null);
             }
         });
 
