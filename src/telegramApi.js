@@ -13,6 +13,7 @@ var telegramApi = (function () {
         createChannel: createChannel,
         getChatLink: getChatLink,
         getDialogs: getDialogs,
+        getHistory: getHistory,
         getUserInfo: getUserInfo,
         getUserPhoto: getUserPhoto,
         sendCode: sendCode,
@@ -289,8 +290,23 @@ var telegramApi = (function () {
         }, options);
     }
 
-    function inviteToChannel() {
+    function getHistory(params) {
+        params = params || {};
+        params.id = params.id || 0;
+        params.take = params.take || 15;
+        params.skip = params.skip || 0;
+        params.type = params.type || 'chat';
 
+        if(params.type == 'chat' && params.id > 0) {
+            params.id = params.id * -1;
+        }
+
+        return _MtpApiManager.invokeApi('messages.getHistory', {
+            peer: _AppPeersManager.getInputPeerByID(params.id),
+            offset_id: 0,
+            add_offset: params.skip,
+            limit: params.take
+        });
     }
 
     /* Private Functions */
