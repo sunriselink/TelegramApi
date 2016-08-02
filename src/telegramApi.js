@@ -314,12 +314,34 @@ var telegramApi = (function () {
         params = params || {};
         params.id = params.id || 0;
         params.type = params.type || 'chat';
+        params.file = params.file || {};
+        params.caption = params.caption || '';
 
         if (params.type == 'chat' && params.id > 0) {
             params.id = params.id * -1;
         }
 
-        _AppMessagesManager.sendFile(params.id, params.file, {caption: params.caption});
+        return _MtpApiFileManager.uploadFile(params.file).then(function (inputFile) {
+            var file = params.file;
+
+            inputFile.name = file.name;
+
+            var inputMedia = {
+                _: 'inputMediaUploadedDocument',
+                file: inputFile,
+                mime_type: file.type,
+                caption: params.caption,
+                attributes: [
+                    {_: 'documentAttributeFilename', file_name: file.name}
+                ]
+            };
+
+            return _MtpApiManager.invokeApi('messages.sendMedia', {
+                peer: _AppPeersManager.getInputPeerByID(params.id),
+                media: inputMedia,
+                random_id: [nextRandomInt(0xFFFFFFFF), nextRandomInt(0xFFFFFFFF)]
+            });
+        });
     }
 
     /* Private Functions */
