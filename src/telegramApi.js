@@ -17,6 +17,7 @@ var telegramApi = (function () {
         getUserInfo: getUserInfo,
         getUserPhoto: getUserPhoto,
         sendCode: sendCode,
+        sendFile: sendFile,
         sendMessage: sendMessage,
         sendSms: sendSms,
         signIn: signIn,
@@ -297,7 +298,7 @@ var telegramApi = (function () {
         params.skip = params.skip || 0;
         params.type = params.type || 'chat';
 
-        if(params.type == 'chat' && params.id > 0) {
+        if (params.type == 'chat' && params.id > 0) {
             params.id = params.id * -1;
         }
 
@@ -307,6 +308,18 @@ var telegramApi = (function () {
             add_offset: params.skip,
             limit: params.take
         });
+    }
+
+    function sendFile(params) {
+        params = params || {};
+        params.id = params.id || 0;
+        params.type = params.type || 'chat';
+
+        if (params.type == 'chat' && params.id > 0) {
+            params.id = params.id * -1;
+        }
+
+        _AppMessagesManager.sendFile(params.id, params.file, {caption: params.caption});
     }
 
     /* Private Functions */

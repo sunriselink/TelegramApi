@@ -1514,7 +1514,7 @@ var _AppMessagesManager = (function () {
             sendFilePromise.then(function () {
                 if (!uploaded || message.error) {
                     uploaded = false;
-                    uploadPromise = MtpApiFileManager.uploadFile(file);
+                    uploadPromise = _MtpApiFileManager.uploadFile(file);
                 }
 
                 uploadPromise.then(function (inputFile) {
@@ -1536,7 +1536,7 @@ var _AppMessagesManager = (function () {
 
                         case 'document':
                         default:
-                            inputMedia = {_: 'inputMediaUploadedDocument', file: inputFile, mime_type: file.type, caption: '', attributes: [
+                            inputMedia = {_: 'inputMediaUploadedDocument', file: inputFile, mime_type: file.type, caption: options.caption || '', attributes: [
                                 {_: 'documentAttributeFilename', file_name: file.name}
                             ]};
                     }
