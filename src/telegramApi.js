@@ -165,8 +165,9 @@ var telegramApi = (function () {
         });
     }
 
-    function getChatLink(chatID) {
-        return _AppProfileManager.getChatInviteLink(chatID);
+    function getChatLink(chatID, forse) {
+        forse = forse || false;
+        return _AppProfileManager.getChatInviteLink(chatID, forse);
     }
 
     function updateUsername(username) {
