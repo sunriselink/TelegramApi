@@ -346,17 +346,24 @@ var telegramApi = (function () {
         });
     }
 
-    function downloadDocument(params) {
-        params = params || {};
-        params.id = params.id || 0;
-        params.access_hash = params.access_hash || 0;
-        params.file_name = params.file_name || 'FILE';
+    function downloadDocument(doc) {
+        doc = doc || {};
+        doc.id = doc.id || 0;
+        doc.access_hash = doc.access_hash || 0;
+        doc.attributes = doc.attributes || [];
 
         var location = {
             _: 'inputDocumentFileLocation',
-            id: params.id,
-            access_hash: params.access_hash
+            id: doc.id,
+            access_hash: doc.access_hash
         };
+        var fileName = 'FILE';
+
+        doc.attributes.forEach(function (attr) {
+            if(attr._ == 'documentAttributeFilename') {
+                fileName = attr.file_name;
+            }
+        });
 
         _MtpApiManager.invokeApi('upload.getFile', {
             location: location,
@@ -370,7 +377,7 @@ var telegramApi = (function () {
             document.body.appendChild(a);
             a.style = 'display: none';
             a.href = window.URL.createObjectURL(blob);
-            a.download = params.file_name;
+            a.download = fileName;
             a.click();
             a.remove();
             window.URL.revokeObjectURL(a.href);
