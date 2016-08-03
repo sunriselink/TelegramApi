@@ -11,6 +11,7 @@ var telegramApi = (function () {
         addChatUser: addChatUser,
         createChat: createChat,
         createChannel: createChannel,
+        downloadDocument: downloadDocument,
         getChatLink: getChatLink,
         getDialogs: getDialogs,
         getHistory: getHistory,
@@ -342,6 +343,37 @@ var telegramApi = (function () {
                 media: inputMedia,
                 random_id: [nextRandomInt(0xFFFFFFFF), nextRandomInt(0xFFFFFFFF)]
             });
+        });
+    }
+
+    function downloadDocument(params) {
+        params = params || {};
+        params.id = params.id || 0;
+        params.access_hash = params.access_hash || 0;
+        params.file_name = params.file_name || 'FILE';
+
+        var location = {
+            _: 'inputDocumentFileLocation',
+            id: params.id,
+            access_hash: params.access_hash
+        };
+
+        _MtpApiManager.invokeApi('upload.getFile', {
+            location: location,
+            offset: 0,
+            limit: 15728640
+        }).then(function (result) {
+            // TODO: Improve
+            var a = document.createElement('a');
+            var blob = new Blob([result.bytes], {type: 'octet/stream'});
+
+            document.body.appendChild(a);
+            a.style = 'display: none';
+            a.href = window.URL.createObjectURL(blob);
+            a.download = params.file_name;
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(a.href);
         });
     }
 
