@@ -346,11 +346,16 @@ var telegramApi = (function () {
         });
     }
 
-    function downloadDocument(doc) {
+    function downloadDocument(doc, progress) {
         doc = doc || {};
         doc.id = doc.id || 0;
         doc.access_hash = doc.access_hash || 0;
         doc.attributes = doc.attributes || [];
+        doc.size = doc.size || 0;
+
+        if(!$.isFunction(progress)) {
+            progress = function () {};
+        }
 
         var location = {
             _: 'inputDocumentFileLocation',
@@ -358,21 +363,47 @@ var telegramApi = (function () {
             access_hash: doc.access_hash
         };
         var fileName = 'FILE';
+        var size = 15728640;
+        var limit = 524288;
+        var offset = 0;
+        var success = $.Deferred();
+        var bytes = [];
+
+        if (doc.size > size) {
+            throw new Error('Big file not supported');
+        }
+
+        size = doc.size;
 
         doc.attributes.forEach(function (attr) {
-            if(attr._ == 'documentAttributeFilename') {
+            if (attr._ == 'documentAttributeFilename') {
                 fileName = attr.file_name;
             }
         });
 
-        _MtpApiManager.invokeApi('upload.getFile', {
-            location: location,
-            offset: 0,
-            limit: 15728640
-        }).then(function (result) {
+        function download() {
+            if (offset < size) {
+                _MtpApiManager.invokeApi('upload.getFile', {
+                    location: location,
+                    offset: offset,
+                    limit: limit
+                }).then(function (result) {
+                    bytes.push(result.bytes);
+                    offset += limit;
+                    progress(offset < size ? offset : size, size);
+                    download();
+                });
+            } else {
+                success.resolve();
+            }
+        }
+
+        download();
+
+        success.then(function () {
             // TODO: Improve
             var a = document.createElement('a');
-            var blob = new Blob([result.bytes], {type: 'octet/stream'});
+            var blob = new Blob(bytes, {type: 'octet/stream'});
 
             document.body.appendChild(a);
             a.style = 'display: none';
