@@ -367,6 +367,7 @@ var telegramApi = (function () {
         var limit = 524288;
         var offset = 0;
         var success = $.Deferred();
+        var done = $.Deferred();
         var bytes = [];
 
         if (doc.size > size) {
@@ -379,6 +380,22 @@ var telegramApi = (function () {
             if (attr._ == 'documentAttributeFilename') {
                 fileName = attr.file_name;
             }
+        });
+
+        success.then(function () {
+            // TODO: Improve
+            var a = document.createElement('a');
+            var blob = new Blob(bytes, {type: 'octet/stream'});
+
+            document.body.appendChild(a);
+            a.style = 'display: none';
+            a.href = window.URL.createObjectURL(blob);
+            a.download = fileName;
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(a.href);
+
+            done.resolve();
         });
 
         function download() {
@@ -398,21 +415,9 @@ var telegramApi = (function () {
             }
         }
 
-        download();
+        setTimeout(download, 0);
 
-        success.then(function () {
-            // TODO: Improve
-            var a = document.createElement('a');
-            var blob = new Blob(bytes, {type: 'octet/stream'});
-
-            document.body.appendChild(a);
-            a.style = 'display: none';
-            a.href = window.URL.createObjectURL(blob);
-            a.download = fileName;
-            a.click();
-            a.remove();
-            window.URL.revokeObjectURL(a.href);
-        });
+        return done.promise();
     }
 
     /* Private Functions */
