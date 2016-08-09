@@ -336,6 +336,10 @@ var _MtpApiFileManager = (function () {
             partSize    = 262144, // 256 Kb
             activeDelta = 2;
 
+        if(!fileSize) {
+            return $q.reject({type: 'EMPTY_FILE'});
+        }
+
         if (fileSize > 67108864) {
             partSize = 524288;
             activeDelta = 4;
