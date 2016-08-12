@@ -4,6 +4,16 @@
 ```
 telegramApi.getUserInfo();
 ```
+
+### Получить фото пользователя
+* type - тип фотографии (base64, blob, byteArray)
+```
+/*
+ * По-умолчанию тип base64
+ */
+telegramApi.getUserPhoto(type);
+```
+
 ### Изменение @username
 * username - новый @username пользователя
 ```
@@ -15,14 +25,7 @@ telegramApi.updateUsername(username);
 ```
 telegramApi.updateProfile(first_name, last_name);
 ```
-### Получить фото пользователя
-* type - тип фотографии (base64, blob, byteArray)
-```
-/*
- * По-умолчанию тип base64
- */
-telegramApi.getUserPhoto(type);
-```
+
 ### Обновить фото пользователя
 * photo - объект с информацией о фотографии, полученный через элемент input[type="file"]
 ```

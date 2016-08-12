@@ -12,6 +12,20 @@ telegramApi.getDialogs();
 telegramApi.sendMessage(id, message);
 ```
 
+### Отправка файла в чат
+* _id - идентификатор чата
+* _type - тип чата (~~user~~, chat, ~~channel~~) (по-умолчанию chat)
+* _file - файл, полученный через элемент input[type="file"]
+* _caption - подпись к файлу
+```
+telegramApi.sendFile({
+    id: _id,
+    type: _type,
+    file: _file,
+    caption: _caption
+});
+```
+
 ### Загрузка документа
 * doc - объект документа
 * progress - функция прогресса загрузки
@@ -43,6 +57,12 @@ telegramApi.addChatUser(chatID, userID);
 telegramApi.getChatLink(chatID, forse);
 ```
 
+### Присоединение к чату по ссылке (или хешу)
+* link - ссылка на чат вида https://telegram.me/joinchat/qweryqwerty или хеш вида qwertyqwerty
+```
+telegramApi.joinChat(link);
+```
+
 ### Получение истории сообщений
 * _id - идентификатор чата
 * _type - тип чата (~~user~~, chat, ~~channel~~) (по-умолчанию chat)
@@ -54,26 +74,6 @@ telegramApi.getHistory({
     type: _type,
     take: _take,
     skip: _skip,
-});
-```
-
-### Присоединение к чату по ссылке (или хешу)
-* link - ссылка на чат вида https://telegram.me/joinchat/qweryqwerty или хеш вида qwertyqwerty
-```
-telegramApi.joinChar(link);
-```
-
-### Отправка файла в чат
-* _id - идентификатор чата
-* _type - тип чата (~~user~~, chat, ~~channel~~) (по-умолчанию chat)
-* _file - файл, полученный через элемент input[type="file"]
-* _caption - подпись к файлу
-```
-telegramApi.sendFile({
-    id: _id,
-    type: _type,
-    file: _file,
-    caption: _caption
 });
 ```
 
