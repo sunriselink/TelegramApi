@@ -17,6 +17,7 @@ var telegramApi = (function () {
         getHistory: getHistory,
         getUserInfo: getUserInfo,
         getUserPhoto: getUserPhoto,
+        joinChat: joinChat,
         sendCode: sendCode,
         sendFile: sendFile,
         sendMessage: sendMessage,
@@ -353,8 +354,9 @@ var telegramApi = (function () {
         doc.attributes = doc.attributes || [];
         doc.size = doc.size || 0;
 
-        if(!$.isFunction(progress)) {
-            progress = function () {};
+        if (!$.isFunction(progress)) {
+            progress = function () {
+            };
         }
 
         var location = {
@@ -418,6 +420,19 @@ var telegramApi = (function () {
         setTimeout(download, 0);
 
         return done.promise();
+    }
+
+    function joinChat(link) {
+        var regex;
+        var hash;
+
+        if(regex = link.match(/^https:\/\/telegram.me\/joinchat\/([\s\S]*)/)) {
+            hash = regex[1];
+        } else {
+            hash = link;
+        }
+
+        return _MtpApiManager.invokeApi('messages.importChatInvite', {hash: hash});
     }
 
     /* Private Functions */
