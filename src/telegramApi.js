@@ -12,6 +12,7 @@ var telegramApi = (function () {
         createChat: createChat,
         createChannel: createChannel,
         downloadDocument: downloadDocument,
+        editChatAdmin: editChatAdmin,
         getChatLink: getChatLink,
         getDialogs: getDialogs,
         getHistory: getHistory,
@@ -426,13 +427,29 @@ var telegramApi = (function () {
         var regex;
         var hash;
 
-        if(regex = link.match(/^https:\/\/telegram.me\/joinchat\/([\s\S]*)/)) {
+        if (regex = link.match(/^https:\/\/telegram.me\/joinchat\/([\s\S]*)/)) {
             hash = regex[1];
         } else {
             hash = link;
         }
 
         return _MtpApiManager.invokeApi('messages.importChatInvite', {hash: hash});
+    }
+
+    function editChatAdmin(chatID, userID, isAdmin) {
+        if(typeof isAdmin == 'undefined') {
+            isAdmin = true;
+        }
+
+        isAdmin = !!isAdmin;
+        chatID = _AppChatsManager.getChatInput(chatID);
+        userID = _AppUsersManager.getUserInput(userID);
+
+        return _MtpApiManager.invokeApi('messages.editChatAdmin', {
+            chat_id: chatID,
+            user_id: userID,
+            is_admin: isAdmin
+        });
     }
 
     /* Private Functions */
