@@ -153,8 +153,14 @@ var telegramApi = (function () {
             title: title,
             users: inputUsers
         }).then(function (updates) {
-            _ApiUpdatesManager.processUpdateMessage(updates);
-            return updates;
+            if(updates.chats && updates.chats[0]) {
+                return _MtpApiManager.invokeApi('messages.toggleChatAdmins', {
+                    chat_id: updates.chats[0].id,
+                    enabled: true
+                });
+            } else {
+                return updates;
+            }
         });
     }
 
