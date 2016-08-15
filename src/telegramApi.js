@@ -401,8 +401,12 @@ var telegramApi = (function () {
             a.href = window.URL.createObjectURL(blob);
             a.download = fileName;
             a.click();
-            a.remove();
-            window.URL.revokeObjectURL(a.href);
+
+
+            setTimeout(function () {
+                window.URL.revokeObjectURL(a.href);
+                a.remove();
+            }, 100);
 
             done.resolve();
         });
