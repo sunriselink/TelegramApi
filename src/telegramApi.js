@@ -13,6 +13,7 @@ var telegramApi = (function () {
         createChannel: createChannel,
         downloadDocument: downloadDocument,
         editChatAdmin: editChatAdmin,
+        editChatTitle: editChatTitle,
         getChatLink: getChatLink,
         getDialogs: getDialogs,
         getHistory: getHistory,
@@ -153,7 +154,7 @@ var telegramApi = (function () {
             title: title,
             users: inputUsers
         }).then(function (updates) {
-            if(updates.chats && updates.chats[0]) {
+            if (updates.chats && updates.chats[0]) {
                 return _MtpApiManager.invokeApi('messages.toggleChatAdmins', {
                     chat_id: updates.chats[0].id,
                     enabled: true
@@ -447,7 +448,7 @@ var telegramApi = (function () {
     }
 
     function editChatAdmin(chatID, userID, isAdmin) {
-        if(typeof isAdmin == 'undefined') {
+        if (typeof isAdmin == 'undefined') {
             isAdmin = true;
         }
 
@@ -459,6 +460,13 @@ var telegramApi = (function () {
             chat_id: chatID,
             user_id: userID,
             is_admin: isAdmin
+        });
+    }
+
+    function editChatTitle(chat_id, title) {
+        return _MtpApiManager.invokeApi('messages.editChatTitle', {
+            chat_id: chat_id,
+            title: title
         });
     }
 

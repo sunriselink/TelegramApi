@@ -84,3 +84,10 @@ telegramApi.getHistory({
 ```
 telegramApi.editChatAdmin(chatID, userID, isAdmin);
 ```
+
+### Редактирование названия чата
+* char_id - идентификатор чата
+* title - новое название
+```
+telegramApi.editChatTitle(chat_id, title);
+```
