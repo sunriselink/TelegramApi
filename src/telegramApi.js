@@ -37,17 +37,27 @@ var telegramApi = (function () {
     /* Public Functions */
 
     function sendCode(phone_number) {
-        return _MtpApiManager.invokeApi('auth.sendCode', {
+        var defer = $.Deferred();
+
+        _MtpApiManager.invokeApi('auth.sendCode', {
             phone_number: phone_number,
             sms_type: 5,
             api_id: Config.App.id,
             api_hash: Config.App.hash,
             lang_code: navigator.language || 'en'
-        }, options);
+        }, options).then(function (data) {
+            defer.resolve(data);
+        }, function (err) {
+            defer.reject(err);
+        });
+
+        return defer.promise();
     }
 
     function signIn(phone_number, phone_code_hash, phone_code) {
-        return _MtpApiManager.invokeApi('auth.signIn', {
+        var defer = $.Deferred();
+
+        _MtpApiManager.invokeApi('auth.signIn', {
             phone_number: phone_number,
             phone_code_hash: phone_code_hash,
             phone_code: phone_code
@@ -56,11 +66,19 @@ var telegramApi = (function () {
                 id: result.user.id
             });
             userAuthPromise = _saveUserInfo();
+        }).then(function (data) {
+            defer.resolve(data);
+        }, function (err) {
+            defer.reject(err);
         });
+
+        return defer.promise();
     }
 
     function signUp(phone_number, phone_code_hash, phone_code, first_name, last_name) {
-        return _MtpApiManager.invokeApi('auth.signUp', {
+        var defer = $.Deferred();
+
+        _MtpApiManager.invokeApi('auth.signUp', {
             phone_number: phone_number,
             phone_code_hash: phone_code_hash,
             phone_code: phone_code,
@@ -71,45 +89,84 @@ var telegramApi = (function () {
                 id: result.user.id
             });
             userAuthPromise = _saveUserInfo();
+        }).then(function (data) {
+            defer.resolve(data);
+        }, function (err) {
+            defer.reject(err);
         });
+
+        return defer.promise();
     }
 
     function sendMessage(id, message) {
-        return _MtpApiManager.invokeApi('messages.sendMessage', {
+        var defer = $.Deferred();
+
+        _MtpApiManager.invokeApi('messages.sendMessage', {
             flags: 0,
             peer: _AppPeersManager.getInputPeerByID(id),
             message: message,
             random_id: [nextRandomInt(0xFFFFFFFF), nextRandomInt(0xFFFFFFFF)],
             reply_to_msg_id: 0,
             entities: []
-        }); // TODO
+        }).then(function (data) {
+            defer.resolve(data);
+        }, function (err) {
+            defer.reject(err);
+        });
+
+        return defer.promise();
     }
 
     function getDialogs() {
         var dialogs = [];
+        var defer = $.Deferred();
 
-        return _AppMessagesManager.getConversations('', 0, 20)
+        _AppMessagesManager.getConversations('', 0, 20)
             .then(function (result) {
                 for (var i = 0, ii = result.dialogs.length; i < ii; i++) {
                     dialogs.push(_AppPeersManager.getPeer(result.dialogs[i].peerID));
                 }
                 return dialogs;
+            })
+            .then(function (data) {
+                defer.resolve(data);
+            }, function (err) {
+                defer.reject(err);
             });
+
+        return defer.promise();
     }
 
     function startBot(botName) {
-        return _MtpApiManager.invokeApi('contacts.search', {q: botName, limit: 1})
+        var defer = $.Deferred();
+
+        _MtpApiManager.invokeApi('contacts.search', {q: botName, limit: 1})
             .then(function (result) {
                 _AppUsersManager.saveApiUsers(result.users);
                 _AppMessagesManager.startBot(result.users[0].id, 0);
+            })
+            .then(function (data) {
+                defer.resolve(data);
+            }, function (err) {
+                defer.reject(err);
             });
+
+        return defer.promise();
     }
 
     function sendSms(phone_number, phone_code_hash) {
-        return _MtpApiManager.invokeApi('auth.sendSms', {
+        var defer = $.Deferred();
+
+        _MtpApiManager.invokeApi('auth.sendSms', {
             phone_number: phone_number,
             phone_code_hash: phone_code_hash
-        }, options)
+        }, options).then(function (data) {
+            defer.resolve(data);
+        }, function (err) {
+            defer.reject(err);
+        });
+
+        return defer.promise();
     }
 
     function setConfig(config) {
@@ -137,6 +194,8 @@ var telegramApi = (function () {
     }
 
     function createChat(title, userIDs) {
+        var defer = $.Deferred();
+
         title = title || '';
         userIDs = userIDs || [];
 
@@ -150,7 +209,7 @@ var telegramApi = (function () {
             inputUsers.push(_AppUsersManager.getUserInput(userIDs[i]))
         }
 
-        return _MtpApiManager.invokeApi('messages.createChat', {
+        _MtpApiManager.invokeApi('messages.createChat', {
             title: title,
             users: inputUsers
         }).then(function (updates) {
@@ -162,50 +221,97 @@ var telegramApi = (function () {
             } else {
                 return updates;
             }
+        }).then(function (data) {
+            defer.resolve(data);
+        }, function (err) {
+            defer.reject(err);
         });
+
+        return defer.promise();
     }
 
     function addChatUser(chatID, userID) {
-        return _MtpApiManager.invokeApi('messages.addChatUser', {
+        var defer = $.Deferred();
+
+        _MtpApiManager.invokeApi('messages.addChatUser', {
             chat_id: _AppChatsManager.getChatInput(chatID),
             user_id: _AppUsersManager.getUserInput(userID),
             fwd_limit: 100
         }).then(function (updates) {
             _ApiUpdatesManager.processUpdateMessage(updates);
+        }).then(function (data) {
+            defer.resolve(data);
+        }, function (err) {
+            defer.reject(err);
         });
+
+        return defer.promise();
     }
 
     function getChatLink(chatID, forse) {
+        var defer = $.Deferred();
+
         forse = forse || false;
-        return _AppProfileManager.getChatInviteLink(chatID, forse);
+
+        _AppProfileManager.getChatInviteLink(chatID, forse).then(function (data) {
+            defer.resolve(data);
+        }, function (err) {
+            defer.reject(err);
+        });
+
+        return defer.promise();
     }
 
     function updateUsername(username) {
-        return _MtpApiManager.invokeApi('account.updateUsername', {
+        var defer = $.Deferred();
+
+        _MtpApiManager.invokeApi('account.updateUsername', {
             username: username || ''
         }).then(function (user) {
             _AppUsersManager.saveApiUser(user);
+        }).then(function (data) {
+            defer.resolve(data);
+        }, function (err) {
+            defer.reject(err);
         });
+
+        return defer.promise();
     }
 
     function getUserInfo() {
-        return _MtpApiManager.getUserID().then(function (id) {
+        var defer = $.Deferred();
+
+        _MtpApiManager.getUserID().then(function (id) {
             if (!id) {
                 return _AppUsersManager.getUser(id);
             }
             return userAuthPromise.then(function () {
                 return _AppUsersManager.getUser(id);
             })
+        }).then(function (data) {
+            defer.resolve(data);
+        }, function (err) {
+            defer.reject(err);
         });
+
+        return defer.promise();
     }
 
     function updateProfile(first_name, last_name) {
-        return _MtpApiManager.invokeApi('account.updateProfile', {
+        var defer = $.Deferred();
+
+        _MtpApiManager.invokeApi('account.updateProfile', {
             first_name: first_name || '',
             last_name: last_name || ''
         }).then(function (user) {
             _AppUsersManager.saveApiUser(user);
+        }).then(function (data) {
+            defer.resolve(data);
+        }, function (err) {
+            defer.reject(err);
         });
+
+        return defer.promise();
     }
 
     function getUserPhoto(type) {
@@ -259,11 +365,13 @@ var telegramApi = (function () {
     }
 
     function updateProfilePhoto(photo) {
+        var defer = $.Deferred();
+
         if (!photo || !photo.type || photo.type.indexOf('image') !== 0) {
             return;
         }
 
-        return _MtpApiFileManager.uploadFile(photo).then(function (inputFile) {
+        _MtpApiFileManager.uploadFile(photo).then(function (inputFile) {
             _MtpApiManager.invokeApi('photos.uploadProfilePhoto', {
                 file: inputFile,
                 caption: '',
@@ -286,23 +394,47 @@ var telegramApi = (function () {
                         }
                     });
                 });
+            }).then(function (data) {
+                defer.resolve(data);
+            }, function (err) {
+                defer.reject(err);
             });
         });
+
+        return defer.promise();
     }
 
     function logOut() {
-        return _MtpApiManager.logOut();
+        var defer = $.Deferred();
+
+        _MtpApiManager.logOut().then(function (data) {
+            defer.resolve(data);
+        }, function (err) {
+            defer.reject(err);
+        });
+
+        return defer.promise();
     }
 
     function createChannel(title, about) {
-        return _MtpApiManager.invokeApi('channels.createChannel', {
+        var defer = $.Deferred();
+
+        _MtpApiManager.invokeApi('channels.createChannel', {
             title: title || '',
             flags: 0,
             about: about || ''
-        }, options);
+        }, options).then(function (data) {
+            defer.resolve(data);
+        }, function (err) {
+            defer.reject(err);
+        });
+
+        return defer.promise();
     }
 
     function getHistory(params) {
+        var defer = $.Deferred();
+
         params = params || {};
         params.id = params.id || 0;
         params.take = params.take || 15;
@@ -313,15 +445,23 @@ var telegramApi = (function () {
             params.id = params.id * -1;
         }
 
-        return _MtpApiManager.invokeApi('messages.getHistory', {
+        _MtpApiManager.invokeApi('messages.getHistory', {
             peer: _AppPeersManager.getInputPeerByID(params.id),
             offset_id: 0,
             add_offset: params.skip,
             limit: params.take
+        }).then(function (data) {
+            defer.resolve(data);
+        }, function (err) {
+            defer.reject(err);
         });
+
+        return defer.promise();
     }
 
     function sendFile(params) {
+        var defer = $.Deferred();
+
         params = params || {};
         params.id = params.id || 0;
         params.type = params.type || 'chat';
@@ -332,7 +472,7 @@ var telegramApi = (function () {
             params.id = params.id * -1;
         }
 
-        return _MtpApiFileManager.uploadFile(params.file).then(function (inputFile) {
+        _MtpApiFileManager.uploadFile(params.file).then(function (inputFile) {
             var file = params.file;
 
             inputFile.name = file.name;
@@ -352,7 +492,13 @@ var telegramApi = (function () {
                 media: inputMedia,
                 random_id: [nextRandomInt(0xFFFFFFFF), nextRandomInt(0xFFFFFFFF)]
             });
+        }).then(function (data) {
+            defer.resolve(data);
+        }, function (err) {
+            defer.reject(err);
         });
+
+        return defer.promise();
     }
 
     function downloadDocument(doc, progress) {
@@ -435,6 +581,7 @@ var telegramApi = (function () {
     }
 
     function joinChat(link) {
+        var defer = $.Deferred();
         var regex;
         var hash;
 
@@ -444,10 +591,18 @@ var telegramApi = (function () {
             hash = link;
         }
 
-        return _MtpApiManager.invokeApi('messages.importChatInvite', {hash: hash});
+        _MtpApiManager.invokeApi('messages.importChatInvite', {hash: hash}).then(function (data) {
+            defer.resolve(data);
+        }, function (err) {
+            defer.reject(err);
+        });
+
+        return defer.promise();
     }
 
     function editChatAdmin(chatID, userID, isAdmin) {
+        var defer = $.Deferred();
+
         if (typeof isAdmin == 'undefined') {
             isAdmin = true;
         }
@@ -456,17 +611,31 @@ var telegramApi = (function () {
         chatID = _AppChatsManager.getChatInput(chatID);
         userID = _AppUsersManager.getUserInput(userID);
 
-        return _MtpApiManager.invokeApi('messages.editChatAdmin', {
+        _MtpApiManager.invokeApi('messages.editChatAdmin', {
             chat_id: chatID,
             user_id: userID,
             is_admin: isAdmin
+        }).then(function (data) {
+            defer.resolve(data);
+        }, function (err) {
+            defer.reject(err);
         });
+
+        return defer.promise();
     }
 
     function editChatTitle(chat_id, title) {
-        return _MtpApiManager.invokeApi('messages.editChatTitle', {
+        var defer = $.Deferred();
+
+        _MtpApiManager.invokeApi('messages.editChatTitle', {
             chat_id: chat_id,
             title: title
+        }).then();
+
+        return defer.promise(function (data) {
+            defer.resolve(data);
+        }, function (err) {
+            defer.reject(err);
         });
     }
 
