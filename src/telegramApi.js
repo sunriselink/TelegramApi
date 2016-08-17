@@ -630,13 +630,13 @@ var telegramApi = (function () {
         _MtpApiManager.invokeApi('messages.editChatTitle', {
             chat_id: chat_id,
             title: title
-        }).then();
-
-        return defer.promise(function (data) {
+        }).then(function (data) {
             defer.resolve(data);
         }, function (err) {
             defer.reject(err);
         });
+
+        return defer.promise();
     }
 
     /* Private Functions */
