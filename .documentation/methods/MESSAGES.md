@@ -91,3 +91,10 @@ telegramApi.editChatAdmin(chatID, userID, isAdmin);
 ```
 telegramApi.editChatTitle(chat_id, title);
 ```
+
+### Выставление пользователю в канале прав админинстратора
+* channel_id - идентификатор канала
+* user_id - идентификатор пользователя
+```
+telegramApi.editChannelAdmin(channel_id, user_id);
+```
