@@ -425,6 +425,9 @@ var telegramApi = (function () {
             flags: 0,
             about: about || ''
         }, options).then(function (data) {
+            if($.isArray(data.chats)) {
+                _AppChatsManager.saveApiChats(data.chats);
+            }
             defer.resolve(data);
         }, function (err) {
             defer.reject(err);
