@@ -114,11 +114,25 @@ module.exports = function (grunt) {
                         dest: 'example/nacl/'
                     }
                 ]
+            },
+            dist: {
+                files: [
+                    {
+                        expand: true,
+                        cwd: 'example',
+                        src: [
+                            'js/**/*',
+                            'nacl/**/*'
+                        ],
+                        dest: 'dist'
+                    }
+                ]
             }
         },
         clean: {
             js: ['example/js/**'],
-            nacl: ['example/nacl/**']
+            nacl: ['example/nacl/**'],
+            dist: ['dist/**/*']
         }
     });
 

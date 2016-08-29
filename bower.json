@@ -1,6 +1,13 @@
 {
   "name": "telegram-api",
-  "dependencies": {
+  "license": "GPL",
+  "ignore": [
+    "example",
+    "src",
+    "gruntfile.js",
+    "package.json"
+  ],
+  "devDependencies": {
     "angular": "~1.5.5",
     "Rusha": "rusha#~0.8.3",
     "long": "~3.1.0",
