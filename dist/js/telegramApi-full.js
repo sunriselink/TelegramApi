@@ -12089,6 +12089,7 @@ var telegramApi = (function () {
             _AppPhotosManager.savePhoto(userFullResult.profile_photo, {
                 user_id: userFullResult.user.id
             });
+            getDialogs();
             deferred.resolve();
         });
 
