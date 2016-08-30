@@ -86,7 +86,7 @@ telegramApi.editChatAdmin(chatID, userID, isAdmin);
 ```
 
 ### Редактирование названия чата
-* char_id - идентификатор чата
+* chat_id - идентификатор чата
 * title - новое название
 ```
 telegramApi.editChatTitle(chat_id, title);
@@ -97,4 +97,10 @@ telegramApi.editChatTitle(chat_id, title);
 * user_id - идентификатор пользователя
 ```
 telegramApi.editChannelAdmin(channel_id, user_id);
+```
+
+### Получение полной информации о чате
+* chat_id - идентификатор чата
+```
+telegramApi.getFullChat(chat_id);
 ```

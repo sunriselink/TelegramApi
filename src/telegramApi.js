@@ -17,6 +17,7 @@ var telegramApi = (function () {
         editChatTitle: editChatTitle,
         getChatLink: getChatLink,
         getDialogs: getDialogs,
+        getFullChat: getFullChat,
         getHistory: getHistory,
         getUserInfo: getUserInfo,
         getUserPhoto: getUserPhoto,
@@ -425,7 +426,7 @@ var telegramApi = (function () {
             flags: 0,
             about: about || ''
         }, options).then(function (data) {
-            if($.isArray(data.chats)) {
+            if ($.isArray(data.chats)) {
                 _AppChatsManager.saveApiChats(data.chats);
             }
             defer.resolve(data);
@@ -654,6 +655,18 @@ var telegramApi = (function () {
             }
         }).then(function (updates) {
             defer.resolve(updates);
+        }, function (err) {
+            defer.reject(err);
+        });
+
+        return defer.promise();
+    }
+
+    function getFullChat(chat_id) {
+        var defer = $.Deferred();
+
+        _MtpApiManager.invokeApi('messages.getFullChat', {chat_id: chat_id}).then(function (data) {
+            defer.resolve(data);
         }, function (err) {
             defer.reject(err);
         });
