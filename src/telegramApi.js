@@ -12,6 +12,7 @@ var telegramApi = (function () {
         createChat: createChat,
         createChannel: createChannel,
         downloadDocument: downloadDocument,
+        downloadPhoto: downloadPhoto,
         editChannelAdmin: editChannelAdmin,
         editChatAdmin: editChatAdmin,
         editChatTitle: editChatTitle,
@@ -527,7 +528,6 @@ var telegramApi = (function () {
         var size = 15728640;
         var limit = 524288;
         var offset = 0;
-        var success = $.Deferred();
         var done = $.Deferred();
         var bytes = [];
 
@@ -543,26 +543,6 @@ var telegramApi = (function () {
             }
         });
 
-        success.then(function () {
-            // TODO: Improve
-            var a = document.createElement('a');
-            var blob = new Blob(bytes, {type: 'octet/stream'});
-
-            document.body.appendChild(a);
-            a.style = 'display: none';
-            a.href = window.URL.createObjectURL(blob);
-            a.download = fileName;
-            a.click();
-
-
-            setTimeout(function () {
-                window.URL.revokeObjectURL(a.href);
-                a.remove();
-            }, 100);
-
-            done.resolve();
-        });
-
         function download() {
             if (offset < size) {
                 _MtpApiManager.invokeApi('upload.getFile', {
@@ -576,7 +556,7 @@ var telegramApi = (function () {
                     download();
                 });
             } else {
-                success.resolve();
+                _downloadFile(bytes, fileName, done);
             }
         }
 
@@ -674,6 +654,55 @@ var telegramApi = (function () {
         return defer.promise();
     }
 
+    function downloadPhoto(photo, progress) {
+        var photoSize = photo.sizes[photo.sizes.length - 1];
+        var location = {
+            _: 'inputFileLocation',
+            local_id: photoSize.location.local_id,
+            secret: photoSize.location.secret,
+            volume_id: photoSize.location.volume_id
+        };
+
+        if (!$.isFunction(progress)) {
+            progress = function () {
+            };
+        }
+
+        var fileName = photo.id + '.jpg';
+        var size = 15728640;
+        var limit = 524288;
+        var offset = 0;
+        var done = $.Deferred();
+        var bytes = [];
+
+        if (photoSize.size > size) {
+            throw new Error('Big file not supported');
+        }
+
+        size = photoSize.size;
+
+        function download() {
+            if (offset < size) {
+                _MtpApiManager.invokeApi('upload.getFile', {
+                    location: location,
+                    offset: offset,
+                    limit: limit
+                }).then(function (result) {
+                    bytes.push(result.bytes);
+                    offset += limit;
+                    progress(offset < size ? offset : size, size);
+                    download();
+                });
+            } else {
+                _downloadFile(bytes, fileName, done);
+            }
+        }
+
+        setTimeout(download, 0);
+
+        return done.promise();
+    }
+
     /* Private Functions */
 
     function _saveUserInfo() {
@@ -691,5 +720,24 @@ var telegramApi = (function () {
         });
 
         return deferred.promise();
+    }
+
+    function _downloadFile(bytes, fileName, defer) {
+        // TODO: Improve
+        var a = document.createElement('a');
+        var blob = new Blob(bytes, {type: 'octet/stream'});
+
+        document.body.appendChild(a);
+        a.style = 'display: none';
+        a.href = window.URL.createObjectURL(blob);
+        a.download = fileName;
+        a.click();
+
+        setTimeout(function () {
+            window.URL.revokeObjectURL(a.href);
+            a.remove();
+        }, 100);
+
+        defer.resolve();
     }
 })();
