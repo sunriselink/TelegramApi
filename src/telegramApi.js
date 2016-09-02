@@ -14,6 +14,7 @@ var telegramApi = (function () {
         downloadDocument: downloadDocument,
         downloadPhoto: downloadPhoto,
         editChannelAdmin: editChannelAdmin,
+        editChannelTitle: editChannelTitle,
         editChatAdmin: editChatAdmin,
         editChatTitle: editChatTitle,
         getChatLink: getChatLink,
@@ -701,6 +702,21 @@ var telegramApi = (function () {
         setTimeout(download, 0);
 
         return done.promise();
+    }
+
+    function editChannelTitle(channel_id, title) {
+        var defer = $.Deferred();
+
+        _MtpApiManager.invokeApi('channels.editTitle', {
+            channel: _AppChatsManager.getChannelInput(channel_id),
+            title: title
+        }).then(function (updates) {
+            defer.resolve(updates);
+        }, function (err) {
+            defer.reject(err);
+        });
+
+        return defer.promise();
     }
 
     /* Private Functions */
