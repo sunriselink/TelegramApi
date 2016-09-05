@@ -11427,6 +11427,7 @@ var telegramApi = (function () {
         addChatUser: addChatUser,
         createChat: createChat,
         createChannel: createChannel,
+        deleteMessages: deleteMessages,
         downloadDocument: downloadDocument,
         downloadPhoto: downloadPhoto,
         editChannelAdmin: editChannelAdmin,
@@ -12131,6 +12132,23 @@ var telegramApi = (function () {
         }, function (err) {
             defer.reject(err);
         });
+
+        return defer.promise();
+    }
+
+    function deleteMessages(ids) {
+        if(!$.isArray(ids)) {
+            ids = [ids];
+        }
+
+        var defer = $.Deferred();
+
+        _MtpApiManager.invokeApi('messages.deleteMessages', {id: ids})
+            .then(function (updates) {
+                defer.resolve(updates);
+            }, function (err) {
+                defer.reject(err);
+            });
 
         return defer.promise();
     }
