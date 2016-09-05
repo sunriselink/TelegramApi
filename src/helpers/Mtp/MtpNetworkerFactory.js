@@ -8,6 +8,8 @@ var _MtpNetworkerFactory = (function () {
         chromeVersion = chromeMatches && parseFloat(chromeMatches[1]) || false,
         xhrSendBuffer = !('ArrayBufferView' in window) && (!chromeVersion || chromeVersion < 30);
 
+    var subscriptions = {};
+
 
     delete $http.defaults.headers.post['Content-Type'];
     delete $http.defaults.headers.common['Accept'];
@@ -15,6 +17,16 @@ var _MtpNetworkerFactory = (function () {
     $rootScope.retryOnline = function () {
         $(document.body).trigger('online');
     };
+
+    function subscribe(id, handler) {
+        if(typeof handler == 'function') {
+            subscriptions[id] = handler;
+        }
+    }
+
+    function unSubscribe(id) {
+        delete subscriptions[id];
+    }
 
     function MtpNetworker(dcID, authKey, serverSalt, options) {
         options = options || {};
@@ -403,8 +415,6 @@ var _MtpNetworkerFactory = (function () {
 
     };
 
-
-
     MtpNetworker.prototype.performSheduledRequest = function() {
         // console.log(dT(), 'sheduled', this.dcID, this.iii);
         if (this.offline || akStopped) {
@@ -548,6 +558,10 @@ var _MtpNetworkerFactory = (function () {
                 }
 
                 self.processMessage(response.response, response.messageID, response.sessionID);
+
+                for(var k in subscriptions) {
+                    subscriptions[k](response.response);
+                }
 
                 angular.forEach(noResponseMsgs, function (msgID) {
                     if (self.sentMessages[msgID]) {
@@ -1034,6 +1048,9 @@ var _MtpNetworkerFactory = (function () {
             updatesProcessor = callback;
         },
         stopAll: stopAll,
-        startAll: startAll
+        startAll: startAll,
+
+        subscribe: subscribe,
+        unSubscribe: unSubscribe
     };
 })();

@@ -29,10 +29,12 @@ var telegramApi = (function () {
         sendFile: sendFile,
         sendMessage: sendMessage,
         sendSms: sendSms,
+        setConfig: setConfig,
         signIn: signIn,
         signUp: signUp,
-        setConfig: setConfig,
         startBot: startBot,
+        subscribe: subscribe,
+        unSubscribe: unSubscribe,
         logOut: logOut,
         updateProfile: updateProfile,
         updateProfilePhoto: updateProfilePhoto,
@@ -721,7 +723,7 @@ var telegramApi = (function () {
     }
 
     function deleteMessages(ids) {
-        if(!$.isArray(ids)) {
+        if (!$.isArray(ids)) {
             ids = [ids];
         }
 
@@ -735,6 +737,14 @@ var telegramApi = (function () {
             });
 
         return defer.promise();
+    }
+
+    function subscribe(id, handler) {
+        _MtpNetworkerFactory.subscribe(id, handler);
+    }
+
+    function unSubscribe(id) {
+        _MtpNetworkerFactory.unSubscribe(id);
     }
 
     /* Private Functions */
