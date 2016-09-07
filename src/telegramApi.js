@@ -22,6 +22,7 @@ var telegramApi = (function () {
         getDialogs: getDialogs,
         getFullChat: getFullChat,
         getHistory: getHistory,
+        getPeerByID: getPeerByID,
         getUserInfo: getUserInfo,
         getUserPhoto: getUserPhoto,
         joinChat: joinChat,
@@ -747,6 +748,61 @@ var telegramApi = (function () {
         _MtpNetworkerFactory.unSubscribe(id);
     }
 
+    function getPeerByID(id, type) {
+        type = type || 'user';
+
+        if ((type == 'chat' || type == 'channel') && id > 0) {
+            id = -id;
+        }
+
+        var peer = _AppPeersManager.getPeer(id);
+        var defer = $.Deferred();
+
+        if (!peer.deleted) {
+            return defer.resolve(peer).promise();
+        }
+
+        var offsetDate = 0;
+        var dialogsLoaded = 0;
+        var totalCount = 0;
+
+        (function load() {
+            _MtpApiManager.invokeApi('messages.getDialogs', {
+                offset_peer: {_: 'inputPeerEmpty'},
+                limit: 100,
+                offset_date: offsetDate
+            }).then(function (result) {
+                _AppChatsManager.saveApiChats(result.chats);
+                _AppUsersManager.saveApiUsers(result.users);
+
+                dialogsLoaded += result.dialogs.length;
+                totalCount = result.count;
+
+                var peer = _AppPeersManager.getPeer(id);
+
+                if (!peer.deleted) {
+                    defer.resolve(peer);
+                    return;
+                }
+
+                if(totalCount && dialogsLoaded < totalCount) {
+                    var dates = _aggregate(result.messages, function (msg) {
+                        return msg.date;
+                    });
+                    offsetDate = _getMin(dates);
+                    load();
+                    return;
+                }
+
+                defer.reject({type: 'PEER_NOT_FOUND'});
+            }, function (err) {
+                defer.reject(err);
+            });
+        })();
+
+        return defer.promise();
+    }
+
     /* Private Functions */
 
     function _saveUserInfo() {
@@ -759,7 +815,6 @@ var telegramApi = (function () {
             _AppPhotosManager.savePhoto(userFullResult.profile_photo, {
                 user_id: userFullResult.user.id
             });
-            getDialogs();
             deferred.resolve();
         });
 
@@ -783,5 +838,27 @@ var telegramApi = (function () {
         }, 100);
 
         defer.resolve();
+    }
+
+    function _getMin(arr) {
+        var min = arr[0];
+
+        for (var i = 0; i < arr.length; i++) {
+            if (arr[i] < min) {
+                min = arr[i];
+            }
+        }
+
+        return min;
+    }
+
+    function _aggregate(arr, iterator) {
+        var result = [];
+
+        arr.forEach(function (item) {
+            result.push(iterator(item));
+        });
+
+        return result;
     }
 })();
