@@ -20,6 +20,7 @@ var telegramApi = (function () {
         editChatTitle: editChatTitle,
         getChatLink: getChatLink,
         getDialogs: getDialogs,
+        getDocumentPreview: getDocumentPreview,
         getFullChat: getFullChat,
         getHistory: getHistory,
         getPeerByID: getPeerByID,
@@ -785,7 +786,7 @@ var telegramApi = (function () {
                     return;
                 }
 
-                if(totalCount && dialogsLoaded < totalCount) {
+                if (totalCount && dialogsLoaded < totalCount) {
                     var dates = _aggregate(result.messages, function (msg) {
                         return msg.date;
                     });
@@ -860,5 +861,29 @@ var telegramApi = (function () {
         });
 
         return result;
+    }
+
+    function getDocumentPreview(doc) {
+        var location = doc.thumb.location;
+        var limit = 524288;
+        var defer = $.Deferred();
+
+        location._ = 'inputFileLocation';
+
+        if (doc.thumb.size > limit) {
+            throw new Error('Size of document exceed limit');
+        }
+
+        _MtpApiManager.invokeApi('upload.getFile', {
+            location: location,
+            offset: 0,
+            limit: limit
+        }).then(function (result) {
+            defer.resolve(result);
+        }, function (err) {
+            defer.reject(err);
+        });
+
+        return defer.promise();
     }
 })();
