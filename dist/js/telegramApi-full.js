@@ -11453,6 +11453,7 @@ var telegramApi = (function () {
         editChannelTitle: editChannelTitle,
         editChatAdmin: editChatAdmin,
         editChatTitle: editChatTitle,
+        editChatPhoto: editChatPhoto,
         getChatLink: getChatLink,
         getDialogs: getDialogs,
         getDocumentPreview: getDocumentPreview,
@@ -12321,4 +12322,28 @@ var telegramApi = (function () {
 
         return defer.promise();
     }
+
+    function editChatPhoto(chat_id, photo) {
+
+        var defer = $.Deferred();
+
+        _MtpApiFileManager.uploadFile(photo).then(function(inputFile) {
+            _MtpApiManager.invokeApi('messages.editChatPhoto', {
+                chat_id: chat_id,
+                photo: {_: 'inputChatUploadedPhoto',
+                    file: inputFile,
+                    crop: {
+                        _: 'inputPhotoCropAuto'
+                    }
+                }
+            }).then(function (updates) {
+                defer.resolve(updates);
+            }, function (err) {
+                defer.reject(err);
+            });
+        });
+
+        return defer.promise();
+    }
+
 })();
