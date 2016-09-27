@@ -16,6 +16,7 @@ var telegramApi = (function () {
         downloadPhoto: downloadPhoto,
         editChannelAdmin: editChannelAdmin,
         editChannelTitle: editChannelTitle,
+        editChannelPhoto: editChannelPhoto,
         editChatAdmin: editChatAdmin,
         editChatTitle: editChatTitle,
         editChatPhoto: editChatPhoto,
@@ -895,6 +896,28 @@ var telegramApi = (function () {
         _MtpApiFileManager.uploadFile(photo).then(function(inputFile) {
             _MtpApiManager.invokeApi('messages.editChatPhoto', {
                 chat_id: chat_id,
+                photo: {_: 'inputChatUploadedPhoto',
+                    file: inputFile,
+                    crop: {
+                        _: 'inputPhotoCropAuto'
+                    }
+                }
+            }).then(function (updates) {
+                defer.resolve(updates);
+            }, function (err) {
+                defer.reject(err);
+            });
+        });
+
+        return defer.promise();
+    }
+
+    function editChannelPhoto(channel_id, photo) {
+        var defer = $.Deferred();
+
+        _MtpApiFileManager.uploadFile(photo).then(function(inputFile) {
+            _MtpApiManager.invokeApi('channels.editPhoto', {
+                channel: _AppChatsManager.getChannelInput(channel_id),
                 photo: {_: 'inputChatUploadedPhoto',
                     file: inputFile,
                     crop: {
