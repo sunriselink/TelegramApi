@@ -1,7 +1,8 @@
 {
   "name": "TelegramApi",
   "scripts": {
-    "build": "npm i && bower i && grunt build"
+    "build": "grunt build",
+    "build-lib": "npm i && bower i && npm run build"
   },
   "dependencies": {
     "bower": "^1.7.9",

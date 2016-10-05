@@ -11444,6 +11444,7 @@ var telegramApi = (function () {
 
     return {
         addChatUser: addChatUser,
+        checkPhone: checkPhone,
         createChat: createChat,
         createChannel: createChannel,
         deleteMessages: deleteMessages,
@@ -12241,6 +12242,85 @@ var telegramApi = (function () {
         return defer.promise();
     }
 
+    function getDocumentPreview(doc) {
+        var location = doc.thumb.location;
+        var limit = 524288;
+        var defer = $.Deferred();
+
+        location._ = 'inputFileLocation';
+
+        if (doc.thumb.size > limit) {
+            throw new Error('Size of document exceed limit');
+        }
+
+        _MtpApiManager.invokeApi('upload.getFile', {
+            location: location,
+            offset: 0,
+            limit: limit
+        }).then(function (result) {
+            defer.resolve(result);
+        }, function (err) {
+            defer.reject(err);
+        });
+
+        return defer.promise();
+    }
+
+    function editChatPhoto(chat_id, photo) {
+
+        var defer = $.Deferred();
+
+        _MtpApiFileManager.uploadFile(photo).then(function (inputFile) {
+            _MtpApiManager.invokeApi('messages.editChatPhoto', {
+                chat_id: chat_id,
+                photo: {
+                    _: 'inputChatUploadedPhoto',
+                    file: inputFile,
+                    crop: {
+                        _: 'inputPhotoCropAuto'
+                    }
+                }
+            }).then(function (updates) {
+                defer.resolve(updates);
+            }, function (err) {
+                defer.reject(err);
+            });
+        });
+
+        return defer.promise();
+    }
+
+    function editChannelPhoto(channel_id, photo) {
+        var defer = $.Deferred();
+
+        _MtpApiFileManager.uploadFile(photo).then(function (inputFile) {
+            _MtpApiManager.invokeApi('channels.editPhoto', {
+                channel: _AppChatsManager.getChannelInput(channel_id),
+                photo: {
+                    _: 'inputChatUploadedPhoto',
+                    file: inputFile,
+                    crop: {
+                        _: 'inputPhotoCropAuto'
+                    }
+                }
+            }).then(function (updates) {
+                defer.resolve(updates);
+            }, function (err) {
+                defer.reject(err);
+            });
+        });
+
+        return defer.promise();
+    }
+
+    function checkPhone(phone_number) {
+        var defer = $.Deferred();
+
+        _MtpApiManager.invokeApi('auth.checkPhone', {phone_number: phone_number}).then(defer.resolve, defer.reject);
+
+        return defer.promise();
+    }
+
     /* Private Functions */
 
     function _saveUserInfo() {
@@ -12299,74 +12379,4 @@ var telegramApi = (function () {
 
         return result;
     }
-
-    function getDocumentPreview(doc) {
-        var location = doc.thumb.location;
-        var limit = 524288;
-        var defer = $.Deferred();
-
-        location._ = 'inputFileLocation';
-
-        if (doc.thumb.size > limit) {
-            throw new Error('Size of document exceed limit');
-        }
-
-        _MtpApiManager.invokeApi('upload.getFile', {
-            location: location,
-            offset: 0,
-            limit: limit
-        }).then(function (result) {
-            defer.resolve(result);
-        }, function (err) {
-            defer.reject(err);
-        });
-
-        return defer.promise();
-    }
-
-    function editChatPhoto(chat_id, photo) {
-
-        var defer = $.Deferred();
-
-        _MtpApiFileManager.uploadFile(photo).then(function(inputFile) {
-            _MtpApiManager.invokeApi('messages.editChatPhoto', {
-                chat_id: chat_id,
-                photo: {_: 'inputChatUploadedPhoto',
-                    file: inputFile,
-                    crop: {
-                        _: 'inputPhotoCropAuto'
-                    }
-                }
-            }).then(function (updates) {
-                defer.resolve(updates);
-            }, function (err) {
-                defer.reject(err);
-            });
-        });
-
-        return defer.promise();
-    }
-
-    function editChannelPhoto(channel_id, photo) {
-        var defer = $.Deferred();
-
-        _MtpApiFileManager.uploadFile(photo).then(function(inputFile) {
-            _MtpApiManager.invokeApi('channels.editPhoto', {
-                channel: _AppChatsManager.getChannelInput(channel_id),
-                photo: {_: 'inputChatUploadedPhoto',
-                    file: inputFile,
-                    crop: {
-                        _: 'inputPhotoCropAuto'
-                    }
-                }
-            }).then(function (updates) {
-                defer.resolve(updates);
-            }, function (err) {
-                defer.reject(err);
-            });
-        });
-
-        return defer.promise();
-    }
-
 })();
