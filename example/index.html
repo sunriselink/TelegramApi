@@ -1,82 +1,37 @@
 <html>
 
 <head>
-  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.6/css/bootstrap.min.css" integrity="sha384-1q8mTJOASx8j1Au+a5WDVnPi2lkFfwwEAa8hDDdjZlpLegxhjVME1fgjWPGmkzs7" crossorigin="anonymous">
-  <style>
-    input, select {
-      width: 200px !important;
-      display: inline-block !important;
-    }
-    #chatUsers {
-      height: 200px;
-      position: relative;
-      top: 10px;
-    }
-    div {
-      margin-bottom: 40px;;
-    }
-    img {
-      width: 100px;
-    }
-  </style>
+    <title>Test Telegram App</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
-  <script src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
-  <script src="js/telegramApi-full.js"></script>
+<script src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
+<script src="js/telegramApi-full.js"></script>
 
-  <div>
-    <h1>Input phone number</h1>
-    <input class="form-control" id="phone" type="text" placeholder="Phone" value="79823663413">
-    <button class="btn btn-success" id="sendButton">Send code</button>
-    <button class="btn btn-success" id="sendSmsButton">Send sms</button>
-  </div>
+<div id="content" ng-app="myApp">
+    <div ng-controller="mainCtrl">
+        <div ng-show="visible.auth">
+            <input type="text" ng-model="auth.phone" placeholder="Phone">
+            <input type="text" ng-model="auth.code" placeholder="Code">
+            <button ng-click="auth.sendCode()">Send code</button>
+            <button ng-click="auth.signIn()">Sign In</button>
+        </div>
+        <div ng-show="visible.info">
+            <table>
+                <tr><td>ID</td><td ng-bind="info.id"></td></tr>
+                <tr><td>Photo</td><td><img ng-src="{{info.photoBase64}}" alt=""></td></tr>
+                <tr><td>First Name</td><td ng-bind="info.first_name"></td></tr>
+                <tr><td>Last Name</td><td ng-bind="info.last_name"></td></tr>
+                <tr><td>Username</td><td ng-bind="info.username"></td></tr>
+                <tr><td>Phone</td><td ng-bind="info.rPhone"></td></tr>
+            </table>
+        </div>
+    </div>
+</div>
 
-  <div id="phone-code">
-    <h1>Input phone code</h1>
-    <input class="form-control "id="code" type="text" placeholder="code">
-    <button class="btn btn-success" id="signInButton">Sign in</button>
-    <span>Phone code hash: </span>
-    <span id="phoneHash"></span>
-  </div>
-
-  <div>
-    <h1>User info</h1>
-    <input id="firstName_info" type="text" class="form-control" placeholder="First name">
-    <input id="lastName_info" type="text" class="form-control" placeholder="Last name">
-    <input id="userName_info" type="text" class="form-control" placeholder="Username">
-    <button id="getUserInfoButton" class="btn btn-success">Get user info</button>
-    <button id="updateUsername" class="btn btn-success">Update username</button>
-    <button id="updateProfile" class="btn btn-success">Update profile</button>
-    <img src="" alt="" id="userPhoto">
-    <input type="file" id="uploadPhoto">
-  </div>
-
-  <div>
-    <h1>Send Message</h1>
-    <select class="form-control" id="select"></select>
-    <button class="btn btn-success" id="getDialogsButton">Get dialogs</button>
-    <input class="form-control" id="message" type="text" placeholder="Message">
-    <button class="btn btn-success" id="sendMessageButton">SendMessage</button>
-  </div>
-
-  <div>
-    <h1>Start bot</h1>
-    <button class="btn btn-success" id="addBotButton">Add selinkBot</button>
-  </div>
-
-  <div id="chat">
-    <h1>Chats</h1>
-    <input id="chatTitle" type="text" class="form-control" placeholder="Chat title">
-    <select id="chatInvite" class="form-control"></select>
-    <select class="form-control" id="chatUsers" multiple></select>
-    <button id="createChatButton" class="btn btn-success">Create chat</button>
-    <button id="inviteButton" class="btn btn-success">Invite user to selected chat</button>
-    <button id="getChatLinkButton" class="btn btn-success">Get chat link</button>
-  </div>
-
-  <script src="script.js"></script>
+<script src="script.js"></script>
 
 </body>
 
