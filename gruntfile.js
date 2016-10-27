@@ -32,7 +32,6 @@ module.exports = function (grunt) {
                     'src/helpers/Etc/TmpfsFileStorage.js',
                     'src/helpers/Etc/IdbFileStorage.js',
                     'src/helpers/Etc/MemoryFileStorage.js',
-                    'src/helpers/Etc/ErrorService.js',
 
                     'src/helpers/Mtp/MtpDcConfigurator.js',
                     'src/helpers/Mtp/MtpTimeManager.js',

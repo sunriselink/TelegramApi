@@ -129,8 +129,6 @@ var _MtpApiManager = (function () {
                         if (!error.handled) {
                             if (error.code == 401) {
                                 mtpLogOut();
-                            } else {
-                                _ErrorService.show({error: error});
                             }
                             error.handled = true;
                         }
