@@ -685,7 +685,7 @@ var _MtpNetworkerFactory = (function () {
                             'dc' + self.dcID + '_server_salt',
                             'dc' + self.dcID + '_auth_key'
                         ).then(function () {
-                            _AppRuntimeManager.reload();
+                            window.location.reload();
                         });
                     }
                     if (!error.message && !error.type) {
