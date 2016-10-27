@@ -1,76 +1,6 @@
 var _AppProfileManager = (function () {
-    var botInfos = {};
     var chatsFull = {};
     var chatFullPromises = {};
-
-    function saveBotInfo (botInfo) {
-        var botID = botInfo && botInfo.user_id;
-        if (!botID) {
-            return false;
-        }
-        var commands = {};
-        angular.forEach(botInfo.commands, function (botCommand) {
-            commands[botCommand.command] = botCommand.description;
-        })
-        return botInfos[botID] = {
-            id: botID,
-            version: botInfo.version,
-            shareText: botInfo.share_text,
-            description: botInfo.description,
-            rAbout: RichTextProcessor.wrapRichText(botInfo.share_text, {noLinebreaks: true}),
-            commands: commands
-        };
-    }
-
-    function getProfile (id, override) {
-        return _MtpApiManager.invokeApi('users.getFullUser', {
-            id: _AppUsersManager.getUserInput(id)
-        }).then(function (userFull) {
-            if (override && override.phone_number) {
-                userFull.user.phone = override.phone_number;
-                if (override.first_name || override.last_name) {
-                    userFull.user.first_name = override.first_name;
-                    userFull.user.last_name = override.last_name;
-                }
-                _AppUsersManager.saveApiUser(userFull.user);
-            } else {
-                _AppUsersManager.saveApiUser(userFull.user, true);
-            }
-
-            _AppPhotosManager.savePhoto(userFull.profile_photo, {
-                user_id: id
-            });
-
-            userFull.bot_info = saveBotInfo(userFull.bot_info);
-
-            return userFull;
-        });
-    }
-
-    function getPeerBots (peerID) {
-        var peerBots = [];
-        if (peerID >= 0 && !_AppUsersManager.isBot(peerID) ||
-            (_AppPeersManager.isChannel(peerID) && !_AppPeersManager.isMegagroup(peerID))) {
-            return $q.when(peerBots);
-        }
-        if (peerID >= 0) {
-            return getProfile(peerID).then(function (userFull) {
-                var botInfo = userFull.bot_info;
-                if (botInfo && botInfo._ != 'botInfoEmpty') {
-                    peerBots.push(botInfo);
-                }
-                return peerBots;
-            });
-        }
-
-        return getChatFull(-peerID).then(function (chatFull) {
-            angular.forEach(chatFull.bot_info, function (botInfo) {
-                peerBots.push(saveBotInfo(botInfo));
-            });
-            return peerBots;
-        });
-
-    }
 
     function getChatFull(id) {
         if (_AppChatsManager.isChannel(id)) {
@@ -93,9 +23,6 @@ var _AppProfileManager = (function () {
             _AppChatsManager.saveApiChats(result.chats);
             _AppUsersManager.saveApiUsers(result.users);
             var fullChat = result.full_chat;
-            if (fullChat && fullChat.chat_photo.id) {
-                _AppPhotosManager.savePhoto(fullChat.chat_photo);
-            }
             delete chatFullPromises[id];
             chatsFull[id] = fullChat;
             $rootScope.$broadcast('chat_full_update', id);
@@ -179,9 +106,6 @@ var _AppProfileManager = (function () {
             _AppUsersManager.saveApiUsers(result.users);
             var fullChannel = result.full_chat;
             var chat = _AppChatsManager.getChat(id);
-            if (fullChannel && fullChannel.chat_photo.id) {
-                _AppPhotosManager.savePhoto(fullChannel.chat_photo);
-            }
             var participantsPromise;
             if (fullChannel.flags & 8) {
                 participantsPromise = getChannelParticipants(id).then(function (participants) {
@@ -208,84 +132,7 @@ var _AppProfileManager = (function () {
         });
     }
 
-    $rootScope.$on('apiUpdate', function (e, update) {
-        // console.log('on apiUpdate', update);
-        switch (update._) {
-            case 'updateChatParticipants':
-                var participants = update.participants;
-                var chatFull = chatsFull[participants.id];
-                if (chatFull !== undefined) {
-                    chatFull.participants = update.participants;
-                    $rootScope.$broadcast('chat_full_update', chatID);
-                }
-                break;
-
-            case 'updateChatParticipantAdd':
-                var chatFull = chatsFull[update.chat_id];
-                if (chatFull !== undefined) {
-                    var participants = chatFull.participants.participants || [];
-                    for (var i = 0, length = participants.length; i < length; i++) {
-                        if (participants[i].user_id == update.user_id) {
-                            return;
-                        }
-                    }
-                    participants.push({
-                        _: 'chatParticipant',
-                        user_id: update.user_id,
-                        inviter_id: update.inviter_id,
-                        date: tsNow(true)
-                    });
-                    chatFull.participants.version = update.version;
-                    $rootScope.$broadcast('chat_full_update', update.chat_id);
-                }
-                break;
-
-            case 'updateChatParticipantDelete':
-                var chatFull = chatsFull[update.chat_id];
-                if (chatFull !== undefined) {
-                    var participants = chatFull.participants.participants || [];
-                    for (var i = 0, length = participants.length; i < length; i++) {
-                        if (participants[i].user_id == update.user_id) {
-                            participants.splice(i, 1);
-                            chatFull.participants.version = update.version;
-                            $rootScope.$broadcast('chat_full_update', update.chat_id);
-                            return;
-                        }
-                    }
-                }
-                break;
-
-        }
-    });
-
-    $rootScope.$on('chat_update', function (e, chatID) {
-        var fullChat = chatsFull[chatID];
-        var chat = _AppChatsManager.getChat(chatID);
-        if (!chat.photo || !fullChat) {
-            return;
-        }
-        var emptyPhoto = chat.photo._ == 'chatPhotoEmpty';
-        if (emptyPhoto != (fullChat.chat_photo._ == 'photoEmpty')) {
-            delete chatsFull[chatID];
-            $rootScope.$broadcast('chat_full_update', chatID);
-            return;
-        }
-        if (emptyPhoto) {
-            return;
-        }
-        var smallUserpic = chat.photo.photo_small;
-        var smallPhotoSize = _AppPhotosManager.choosePhotoSize(fullChat.chat_photo, 0, 0);
-        if (!angular.equals(smallUserpic, smallPhotoSize.location)) {
-            delete chatsFull[chatID];
-            $rootScope.$broadcast('chat_full_update', chatID);
-        }
-    });
-
     return {
-        getPeerBots: getPeerBots,
-        getProfile: getProfile,
-        getChatInviteLink: getChatInviteLink,
-        getChatFull: getChatFull,
-        getChannelFull: getChannelFull
+        getChatInviteLink: getChatInviteLink
     }
 })();
