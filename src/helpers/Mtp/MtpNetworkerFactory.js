@@ -10,16 +10,11 @@ var _MtpNetworkerFactory = (function () {
 
     var subscriptions = {};
 
-
     delete $http.defaults.headers.post['Content-Type'];
     delete $http.defaults.headers.common['Accept'];
 
-    $rootScope.retryOnline = function () {
-        $(document.body).trigger('online');
-    };
-
     function subscribe(id, handler) {
-        if(typeof handler == 'function') {
+        if (typeof handler == 'function') {
             subscriptions[id] = handler;
         }
     }
@@ -64,44 +59,13 @@ var _MtpNetworkerFactory = (function () {
 
         if (!offlineInited) {
             offlineInited = true;
-            $rootScope.offline = true;
-            $rootScope.offlineConnecting = true;
         }
-
-        if (Config.Navigator.mobile) {
-            this.setupMobileSleep();
-        }
-    };
+    }
 
     MtpNetworker.prototype.updateSession = function () {
         this.seqNo = 0;
         this.sessionID = new Array(8);
         _MtpSecureRandom.nextBytes(this.sessionID);
-
-        if (false) {
-            this.sessionID[0] = 0xAB;
-            this.sessionID[1] = 0xCD;
-        }
-    };
-
-    MtpNetworker.prototype.setupMobileSleep = function () {
-        var self = this;
-        $rootScope.$watch('idle.isIDLE', function (isIDLE) {
-            if (isIDLE) {
-                self.sleepAfter = tsNow() + 30000;
-            } else {
-                delete self.sleepAfter;
-                self.checkLongPoll();
-            }
-        });
-
-        $rootScope.$on('push_received', function () {
-            // console.log(dT(), 'push recieved', self.sleepAfter);
-            if (self.sleepAfter) {
-                self.sleepAfter = tsNow() + 30000;
-                self.checkLongPoll();
-            }
-        });
     };
 
     MtpNetworker.prototype.updateSentMessage = function (sentMessageID) {
@@ -112,7 +76,7 @@ var _MtpNetworkerFactory = (function () {
         var self = this;
         if (sentMessage.container) {
             var newInner = [];
-            angular.forEach(sentMessage.inner, function(innerSentMessageID){
+            angular.forEach(sentMessage.inner, function (innerSentMessageID) {
                 var innerSentMessage = self.updateSentMessage(innerSentMessageID);
                 if (innerSentMessage) {
                     newInner.push(innerSentMessage.msg_id);
@@ -141,7 +105,7 @@ var _MtpNetworkerFactory = (function () {
         }
 
         return seqNo;
-    }
+    };
 
     MtpNetworker.prototype.wrapMtpCall = function (method, params, options) {
         var serializer = new TLSerialization({mtproto: true});
@@ -193,7 +157,7 @@ var _MtpNetworkerFactory = (function () {
             serializer.storeInt(0x69796de9, 'initConnection');
             serializer.storeInt(Config.App.id, 'api_id');
             serializer.storeString(navigator.userAgent || 'Unknown UserAgent', 'device_model');
-            serializer.storeString(navigator.platform  || 'Unknown Platform', 'system_version');
+            serializer.storeString(navigator.platform || 'Unknown Platform', 'system_version');
             serializer.storeString(Config.App.version, 'app_version');
             serializer.storeString(navigator.language || 'en', 'lang_code');
         }
@@ -223,7 +187,7 @@ var _MtpNetworkerFactory = (function () {
         return this.pushMessage(message, options);
     };
 
-    MtpNetworker.prototype.checkLongPoll = function(force) {
+    MtpNetworker.prototype.checkLongPoll = function (force) {
         var isClean = this.cleanupSent();
         // console.log('Check lp', this.longPollPending, tsNow(), this.dcID, isClean);
         if (this.longPollPending && tsNow() < this.longPollPending ||
@@ -245,7 +209,7 @@ var _MtpNetworkerFactory = (function () {
         });
     };
 
-    MtpNetworker.prototype.sendLongPoll = function() {
+    MtpNetworker.prototype.sendLongPoll = function () {
         var maxWait = 25000,
             self = this;
 
@@ -268,7 +232,7 @@ var _MtpNetworkerFactory = (function () {
 
     };
 
-    MtpNetworker.prototype.pushMessage = function(message, options) {
+    MtpNetworker.prototype.pushMessage = function (message, options) {
         var deferred = $q.defer();
 
         this.sentMessages[message.msg_id] = angular.extend(message, options || {}, {deferred: deferred});
@@ -284,7 +248,7 @@ var _MtpNetworkerFactory = (function () {
         return deferred.promise;
     };
 
-    MtpNetworker.prototype.pushResend = function(messageID, delay) {
+    MtpNetworker.prototype.pushResend = function (messageID, delay) {
         var value = delay ? tsNow() + delay : 0;
         var sentMessage = this.sentMessages[messageID];
         if (sentMessage.container) {
@@ -347,9 +311,7 @@ var _MtpNetworkerFactory = (function () {
         });
     };
 
-    MtpNetworker.prototype.checkConnection = function(event) {
-        $rootScope.offlineConnecting = true;
-
+    MtpNetworker.prototype.checkConnection = function (event) {
         console.log(dT(), 'Check connection', event);
         $timeout.cancel(this.checkConnectionPromise);
 
@@ -366,27 +328,21 @@ var _MtpNetworkerFactory = (function () {
 
         var self = this;
         this.sendEncryptedRequest(pingMessage, {timeout: 15000}).then(function (result) {
-            delete $rootScope.offlineConnecting;
             self.toggleOffline(false);
         }, function () {
             console.log(dT(), 'Delay ', self.checkConnectionPeriod * 1000);
             self.checkConnectionPromise = $timeout(self.checkConnection.bind(self), parseInt(self.checkConnectionPeriod * 1000));
             self.checkConnectionPeriod = Math.min(60, self.checkConnectionPeriod * 1.5);
-            $timeout(function () {
-                delete $rootScope.offlineConnecting;
-            }, 1000);
         })
     };
 
-    MtpNetworker.prototype.toggleOffline = function(enabled) {
+    MtpNetworker.prototype.toggleOffline = function (enabled) {
         // console.log('toggle ', enabled, this.dcID, this.iii);
         if (this.offline !== undefined && this.offline == enabled) {
             return false;
         }
 
         this.offline = enabled;
-        $rootScope.offline = enabled;
-        $rootScope.offlineConnecting = false;
 
         if (this.offline) {
             $timeout.cancel(this.nextReqPromise);
@@ -415,7 +371,7 @@ var _MtpNetworkerFactory = (function () {
 
     };
 
-    MtpNetworker.prototype.performSheduledRequest = function() {
+    MtpNetworker.prototype.performSheduledRequest = function () {
         // console.log(dT(), 'sheduled', this.dcID, this.iii);
         if (this.offline || akStopped) {
             console.log(dT(), 'Cancel sheduled');
@@ -530,7 +486,7 @@ var _MtpNetworkerFactory = (function () {
                 seq_no: this.generateSeqNo(true),
                 container: true,
                 inner: innerMessages
-            }
+            };
 
             message = angular.extend({body: container.getBytes(true)}, containerSentMessage);
 
@@ -559,7 +515,7 @@ var _MtpNetworkerFactory = (function () {
 
                 self.processMessage(response.response, response.messageID, response.sessionID);
 
-                for(var k in subscriptions) {
+                for (var k in subscriptions) {
                     subscriptions[k](response.response);
                 }
 
@@ -667,7 +623,7 @@ var _MtpNetworkerFactory = (function () {
                     responseType: 'arraybuffer',
                     transformRequest: null
                 });
-                requestPromise =  $http.post(url, requestData, options);
+                requestPromise = $http.post(url, requestData, options);
             } catch (e) {
                 requestPromise = $q.reject(e);
             }
@@ -786,7 +742,7 @@ var _MtpNetworkerFactory = (function () {
     MtpNetworker.prototype.applyServerSalt = function (newServerSalt) {
         var serverSalt = longToBytes(newServerSalt);
 
-        var storeObj  = {};
+        var storeObj = {};
         storeObj['dc' + this.dcID + '_server_salt'] = bytesToHex(serverSalt);
         _Storage.set(storeObj);
 
@@ -833,7 +789,7 @@ var _MtpNetworkerFactory = (function () {
         var self = this;
         var notEmpty = false;
         // console.log('clean start', this.dcID/*, this.sentMessages*/);
-        angular.forEach(this.sentMessages, function(message, msgID) {
+        angular.forEach(this.sentMessages, function (message, msgID) {
             // console.log('clean iter', msgID, message);
             if (message.notContentRelated && self.pendingMessages[msgID] === undefined) {
                 // console.log('clean notContentRelated', msgID);
@@ -874,7 +830,7 @@ var _MtpNetworkerFactory = (function () {
         var matches = (rawError.error_message || '').match(/^([A-Z_0-9]+\b)(: (.+))?/) || [];
         rawError.error_code = uintToInt(rawError.error_code);
 
-        return  {
+        return {
             code: !rawError.error_code || rawError.error_code <= 0 ? 500 : rawError.error_code,
             type: matches[1] || 'UNKNOWN',
             description: matches[3] || ('CODE#' + rawError.error_code + ' ' + rawError.error_message),

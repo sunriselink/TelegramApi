@@ -83,10 +83,6 @@ var _AppUsersManager = (function () {
 
         var userID = apiUser.id;
 
-        if (apiUser.phone) {
-            apiUser.rPhone = $filter.call('phoneNumber')(apiUser.phone);
-        }
-
         apiUser.num = (Math.abs(userID) % 8) + 1;
 
         if (apiUser.username) {

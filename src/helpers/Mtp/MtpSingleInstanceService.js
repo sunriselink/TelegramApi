@@ -11,13 +11,12 @@ var _MtpSingleInstanceService = (function () {
 
             _IdleManager.start();
 
-            $rootScope.$watch('idle.isIDLE', checkInstance);
             $interval(checkInstance, 5000);
             checkInstance();
 
             try {
                 $(window).on('beforeunload', clearInstance);
-            } catch (e) {};
+            } catch (e) {}
         }
     }
 
@@ -38,18 +37,6 @@ var _MtpSingleInstanceService = (function () {
         document.title = _('inactive_tab_title_raw');
 
         var inactivePageCompiled = $compile('<ng-include src="\'partials/desktop/inactive.html\'"></ng-include>');
-
-        var scope = $rootScope.$new(true);
-        scope.close = function () {
-            window.close();
-        };
-        scope.reload = function () {
-            window.location.reload();
-        };
-        inactivePageCompiled(scope, function (clonedElement) {
-            $('.page_wrap').hide();
-            $(clonedElement).appendTo($('body'));
-        });
         $rootScope.idle.deactivated = true;
     }
 

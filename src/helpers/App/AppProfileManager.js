@@ -25,7 +25,6 @@ var _AppProfileManager = (function () {
             var fullChat = result.full_chat;
             delete chatFullPromises[id];
             chatsFull[id] = fullChat;
-            $rootScope.$broadcast('chat_full_update', id);
 
             return fullChat;
         });
@@ -123,7 +122,6 @@ var _AppProfileManager = (function () {
             return participantsPromise.then(function () {
                 delete chatFullPromises[id];
                 chatsFull[id] = fullChannel;
-                $rootScope.$broadcast('chat_full_update', id);
 
                 return fullChannel;
             });

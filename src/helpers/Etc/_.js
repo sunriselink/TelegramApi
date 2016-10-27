@@ -68,12 +68,5 @@ var __ = (function () {
         return locale;
     };
 
-    _.pluralize = function (msgid) {
-        var categories = $rootScope.$eval(_(msgid + '_raw'));
-        return function (count) {
-            return (categories[$locale.pluralCat(count)] || '').replace('{}', count);
-        }
-    };
-
     return _;
 })();

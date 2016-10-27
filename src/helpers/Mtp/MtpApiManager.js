@@ -28,7 +28,6 @@ var _MtpApiManager = (function () {
             user_auth: fullUserAuth
         });
         telegramMeNotify(true);
-        $rootScope.$broadcast('user_auth', fullUserAuth);
 
         baseDcID = dcID;
     }

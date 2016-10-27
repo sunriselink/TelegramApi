@@ -2,9 +2,9 @@ var _IdleManager = (function () {
     $rootScope.idle = {isIDLE: false};
 
     var toPromise, started = false;
-
     var hidden = 'hidden';
     var visibilityChange = 'visibilitychange';
+    
     if (typeof document.hidden !== 'undefined') {
         // default
     } else if (typeof document.mozHidden !== 'undefined') {
@@ -55,22 +55,6 @@ var _IdleManager = (function () {
                 onEvent({type: 'timeout'});
             }, 30000);
         }
-
-        if (e.type == 'focus' && !$rootScope.idle.afterFocus) {
-            $rootScope.idle.afterFocus = true;
-            setTimeout(function () {
-                delete $rootScope.idle.afterFocus;
-            }, 10);
-        }
-
-        if ($rootScope.idle.isIDLE == isIDLE) {
-            return;
-        }
-
-        // console.log('IDLE changed', isIDLE);
-        $rootScope.$apply(function () {
-            $rootScope.idle.isIDLE = isIDLE;
-        });
 
         if (isIDLE && e.type == 'timeout') {
             $(window).on('mousemove', onEvent);

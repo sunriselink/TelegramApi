@@ -20,7 +20,6 @@ module.exports = function (grunt) {
                     'src/js/lib/tl_utils.js',
 
                     'src/helpers/Etc/_.js',
-                    'src/helpers/Etc/Filter.js',
                     'src/helpers/Etc/qSync.js',
                     'src/helpers/Etc/Helper.js',
                     'src/helpers/Etc/Storage.js',
