@@ -24,6 +24,11 @@ telegramApi.setConfig({
 angular.module('myApp', [])
     .controller('mainCtrl', function ($scope) {
         angular.extend($scope, {
+            update: function () {
+                setTimeout(function () {
+                    $scope.$apply();
+                }, 0);
+            },
             visible: {
                 auth: false,
                 info: false
@@ -42,22 +47,29 @@ angular.module('myApp', [])
                     });
                 }
             },
-            info: {}
+            info: {
+                logOut: function () {
+                    telegramApi.logOut().then(function () {
+                        // TODO: Без setTimeout
+                        setTimeout(function () {
+                            window.location.reload();
+                        }, 1500);
+                    });
+                }
+            }
         });
         telegramApi.getUserInfo().then(function (user) {
             if (!user.id) {
                 $scope.visible.auth = true;
+                $scope.update();
             } else {
                 angular.extend($scope.info, user);
                 $scope.visible.info = true;
 
-                telegramApi.getUserPhoto('base64').then(function (base64) {
+                telegramApi.getUserPhoto('base64', 'small').then(function (base64) {
                     $scope.info.photoBase64 = base64;
-                    $scope.$apply();
+                    $scope.update();
                 });
             }
-            setTimeout(function () {
-                $scope.$apply();
-            }, 0);
         });
     });

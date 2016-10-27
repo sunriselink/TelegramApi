@@ -1,6 +1,5 @@
 var telegramApi = (function () {
     var options = {dcID: 2, createNetworker: true};
-    var userAuthPromise;
     var photoTypes = [
         'base64',
         'blob',
@@ -8,7 +7,6 @@ var telegramApi = (function () {
     ];
 
     return {
-        addChatUser: addChatUser,
         checkPhone: checkPhone,
         createChat: createChat,
         createChannel: createChannel,
@@ -22,7 +20,6 @@ var telegramApi = (function () {
         editChatTitle: editChatTitle,
         editChatPhoto: editChatPhoto,
         getChatLink: getChatLink,
-        getDialogs: getDialogs,
         getDocumentPreview: getDocumentPreview,
         getFullChat: getFullChat,
         getHistory: getHistory,
@@ -40,10 +37,7 @@ var telegramApi = (function () {
         startBot: startBot,
         subscribe: subscribe,
         unSubscribe: unSubscribe,
-        logOut: logOut,
-        updateProfile: updateProfile,
-        updateProfilePhoto: updateProfilePhoto,
-        updateUsername: updateUsername
+        logOut: logOut
     };
 
     /* Public Functions */
@@ -57,11 +51,7 @@ var telegramApi = (function () {
             api_id: Config.App.id,
             api_hash: Config.App.hash,
             lang_code: navigator.language || 'en'
-        }, options).then(function (data) {
-            defer.resolve(data);
-        }, function (err) {
-            defer.reject(err);
-        });
+        }, options).then(defer.resolve, defer.reject);
 
         return defer.promise();
     }
@@ -77,7 +67,6 @@ var telegramApi = (function () {
             _MtpApiManager.setUserAuth(options.dcID, {
                 id: result.user.id
             });
-            userAuthPromise = _saveUserInfo();
         }).then(function (data) {
             defer.resolve(data);
         }, function (err) {
@@ -100,7 +89,6 @@ var telegramApi = (function () {
             _MtpApiManager.setUserAuth(options.dcID, {
                 id: result.user.id
             });
-            userAuthPromise = _saveUserInfo();
         }).then(function (data) {
             defer.resolve(data);
         }, function (err) {
@@ -125,26 +113,6 @@ var telegramApi = (function () {
         }, function (err) {
             defer.reject(err);
         });
-
-        return defer.promise();
-    }
-
-    function getDialogs() {
-        var dialogs = [];
-        var defer = $.Deferred();
-
-        _AppMessagesManager.getConversations('', 0, 20)
-            .then(function (result) {
-                for (var i = 0, ii = result.dialogs.length; i < ii; i++) {
-                    dialogs.push(_AppPeersManager.getPeer(result.dialogs[i].peerID));
-                }
-                return dialogs;
-            })
-            .then(function (data) {
-                defer.resolve(data);
-            }, function (err) {
-                defer.reject(err);
-            });
 
         return defer.promise();
     }
@@ -201,8 +169,6 @@ var telegramApi = (function () {
                 _MtpApiManager.getNetworker(nearestDcResult.nearest_dc, {createNetworker: true});
             }
         });
-
-        userAuthPromise = _saveUserInfo();
     }
 
     function createChat(title, userIDs) {
@@ -242,24 +208,6 @@ var telegramApi = (function () {
         return defer.promise();
     }
 
-    function addChatUser(chatID, userID) {
-        var defer = $.Deferred();
-
-        _MtpApiManager.invokeApi('messages.addChatUser', {
-            chat_id: _AppChatsManager.getChatInput(chatID),
-            user_id: _AppUsersManager.getUserInput(userID),
-            fwd_limit: 100
-        }).then(function (updates) {
-            _ApiUpdatesManager.processUpdateMessage(updates);
-        }).then(function (data) {
-            defer.resolve(data);
-        }, function (err) {
-            defer.reject(err);
-        });
-
-        return defer.promise();
-    }
-
     function getChatLink(chatID, forse) {
         var defer = $.Deferred();
 
@@ -274,59 +222,28 @@ var telegramApi = (function () {
         return defer.promise();
     }
 
-    function updateUsername(username) {
-        var defer = $.Deferred();
-
-        _MtpApiManager.invokeApi('account.updateUsername', {
-            username: username || ''
-        }).then(function (user) {
-            _AppUsersManager.saveApiUser(user);
-        }).then(function (data) {
-            defer.resolve(data);
-        }, function (err) {
-            defer.reject(err);
-        });
-
-        return defer.promise();
-    }
-
     function getUserInfo() {
         var defer = $.Deferred();
 
         _MtpApiManager.getUserID().then(function (id) {
-            if (!id) {
-                return _AppUsersManager.getUser(id);
+            var user = _AppUsersManager.getUser(id);
+
+            if (!user.id || !user.deleted) {
+                defer.resolve(user);
+            } else {
+                _MtpApiManager.invokeApi('users.getFullUser', {
+                    id: {_: 'inputUserSelf'}
+                }).then(function (userInfoFull) {
+                    _AppUsersManager.saveApiUser(userInfoFull.user);
+                    defer.resolve(_AppUsersManager.getUser(id));
+                });
             }
-            return userAuthPromise.then(function () {
-                return _AppUsersManager.getUser(id);
-            })
-        }).then(function (data) {
-            defer.resolve(data);
-        }, function (err) {
-            defer.reject(err);
         });
 
         return defer.promise();
     }
 
-    function updateProfile(first_name, last_name) {
-        var defer = $.Deferred();
-
-        _MtpApiManager.invokeApi('account.updateProfile', {
-            first_name: first_name || '',
-            last_name: last_name || ''
-        }).then(function (user) {
-            _AppUsersManager.saveApiUser(user);
-        }).then(function (data) {
-            defer.resolve(data);
-        }, function (err) {
-            defer.reject(err);
-        });
-
-        return defer.promise();
-    }
-
-    function getUserPhoto(type) {
+    function getUserPhoto(type, size) {
         type = type || 'base64';
 
         if (photoTypes.indexOf(type) == -1) {
@@ -337,11 +254,14 @@ var telegramApi = (function () {
 
         getUserInfo().then(function (user) {
             if (user.photo) {
+                var photo = size === 'small'
+                    ? user.photo.photo_small
+                    : user.photo.photo_big;
                 var location = {
                     _: "inputFileLocation",
-                    local_id: user.photo.photo_big.local_id,
-                    secret: user.photo.photo_big.secret,
-                    volume_id: user.photo.photo_big.volume_id
+                    local_id: photo.local_id,
+                    secret: photo.secret,
+                    volume_id: photo.volume_id
                 };
                 var params = {
                     dcID: options.dcID,
@@ -374,46 +294,6 @@ var telegramApi = (function () {
         });
 
         return deferred.promise();
-    }
-
-    function updateProfilePhoto(photo) {
-        var defer = $.Deferred();
-
-        if (!photo || !photo.type || photo.type.indexOf('image') !== 0) {
-            return;
-        }
-
-        _MtpApiFileManager.uploadFile(photo).then(function (inputFile) {
-            _MtpApiManager.invokeApi('photos.uploadProfilePhoto', {
-                file: inputFile,
-                caption: '',
-                geo_point: {_: 'inputGeoPointEmpty'},
-                crop: {_: 'inputPhotoCropAuto'}
-            }).then(function (updateResult) {
-                _AppUsersManager.saveApiUsers(updateResult.users);
-                _MtpApiManager.getUserID().then(function (id) {
-                    _AppPhotosManager.savePhoto(updateResult.photo, {
-                        user_id: id
-                    });
-                    _ApiUpdatesManager.processUpdateMessage({
-                        _: 'updateShort',
-                        update: {
-                            _: 'updateUserPhoto',
-                            user_id: id,
-                            date: tsNow(true),
-                            photo: _AppUsersManager.getUser(id).photo,
-                            previous: true
-                        }
-                    });
-                });
-            }).then(function (data) {
-                defer.resolve(data);
-            }, function (err) {
-                defer.reject(err);
-            });
-        });
-
-        return defer.promise();
     }
 
     function logOut() {
@@ -832,7 +712,6 @@ var telegramApi = (function () {
     }
 
     function editChatPhoto(chat_id, photo) {
-
         var defer = $.Deferred();
 
         _MtpApiFileManager.uploadFile(photo).then(function (inputFile) {
@@ -887,22 +766,6 @@ var telegramApi = (function () {
     }
 
     /* Private Functions */
-
-    function _saveUserInfo() {
-        var deferred = $.Deferred();
-
-        _MtpApiManager.invokeApi('users.getFullUser', {
-            id: {_: 'inputUserSelf'}
-        }).then(function (userFullResult) {
-            _AppUsersManager.saveApiUser(userFullResult.user);
-            _AppPhotosManager.savePhoto(userFullResult.profile_photo, {
-                user_id: userFullResult.user.id
-            });
-            deferred.resolve();
-        });
-
-        return deferred.promise();
-    }
 
     function _downloadFile(bytes, fileName, defer) {
         // TODO: Improve

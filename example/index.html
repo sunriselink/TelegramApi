@@ -12,13 +12,13 @@
 
 <div id="content" ng-app="myApp">
     <div ng-controller="mainCtrl">
-        <div ng-show="visible.auth">
+        <div class="ng-hide" ng-show="visible.auth">
             <input type="text" ng-model="auth.phone" placeholder="Phone">
             <input type="text" ng-model="auth.code" placeholder="Code">
             <button ng-click="auth.sendCode()">Send code</button>
             <button ng-click="auth.signIn()">Sign In</button>
         </div>
-        <div ng-show="visible.info">
+        <div class="ng-hide" ng-show="visible.info">
             <table>
                 <tr><td>ID</td><td ng-bind="info.id"></td></tr>
                 <tr><td>Photo</td><td><img ng-src="{{info.photoBase64}}" alt=""></td></tr>
@@ -27,6 +27,7 @@
                 <tr><td>Username</td><td ng-bind="info.username"></td></tr>
                 <tr><td>Phone</td><td ng-bind="info.rPhone"></td></tr>
             </table>
+            <button ng-click="info.logOut()">Log out</button>
         </div>
     </div>
 </div>
