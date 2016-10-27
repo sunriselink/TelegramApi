@@ -204,21 +204,6 @@ var _AppProfileManager = (function () {
                 return fullChannel;
             });
         }, function (error) {
-            switch (error.type) {
-                case 'CHANNEL_PRIVATE':
-                    var channel = _AppChatsManager.getChat(id);
-                    channel = {_: 'channelForbidden', access_hash: channel.access_hash, title: channel.title};
-                    _ApiUpdatesManager.processUpdateMessage({
-                        _: 'updates',
-                        updates: [{
-                            _: 'updateChannel',
-                            channel_id: id
-                        }],
-                        chats: [channel],
-                        users: []
-                    });
-                    break;
-            }
             return $q.reject(error);
         });
     }
