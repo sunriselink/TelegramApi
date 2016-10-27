@@ -46,7 +46,6 @@ module.exports = function (grunt) {
 
                     'src/helpers/App/AppPeersManager.js',
                     'src/helpers/App/AppChatsManager.js',
-                    'src/helpers/App/AppMessagesManager.js',
                     'src/helpers/App/AppUsersManager.js',
                     'src/helpers/App/ApiUpdatesManager.js',
                     'src/helpers/App/AppProfileManager.js',

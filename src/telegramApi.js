@@ -123,10 +123,7 @@ var telegramApi = (function () {
         _MtpApiManager.invokeApi('contacts.search', {q: botName, limit: 1})
             .then(function (result) {
                 _AppUsersManager.saveApiUsers(result.users);
-                _AppMessagesManager.startBot(result.users[0].id, 0);
-            })
-            .then(function (data) {
-                defer.resolve(data);
+                sendMessage(result.users[0].id, '/start').then(defer.resolve, defer.reject);
             }, function (err) {
                 defer.reject(err);
             });
