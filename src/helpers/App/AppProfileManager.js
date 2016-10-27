@@ -62,7 +62,7 @@ var _AppProfileManager = (function () {
             channel: _AppChatsManager.getChannelInput(id),
             filter: {_: 'channelParticipantsRecent'},
             offset: 0,
-            limit: _AppChatsManager.isMegagroup(id) ? 50 : 200
+            limit: 200
         }).then(function (result) {
             _AppUsersManager.saveApiUsers(result.users);
             var participants = result.participants;

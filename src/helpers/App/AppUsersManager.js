@@ -14,6 +14,7 @@ var _AppUsersManager = (function () {
             serverTimeOffset = to;
         }
     });
+    
     _MtpApiManager.getUserID().then(function (id) {
         myID = id;
     });
@@ -88,16 +89,6 @@ var _AppUsersManager = (function () {
 
         apiUser.num = (Math.abs(userID) % 8) + 1;
 
-        // TODO
-
-        //if (apiUser.first_name) {
-        //    apiUser.rFirstName = _RichTextProcessor.wrapRichText(apiUser.first_name, {noLinks: true, noLinebreaks: true});
-        //    apiUser.rFullName = apiUser.last_name ? _RichTextProcessor.wrapRichText(apiUser.first_name + ' ' + (apiUser.last_name || ''), {noLinks: true, noLinebreaks: true}) : apiUser.rFirstName;
-        //} else {
-        //    apiUser.rFirstName = _RichTextProcessor.wrapRichText(apiUser.last_name, {noLinks: true, noLinebreaks: true}) || apiUser.rPhone || _('user_first_name_deleted');
-        //    apiUser.rFullName = _RichTextProcessor.wrapRichText(apiUser.last_name, {noLinks: true, noLinebreaks: true}) || apiUser.rPhone || _('user_name_deleted');
-        //}
-
         if (apiUser.username) {
             var searchUsername = SearchIndexManager.cleanUsername(apiUser.username);
             usernames[searchUsername] = userID;
@@ -129,20 +120,16 @@ var _AppUsersManager = (function () {
         }
 
         var result = users[userID];
+        
         if (result === undefined) {
             result = users[userID] = apiUser;
         } else {
             safeReplaceObject(result, apiUser);
         }
-        $rootScope.$broadcast('user_update', userID);
 
         if (cachedPhotoLocations[userID] !== undefined) {
             safeReplaceObject(cachedPhotoLocations[userID], apiUser && apiUser.photo && apiUser.photo.photo_small || {empty: true});
         }
-    };
-
-    function saveUserAccess (id, accessHash) {
-        userAccess[id] = accessHash;
     }
 
     function getUserStatusForSort(status) {
@@ -176,39 +163,6 @@ var _AppUsersManager = (function () {
         return getUser(myID);
     }
 
-    function isBot(id) {
-        return users[id] && users[id].pFlags.bot;
-    }
-
-    function hasUser(id) {
-        return angular.isObject(users[id]);
-    }
-
-    function getUserPhoto(id) {
-        var user = getUser(id);
-
-        if (id == 333000) {
-            return {
-                placeholder: 'img/placeholders/DialogListAvatarSystem@2x.png'
-            }
-        };
-
-        if (cachedPhotoLocations[id] === undefined) {
-            cachedPhotoLocations[id] = user && user.photo && user.photo.photo_small || {empty: true};
-        }
-
-        return {
-            num: user.num,
-            placeholder: 'img/placeholders/UserAvatar' + user.num + '@2x.png',
-            location: cachedPhotoLocations[id]
-        };
-    }
-
-    function getUserString (id) {
-        var user = getUser(id);
-        return 'u' + id + (user.access_hash ? '_' + user.access_hash : '');
-    }
-
     function getUserInput (id) {
         var user = getUser(id);
         if (user.pFlags.self) {
@@ -221,260 +175,12 @@ var _AppUsersManager = (function () {
         };
     }
 
-    function updateUsersStatuses () {
-        var timestampNow = tsNow(true);
-        angular.forEach(users, function (user) {
-            if (user.status &&
-                user.status._ == 'userStatusOnline' &&
-                user.status.expires < timestampNow) {
-                user.status = user.status.wasStatus ||
-                    {_: 'userStatusOffline', was_online: user.status.expires};
-                delete user.status.wasStatus;
-                $rootScope.$broadcast('user_update', user.id);
-            }
-        });
-    }
-
-    function forceUserOnline (id) {
-        if (isBot(id)) {
-            return;
-        }
-        var user = getUser(id);
-        if (user &&
-            user.status &&
-            user.status._ != 'userStatusOnline' &&
-            user.status._ != 'userStatusEmpty') {
-
-            var wasStatus;
-            if (user.status._ != 'userStatusOffline') {
-                delete user.status.wasStatus;
-                wasStatus = angular.copy(user.status);
-            }
-            user.status = {
-                _: 'userStatusOnline',
-                expires: tsNow(true) + 60,
-                wasStatus: wasStatus
-            };
-            user.sortStatus = getUserStatusForSort(user.status);
-            $rootScope.$broadcast('user_update', id);
-        }
-    }
-
-    function wrapForFull (id) {
-        var user = getUser(id);
-
-        return user;
-    }
-
-    function openUser (userID, override) {
-        var scope = $rootScope.$new();
-        scope.userID = userID;
-        scope.override = override || {};
-
-        var modalInstance = $modal.open({
-            templateUrl: templateUrl('user_modal'),
-            controller: 'UserModalController',
-            scope: scope,
-            windowClass: 'user_modal_window mobile_modal',
-            backdrop: 'single'
-        });
-    };
-
-    function importContact (phone, firstName, lastName) {
-        return _MtpApiManager.invokeApi('contacts.importContacts', {
-            contacts: [{
-                _: 'inputPhoneContact',
-                client_id: '1',
-                phone: phone,
-                first_name: firstName,
-                last_name: lastName
-            }],
-            replace: false
-        }).then(function (importedContactsResult) {
-            saveApiUsers(importedContactsResult.users);
-
-            var foundUserID = false;
-            angular.forEach(importedContactsResult.imported, function (importedContact) {
-                onContactUpdated(foundUserID = importedContact.user_id, true);
-            });
-
-            return foundUserID || false;
-        });
-    };
-
-    function importContacts (contacts) {
-        var inputContacts = [],
-            i, j;
-
-        for (i = 0; i < contacts.length; i++) {
-            for (j = 0; j < contacts[i].phones.length; j++) {
-                inputContacts.push({
-                    _: 'inputPhoneContact',
-                    client_id: (i << 16 | j).toString(10),
-                    phone: contacts[i].phones[j],
-                    first_name: contacts[i].first_name,
-                    last_name: contacts[i].last_name
-                });
-            }
-        }
-
-        return _MtpApiManager.invokeApi('contacts.importContacts', {
-            contacts: inputContacts,
-            replace: false
-        }).then(function (importedContactsResult) {
-            saveApiUsers(importedContactsResult.users);
-
-            var result = [];
-            angular.forEach(importedContactsResult.imported, function (importedContact) {
-                onContactUpdated(importedContact.user_id, true);
-                result.push(importedContact.user_id);
-            });
-
-            return result;
-        });
-    };
-
-    function deleteContacts (userIDs) {
-        var ids = []
-        angular.forEach(userIDs, function (userID) {
-            ids.push(getUserInput(userID))
-        });
-        return _MtpApiManager.invokeApi('contacts.deleteContacts', {
-            id: ids
-        }).then(function () {
-            angular.forEach(userIDs, function (userID) {
-                onContactUpdated(userID, false);
-            });
-        })
-    }
-
-    function onContactUpdated (userID, isContact) {
-        if (angular.isArray(contactsList)) {
-            var curPos = curIsContact = contactsList.indexOf(parseInt(userID)),
-                curIsContact = curPos != -1;
-
-            if (isContact != curIsContact) {
-                if (isContact) {
-                    contactsList.push(userID);
-                    SearchIndexManager.indexObject(userID, getUserSearchText(userID), contactsIndex);
-                } else {
-                    contactsList.splice(curPos, 1);
-                }
-                $rootScope.$broadcast('contacts_update', userID);
-            }
-        }
-    }
-
-    function openImportContact () {
-        return $modal.open({
-            templateUrl: templateUrl('import_contact_modal'),
-            controller: 'ImportContactModalController',
-            windowClass: 'md_simple_modal_window mobile_modal'
-        }).result.then(function (foundUserID) {
-            if (!foundUserID) {
-                return $q.reject();
-            }
-            return foundUserID;
-        });
-    };
-
-    function setUserStatus (userID, offline) {
-        if (isBot(userID)) {
-            return;
-        }
-        var user = users[userID];
-        if (user) {
-            var status = offline ? {
-                _: 'userStatusOffline',
-                was_online: tsNow(true)
-            } : {
-                _: 'userStatusOnline',
-                expires: tsNow(true) + 500
-            };
-
-            user.status = status;
-            user.sortStatus = getUserStatusForSort(user.status);
-            $rootScope.$broadcast('user_update', userID);
-        }
-    }
-
-
-    $rootScope.$on('apiUpdate', function (e, update) {
-        // console.log('on apiUpdate', update);
-        switch (update._) {
-            case 'updateUserStatus':
-                var userID = update.user_id,
-                    user = users[userID];
-                if (user) {
-                    user.status = update.status;
-                    if (user.status) {
-                        if (user.status.expires) {
-                            user.status.expires -= serverTimeOffset;
-                        }
-                        if (user.status.was_online) {
-                            user.status.was_online -= serverTimeOffset;
-                        }
-                    }
-                    user.sortStatus = getUserStatusForSort(user.status);
-                    $rootScope.$broadcast('user_update', userID);
-                }
-                break;
-
-            case 'updateUserPhoto':
-                var userID = update.user_id;
-                var user = users[userID];
-                if (user) {
-                    forceUserOnline(userID);
-                    if (!user.photo) {
-                        user.photo = update.photo;
-                    } else {
-                        safeReplaceObject(user.photo, update.photo);
-                    }
-
-                    if (cachedPhotoLocations[userID] !== undefined) {
-                        safeReplaceObject(cachedPhotoLocations[userID], update.photo && update.photo.photo_small || {empty: true});
-                    }
-
-                    $rootScope.$broadcast('user_update', userID);
-                }
-                break;
-
-            case 'updateContactLink':
-                onContactUpdated(update.user_id, update.my_link._ == 'contactLinkContact');
-                break;
-        }
-    });
-
-    $rootScope.$on('user_auth', function (e, userAuth) {
-        myID = userAuth && userAuth.id || 0;
-    });
-
-
-    setInterval(updateUsersStatuses, 60000);
-
-    $rootScope.$on('stateSynchronized', updateUsersStatuses);
-
     return {
-        getContacts: getContacts,
         saveApiUsers: saveApiUsers,
         saveApiUser: saveApiUser,
-        saveUserAccess: saveUserAccess,
         getUser: getUser,
         getSelf: getSelf,
         getUserInput: getUserInput,
-        setUserStatus: setUserStatus,
-        forceUserOnline: forceUserOnline,
-        getUserPhoto: getUserPhoto,
-        getUserString: getUserString,
-        getUserSearchText: getUserSearchText,
-        hasUser: hasUser,
-        isBot: isBot,
-        importContact: importContact,
-        importContacts: importContacts,
-        deleteContacts: deleteContacts,
-        wrapForFull: wrapForFull,
-        openUser: openUser,
-        resolveUsername: resolveUsername,
-        openImportContact: openImportContact
-    }
+        resolveUsername: resolveUsername
+    };
 })();
