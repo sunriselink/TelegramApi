@@ -22,7 +22,7 @@ var _MtpApiManager = (function () {
     }
 
     function mtpSetUserAuth(dcID, userAuth) {
-        var fullUserAuth = angular.extend({dcID: dcID}, userAuth);
+        var fullUserAuth = extend({dcID: dcID}, userAuth);
         _Storage.set({
             dc: dcID,
             user_auth: fullUserAuth
@@ -116,7 +116,7 @@ var _MtpApiManager = (function () {
             rejectPromise = function (error) {
                 if (!error) {
                     error = {type: 'ERROR_EMPTY'};
-                } else if (!angular.isObject(error)) {
+                } else if (!isObject(error)) {
                     error = {message: error};
                 }
                 deferred.reject(error);

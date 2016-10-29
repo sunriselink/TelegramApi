@@ -3,9 +3,6 @@ var _MtpAuthorizer = (function () {
         chromeVersion = chromeMatches && parseFloat(chromeMatches[1]) || false,
         xhrSendBuffer = !('ArrayBufferView' in window) && (!chromeVersion || chromeVersion < 30);
 
-    delete $http.defaults.headers.post['Content-Type'];
-    delete $http.defaults.headers.common['Accept'];
-
     function mtpSendPlainRequest (dcID, requestBuffer) {
         var requestLength = requestBuffer.byteLength,
             requestArray  = new Int32Array(requestBuffer);
@@ -35,7 +32,7 @@ var _MtpAuthorizer = (function () {
                 transformRequest: null
             });
         } catch (e) {
-            requestPromise = $q.reject(angular.extend(baseError, {originalError: e}));
+            requestPromise = $q.reject(extend(baseError, {originalError: e}));
         }
         return requestPromise.then(
             function (result) {
@@ -44,21 +41,20 @@ var _MtpAuthorizer = (function () {
                 }
 
                 try {
-
                     var deserializer = new TLDeserialization(result.data, {mtproto: true});
                     var auth_key_id = deserializer.fetchLong('auth_key_id');
                     var msg_id      = deserializer.fetchLong('msg_id');
                     var msg_len     = deserializer.fetchInt('msg_len');
 
                 } catch (e) {
-                    return $q.reject(angular.extend(baseError, {originalError: e}));
+                    return $q.reject(extend(baseError, {originalError: e}));
                 }
 
                 return deserializer;
             },
             function (error) {
                 if (!error.message && !error.type) {
-                    error = angular.extend(baseError, {originalError: error});
+                    error = extend(baseError, {originalError: error});
                 }
                 return $q.reject(error);
             }

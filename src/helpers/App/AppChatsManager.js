@@ -6,11 +6,11 @@ var _AppChatsManager = (function () {
         cachedPhotoLocations = {};
 
     function saveApiChats(apiChats) {
-        angular.forEach(apiChats, saveApiChat);
+        forEach(apiChats, saveApiChat);
     }
 
     function saveApiChat(apiChat) {
-        if (!angular.isObject(apiChat)) {
+        if (!isObject(apiChat)) {
             return;
         }
 

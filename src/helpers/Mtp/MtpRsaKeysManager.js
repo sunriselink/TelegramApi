@@ -53,7 +53,7 @@ var _MtpRsaKeysManager = (function () {
         for (i = 0; i < fingerprints.length; i++) {
             fingerprintHex = bigStringInt(fingerprints[i]).toString(16);
             if (foundKey = publicKeysParsed[fingerprintHex]) {
-                return angular.extend({fingerprint: fingerprints[i]}, foundKey);
+                return extend({fingerprint: fingerprints[i]}, foundKey);
             }
         }
 

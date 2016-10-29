@@ -49,7 +49,7 @@ var _AppPeersManager = (function () {
     }
 
     function getPeerID(peerString) {
-        if (angular.isObject(peerString)) {
+        if (isObject(peerString)) {
             return peerString.user_id
                 ? peerString.user_id
                 : -(peerString.channel_id || peerString.chat_id);

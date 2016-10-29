@@ -3,7 +3,6 @@ module.exports = function (grunt) {
         concat: {
             main: {
                 src: [
-                    'bower_components/angular/angular.min.js',
                     'bower_components/Rusha/rusha.min.js',
                     'bower_components/long/dist/long.min.js',
                     'bower_components/big-int/src/BigInt.js',
@@ -19,8 +18,8 @@ module.exports = function (grunt) {
                     'src/js/lib/bin_utils.js',
                     'src/js/lib/tl_utils.js',
                     
-                    'src/helpers/Etc/qSync.js',
                     'src/helpers/Etc/Helper.js',
+                    'src/helpers/Etc/qSync.js',
                     'src/helpers/Etc/Storage.js',
                     'src/helpers/Etc/CryptoWorker.js',
                     'src/helpers/Etc/IdleManager.js',

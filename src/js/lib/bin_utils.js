@@ -130,7 +130,7 @@ function blobConstruct (blobParts, mimeType) {
     blob = new Blob(blobParts, {type: mimeType});
   } catch (e) {
     var bb = new BlobBuilder;
-    angular.forEach(blobParts, function(blobPart) {
+    forEach(blobParts, function(blobPart) {
       bb.append(blobPart);
     });
     blob = bb.getBlob(mimeType);

@@ -1,4 +1,5 @@
 var $interval = setInterval;
+
 var $timeout = function (cb, t) {
     var defer = $.Deferred();
     var promise = defer.promise();
@@ -9,8 +10,39 @@ var $timeout = function (cb, t) {
 
     return promise;
 };
+
+$timeout.cancel = function (promise) {
+    if (!promise) {
+        return;
+    }
+
+    clearTimeout(promise.__timeoutID);
+};
+
+
 var $rootScope = {};
-var $http = angular.injector(['ng']).get('$http');
+
+var $http = {
+    post: function (url, data) {
+        var defer = $q.defer();
+        var xhr = new XMLHttpRequest();
+
+        xhr.open('POST', url, true);
+        xhr.responseType = 'arraybuffer';
+        xhr.onload = function () {
+            xhr.status == 200
+                ? defer.resolve({data: xhr.response})
+                : defer.reject(xhr.response);
+        };
+        xhr.onerror = xhr.onabort = function () {
+            defer.reject();
+        };
+        xhr.send(data);
+
+        return defer.promise;
+    }
+};
+
 var $q = {
     defer: function () {
         var deferred = $.Deferred();
@@ -49,27 +81,56 @@ var $q = {
     }
 };
 
-$timeout.cancel = function (promise) {
-    if (!promise) {
+function forEach(obj, iterator, context) {
+    if (!obj) {
         return;
     }
 
-    clearTimeout(promise.__timeoutID);
-};
-
-(function () {
-    var _post = $http.post;
-
-    $http.post = function () {
-        var params = Array.prototype.slice.call(arguments);
-        var defer = $q.defer();
-
-        _post.apply(this, params).then(function (data) {
-            defer.resolve(data);
-        }, function (error) {
-            defer.reject(error);
-        });
-
-        return defer.promise;
+    if ($.isArray(obj)) {
+        if (obj.forEach) {
+            obj.forEach(iterator, context, obj);
+        } else {
+            for (var i = 0; i < obj.length; i++) {
+                iterator.call(context, obj[i], i, obj);
+            }
+        }
+    } else if (isObject(obj)) {
+        for (var key in obj) {
+            iterator.call(context, obj[key], key, obj);
+        }
     }
-})();
+}
+
+function isObject(value) {
+    return value !== null && typeof value === 'object';
+}
+
+function isString(value) {
+    return typeof value == 'string';
+}
+
+function isArray(array) {
+    return $.isArray(array);
+}
+
+function extend() {
+    var objects = Array.prototype.slice.call(arguments);
+
+    if (objects.length < 2) {
+        return objects[0];
+    }
+
+    var obj = objects[0];
+
+    for (var i = 1; i < objects.length; i++) {
+        for (var key in objects[i]) {
+            obj[key] = objects[i][key];
+        }
+    }
+
+    return obj;
+}
+
+function noop() {
+    
+}

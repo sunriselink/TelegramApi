@@ -94,7 +94,7 @@ TLSerialization.prototype.storeLongP = function (iHigh, iLow, field) {
 };
 
 TLSerialization.prototype.storeLong = function (sLong, field) {
-  if (angular.isArray(sLong)) {
+  if (isArray(sLong)) {
     if (sLong.length == 2) {
       return this.storeLongP(sLong[0], sLong[1], field);
     } else {
@@ -264,7 +264,7 @@ TLSerialization.prototype.storeObject = function (obj, type, field) {
     case 'true':   return;
   }
 
-  if (angular.isArray(obj)) {
+  if (isArray(obj)) {
     if (type.substr(0, 6) == 'Vector') {
       this.writeInt(0x1cb5c415, field + '[id]');
     }
@@ -282,7 +282,7 @@ TLSerialization.prototype.storeObject = function (obj, type, field) {
     throw new Error('Invalid vector object');
   }
 
-  if (!angular.isObject(obj)) {
+  if (!isObject(obj)) {
     throw new Error('Invalid object for type ' + type);
   }
 

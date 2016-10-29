@@ -1,6 +1,6 @@
 var _Storage = (function () {
     var methods = {};
-    angular.forEach(['get', 'set', 'remove'], function (methodName) {
+    forEach(['get', 'set', 'remove'], function (methodName) {
         methods[methodName] = function () {
             var deferred = $.Deferred(),
                 args = Array.prototype.slice.call(arguments);

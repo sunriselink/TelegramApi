@@ -51,7 +51,7 @@ var _AppUsersManager = (function () {
 
     function getContacts(query) {
         return fillContacts().then(function (contactsList) {
-            if (angular.isString(query) && query.length) {
+            if (isString(query) && query.length) {
                 var results = SearchIndexManager.search(query, contactsIndex),
                     filteredContactsList = [];
 
@@ -72,12 +72,12 @@ var _AppUsersManager = (function () {
     }
 
     function saveApiUsers(apiUsers) {
-        angular.forEach(apiUsers, saveApiUser);
+        forEach(apiUsers, saveApiUser);
     }
 
     function saveApiUser(apiUser, noReplace) {
-        if (!angular.isObject(apiUser) ||
-            noReplace && angular.isObject(users[apiUser.id]) && users[apiUser.id].first_name) {
+        if (!isObject(apiUser) ||
+            noReplace && isObject(users[apiUser.id]) && users[apiUser.id].first_name) {
             return;
         }
 
@@ -149,7 +149,7 @@ var _AppUsersManager = (function () {
     }
 
     function getUser(id) {
-        if (angular.isObject(id)) {
+        if (isObject(id)) {
             return id;
         }
         return users[id] || {id: id, deleted: true, num: 1, access_hash: userAccess[id]};

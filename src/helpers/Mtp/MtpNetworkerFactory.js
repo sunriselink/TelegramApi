@@ -10,9 +10,6 @@ var _MtpNetworkerFactory = (function () {
 
     var subscriptions = {};
 
-    delete $http.defaults.headers.post['Content-Type'];
-    delete $http.defaults.headers.common['Accept'];
-
     function subscribe(id, handler) {
         if (typeof handler == 'function') {
             subscriptions[id] = handler;
@@ -76,7 +73,7 @@ var _MtpNetworkerFactory = (function () {
         var self = this;
         if (sentMessage.container) {
             var newInner = [];
-            angular.forEach(sentMessage.inner, function (innerSentMessageID) {
+            forEach(sentMessage.inner, function (innerSentMessageID) {
                 var innerSentMessage = self.updateSentMessage(innerSentMessageID);
                 if (innerSentMessage) {
                     newInner.push(innerSentMessage.msg_id);
@@ -235,13 +232,13 @@ var _MtpNetworkerFactory = (function () {
     MtpNetworker.prototype.pushMessage = function (message, options) {
         var deferred = $q.defer();
 
-        this.sentMessages[message.msg_id] = angular.extend(message, options || {}, {deferred: deferred});
+        this.sentMessages[message.msg_id] = extend(message, options || {}, {deferred: deferred});
         this.pendingMessages[message.msg_id] = 0;
 
         if (!options || !options.noShedule) {
             this.sheduleRequest();
         }
-        if (angular.isObject(options)) {
+        if (isObject(options)) {
             options.messageID = message.msg_id;
         }
 
@@ -408,7 +405,7 @@ var _MtpNetworkerFactory = (function () {
             singlesCount = 0,
             self = this;
 
-        angular.forEach(this.pendingMessages, function (value, messageID) {
+        forEach(this.pendingMessages, function (value, messageID) {
             if (!value || value >= currentTime) {
                 if (message = self.sentMessages[messageID]) {
                     var messageByteLength = (message.body.byteLength || message.body.length) + 32;
@@ -488,7 +485,7 @@ var _MtpNetworkerFactory = (function () {
                 inner: innerMessages
             };
 
-            message = angular.extend({body: container.getBytes(true)}, containerSentMessage);
+            message = extend({body: container.getBytes(true)}, containerSentMessage);
 
             this.sentMessages[message.msg_id] = containerSentMessage;
 
@@ -519,7 +516,7 @@ var _MtpNetworkerFactory = (function () {
                     subscriptions[k](response.response);
                 }
 
-                angular.forEach(noResponseMsgs, function (msgID) {
+                forEach(noResponseMsgs, function (msgID) {
                     if (self.sentMessages[msgID]) {
                         var deferred = self.sentMessages[msgID].deferred;
                         delete self.sentMessages[msgID];
@@ -536,7 +533,7 @@ var _MtpNetworkerFactory = (function () {
             console.log('Encrypted request failed', error);
 
             if (message.container) {
-                angular.forEach(message.inner, function (msgID) {
+                forEach(message.inner, function (msgID) {
                     self.pendingMessages[msgID] = 0;
                 });
                 delete self.sentMessages[message.msg_id];
@@ -544,7 +541,7 @@ var _MtpNetworkerFactory = (function () {
                 self.pendingMessages[message.msg_id] = 0;
             }
 
-            angular.forEach(noResponseMsgs, function (msgID) {
+            forEach(noResponseMsgs, function (msgID) {
                 if (self.sentMessages[msgID]) {
                     var deferred = self.sentMessages[msgID].deferred;
                     delete self.sentMessages[msgID];
@@ -619,7 +616,7 @@ var _MtpNetworkerFactory = (function () {
             var baseError = {code: 406, type: 'NETWORK_BAD_RESPONSE', url: url};
 
             try {
-                options = angular.extend(options || {}, {
+                options = extend(options || {}, {
                     responseType: 'arraybuffer',
                     transformRequest: null
                 });
@@ -645,7 +642,7 @@ var _MtpNetworkerFactory = (function () {
                         });
                     }
                     if (!error.message && !error.type) {
-                        error = angular.extend(baseError, {type: 'NETWORK_BAD_REQUEST', originalError: error});
+                        error = extend(baseError, {type: 'NETWORK_BAD_REQUEST', originalError: error});
                     }
                     return $q.reject(error);
                 }
@@ -789,7 +786,7 @@ var _MtpNetworkerFactory = (function () {
         var self = this;
         var notEmpty = false;
         // console.log('clean start', this.dcID/*, this.sentMessages*/);
-        angular.forEach(this.sentMessages, function (message, msgID) {
+        forEach(this.sentMessages, function (message, msgID) {
             // console.log('clean iter', msgID, message);
             if (message.notContentRelated && self.pendingMessages[msgID] === undefined) {
                 // console.log('clean notContentRelated', msgID);

@@ -137,7 +137,7 @@ var _MtpApiFileManager = (function () {
             var downloadPromise = downloadRequest(location.dc_id, function () {
                 var inputLocation = location;
                 if (!inputLocation._ || inputLocation._ == 'fileLocation') {
-                    inputLocation = angular.extend({}, location, {_: 'inputFileLocation'});
+                    inputLocation = extend({}, location, {_: 'inputFileLocation'});
                 }
                 // console.log('next small promise');
                 return _MtpApiManager.invokeApi('upload.getFile', {
@@ -220,7 +220,7 @@ var _MtpApiFileManager = (function () {
             cacheFileWriter,
             errorHandler = function (error) {
                 deferred.reject(error);
-                errorHandler = angular.noop;
+                errorHandler = noop;
                 if (cacheFileWriter &&
                     (!error || error.type != 'DOWNLOAD_CANCELED')) {
                     cacheFileWriter.truncate(0);
@@ -360,7 +360,7 @@ var _MtpApiFileManager = (function () {
                 // console.error('Up Error', error);
                 deferred.reject(error);
                 canceled = true;
-                errorHandler = angular.noop;
+                errorHandler = noop;
             },
             part = 0,
             offset,
