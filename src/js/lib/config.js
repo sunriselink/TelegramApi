@@ -25,9 +25,7 @@ Config.App = {
 Config.Server = {};
 
 Config.Modes = {
-  debug: location.search.indexOf('debug=1') > 0,
-  nacl: location.search.indexOf('nacl=0')== -1,
-  webcrypto: location.search.indexOf('webcrypto=0')== -1
+  debug: location.search.indexOf('debug=1') > 0
 };
 
 Config.Navigator = {

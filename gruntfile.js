@@ -64,7 +64,6 @@ module.exports = function (grunt) {
                         expand: true,
                         cwd: 'src/js/lib/',
                         src: [
-                            'crypto_worker.js',
                             'polyfill.js',
                             'bin_utils.js'
                         ],
@@ -75,7 +74,7 @@ module.exports = function (grunt) {
                         cwd: 'src/vendor',
                         src: [
                             'jsbn/jsbn_combined.min.js',
-                            'cryptoJS/crypto.min.js',
+                            'cryptoJS/crypto.min.js'
                         ],
                         dest: 'example/js/lib/vendor'
                     },
@@ -87,12 +86,6 @@ module.exports = function (grunt) {
                             'rusha/rusha.min.js'
                         ],
                         dest: 'example/js/lib/vendor'
-                    },
-                    {
-                        expand: true,
-                        cwd: 'src/nacl',
-                        src: [ '**' ],
-                        dest: 'example/nacl/'
                     }
                 ]
             },
@@ -100,10 +93,9 @@ module.exports = function (grunt) {
                 files: [
                     {
                         expand: true,
-                        cwd: 'example',
+                        cwd: 'example/js',
                         src: [
-                            'js/**/*',
-                            'nacl/**/*'
+                            '**/*'
                         ],
                         dest: 'dist'
                     }
@@ -112,7 +104,6 @@ module.exports = function (grunt) {
         },
         clean: {
             js: ['example/js/**'],
-            nacl: ['example/nacl/**'],
             dist: ['dist/**/*']
         },
         connect: {
