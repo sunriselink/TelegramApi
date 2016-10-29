@@ -14,12 +14,12 @@ var _AppUsersManager = (function () {
             serverTimeOffset = to;
         }
     });
-    
+
     _MtpApiManager.getUserID().then(function (id) {
         myID = id;
     });
 
-    function fillContacts () {
+    function fillContacts() {
         if (contactsFillPromise) {
             return contactsFillPromise;
         }
@@ -40,7 +40,7 @@ var _AppUsersManager = (function () {
         });
     }
 
-    function getUserSearchText (id) {
+    function getUserSearchText(id) {
         var user = users[id];
         if (!user) {
             return false;
@@ -49,7 +49,7 @@ var _AppUsersManager = (function () {
         return (user.first_name || '') + ' ' + (user.last_name || '') + ' ' + (user.phone || '') + ' ' + (user.username || '');
     }
 
-    function getContacts (query) {
+    function getContacts(query) {
         return fillContacts().then(function (contactsList) {
             if (angular.isString(query) && query.length) {
                 var results = SearchIndexManager.search(query, contactsIndex),
@@ -67,15 +67,15 @@ var _AppUsersManager = (function () {
         });
     }
 
-    function resolveUsername (username) {
+    function resolveUsername(username) {
         return usernames[username] || 0;
     }
 
-    function saveApiUsers (apiUsers) {
+    function saveApiUsers(apiUsers) {
         angular.forEach(apiUsers, saveApiUser);
     }
 
-    function saveApiUser (apiUser, noReplace) {
+    function saveApiUser(apiUser, noReplace) {
         if (!angular.isObject(apiUser) ||
             noReplace && angular.isObject(users[apiUser.id]) && users[apiUser.id].first_name) {
             return;
@@ -116,7 +116,7 @@ var _AppUsersManager = (function () {
         }
 
         var result = users[userID];
-        
+
         if (result === undefined) {
             result = users[userID] = apiUser;
         } else {
@@ -148,7 +148,7 @@ var _AppUsersManager = (function () {
         return 0;
     }
 
-    function getUser (id) {
+    function getUser(id) {
         if (angular.isObject(id)) {
             return id;
         }
@@ -159,7 +159,7 @@ var _AppUsersManager = (function () {
         return getUser(myID);
     }
 
-    function getUserInput (id) {
+    function getUserInput(id) {
         var user = getUser(id);
         if (user.pFlags.self) {
             return {_: 'inputUserSelf'};

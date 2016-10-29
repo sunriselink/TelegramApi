@@ -30,7 +30,7 @@ var _AppProfileManager = (function () {
         });
     }
 
-    function getChatInviteLink (id, force) {
+    function getChatInviteLink(id, force) {
         return getChatFull(id).then(function (chatFull) {
             if (!force &&
                 chatFull.exported_invite &&
@@ -56,7 +56,7 @@ var _AppProfileManager = (function () {
         });
     }
 
-    function getChannelParticipants (id) {
+    function getChannelParticipants(id) {
         return _MtpApiManager.invokeApi('channels.getParticipants', {
             channel: _AppChatsManager.getChannelInput(id),
             filter: {_: 'channelParticipantsRecent'},
@@ -90,7 +90,7 @@ var _AppProfileManager = (function () {
         });
     }
 
-    function getChannelFull (id, force) {
+    function getChannelFull(id, force) {
         if (chatsFull[id] !== undefined && !force) {
             return $q.when(chatsFull[id]);
         }

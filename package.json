@@ -2,7 +2,8 @@
   "name": "TelegramApi",
   "scripts": {
     "build": "grunt build",
-    "build-lib": "npm i && bower i && npm run build"
+    "build-lib": "npm i && bower i && npm run build",
+    "start": "npm run build && grunt connect"
   },
   "dependencies": {
     "bower": "^1.7.9",
@@ -10,6 +11,7 @@
     "grunt-cli": "^1.2.0",
     "grunt-contrib-clean": "^1.0.0",
     "grunt-contrib-concat": "^1.0.1",
+    "grunt-contrib-connect": "^1.0.2",
     "grunt-contrib-copy": "^1.0.0",
     "grunt-contrib-uglify": "^1.0.1",
     "zlibjs": "^0.2.0"

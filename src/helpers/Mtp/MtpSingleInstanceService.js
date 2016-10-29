@@ -6,7 +6,7 @@ var _MtpSingleInstanceService = (function () {
     var deactivated = false;
 
     function start() {
-        if (!started && !Config.Navigator.mobile && !Config.Modes.packed) {
+        if (!started && !Config.Navigator.mobile) {
             started = true;
 
             _IdleManager.start();
@@ -32,11 +32,7 @@ var _MtpSingleInstanceService = (function () {
         deactivatePromise = false;
         deactivated = true;
         clearInstance();
-        $modalStack.dismissAll();
-
-        document.title = _('inactive_tab_title_raw');
-
-        var inactivePageCompiled = $compile('<ng-include src="\'partials/desktop/inactive.html\'"></ng-include>');
+        
         $rootScope.idle.deactivated = true;
     }
 

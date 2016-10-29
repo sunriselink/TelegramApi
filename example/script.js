@@ -1,7 +1,8 @@
 telegramApi.setConfig({
     app: {
         id: 24939,
-        hash: 'cf2f9913563b63810ca02d77d5d44f92'
+        hash: 'cf2f9913563b63810ca02d77d5d44f92',
+        version: '1.2.0'
     },
     server: {
         test: [

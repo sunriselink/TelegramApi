@@ -157,6 +157,7 @@ var telegramApi = (function () {
 
         Config.App.id = config.app.id;
         Config.App.hash = config.app.hash;
+        Config.App.version = config.app.version || Config.App.version;
 
         Config.Server.Test = config.server.test;
         Config.Server.Production = config.server.production;

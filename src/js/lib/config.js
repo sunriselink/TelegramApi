@@ -19,70 +19,19 @@ Config = window.Config || {};
 */
 
 Config.App = {
-  version: '1.1.0'
+  version: '0.0.0'
 };
 
 Config.Server = {};
 
 Config.Modes = {
-  test: location.search.indexOf('test=1') > 0,
   debug: location.search.indexOf('debug=1') > 0,
-  http: location.search.indexOf('http=1') > 0,
-  ssl: location.search.indexOf('ssl=1') > 0 || location.protocol == 'https:' && location.search.indexOf('ssl=0') == -1,
-  force_mobile: location.search.indexOf('mobile=1') > 0,
-  force_desktop: location.search.indexOf('desktop=1') > 0,
   nacl: location.search.indexOf('nacl=0')== -1,
-  webcrypto: location.search.indexOf('webcrypto=0')== -1,
-  packed: location.protocol == 'app:' || location.protocol == 'chrome-extension:',
-  ios_standalone: window.navigator.standalone && navigator.userAgent.match(/iOS|iPhone|iPad/),
-  chrome_packed: window.chrome && chrome.app && chrome.app.window && true || false,
-  animations: true,
-  memory_only: false
+  webcrypto: location.search.indexOf('webcrypto=0')== -1
 };
 
 Config.Navigator = {
-  osX:  (navigator.platform || '').toLowerCase().indexOf('mac') != -1 ||
-        (navigator.userAgent || '').toLowerCase().indexOf('mac') != -1,
-  msie: (navigator.userAgent || '').search(/MSIE | Trident\/|Edge\//) != -1,
-  retina: window.devicePixelRatio > 1,
-  ffos: navigator.userAgent.search(/mobi.+Gecko/i) != -1,
-  ffos2p: navigator.userAgent.search(/mobi.+Gecko\/[34567]/i) != -1,
-  touch: screen.width <= 768 || ('ontouchstart' in window) || window.DocumentTouch && document instanceof DocumentTouch,
   mobile: screen.width && screen.width < 480 || navigator.userAgent.search(/iOS|iPhone OS|Android|BlackBerry|BB10|Series ?[64]0|J2ME|MIDP|opera mini|opera mobi|mobi.+Gecko|Windows Phone/i) != -1
-};
-
-// Touch detect: https://github.com/Modernizr/Modernizr/blob/master/feature-detects/touchevents.js
-
-Config.I18n = {
-  locale: 'en-us',
-  supported: [
-    "en-us"
-    ,"es-es"
-    ,"de-de"
-    ,"it-it"
-    ,"nl-nl"
-    ,"pt-br"
-    // ,"ru-ru"
-  ], // To be copied to package.json
-  languages: {
-    'en-us': 'English',
-    'de-de': 'Deutsch',
-    'es-es': 'Español',
-    'it-it': 'Italiano',
-    'ru-ru': 'Русский',
-    'nl-nl': 'Nederlands',
-    'pt-br': 'Português (Brazil)'
-  },
-  aliases: {
-    'en': 'en-us',
-    'de': 'de-de',
-    'es': 'es-es',
-    'it': 'it-it',
-    'ru': 'ru-ru',
-    'nl': 'nl-nl'
-  },
-  messages: {},
-  fallback_messages: {}
 };
 
 Config.Schema = Config.Schema || {};
@@ -169,7 +118,7 @@ Config.Schema.API.layer = 45;
 
       callback(single ? result[0] : result);
     });
-  };
+  }
 
   function storageSetValue(obj, callback) {
     var keyValues = {},
@@ -202,7 +151,7 @@ Config.Schema.API.layer = 45;
     }
 
     chrome.storage.local.set(keyValues, callback);
-  };
+  }
 
   function storageRemoveValue () {
     var keys = Array.prototype.slice.call(arguments),
@@ -230,7 +179,7 @@ Config.Schema.API.layer = 45;
     else if (callback) {
       callback();
     }
-  };
+  }
 
   window.ConfigStorage = {
     prefix: storageSetPrefix,

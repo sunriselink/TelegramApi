@@ -18,8 +18,7 @@ module.exports = function (grunt) {
                     'src/js/lib/utils.js',
                     'src/js/lib/bin_utils.js',
                     'src/js/lib/tl_utils.js',
-
-                    'src/helpers/Etc/_.js',
+                    
                     'src/helpers/Etc/qSync.js',
                     'src/helpers/Etc/Helper.js',
                     'src/helpers/Etc/Storage.js',
@@ -122,6 +121,16 @@ module.exports = function (grunt) {
             js: ['example/js/**'],
             nacl: ['example/nacl/**'],
             dist: ['dist/**/*']
+        },
+        connect: {
+            http: {
+                options: {
+                    open: 'http://localhost:8181',
+                    base: 'example',
+                    port: 8181,
+                    keepalive: true
+                }
+            }
         }
     });
 
@@ -129,6 +138,7 @@ module.exports = function (grunt) {
     grunt.loadNpmTasks('grunt-contrib-uglify');
     grunt.loadNpmTasks('grunt-contrib-copy');
     grunt.loadNpmTasks('grunt-contrib-clean');
+    grunt.loadNpmTasks('grunt-contrib-connect');
 
     grunt.registerTask('build', [
         'clean',

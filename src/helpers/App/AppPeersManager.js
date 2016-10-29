@@ -1,5 +1,5 @@
 var _AppPeersManager = (function () {
-    function getInputPeerByID (peerID) {
+    function getInputPeerByID(peerID) {
         if (!peerID) {
             return {_: 'inputPeerEmpty'};
         }
@@ -25,7 +25,7 @@ var _AppPeersManager = (function () {
         };
     }
 
-    function resolveUsername (username) {
+    function resolveUsername(username) {
         var searchUserName = SearchIndexManager.cleanUsername(username);
         var foundUserID, foundChatID, foundPeerID, foundUsername;
         if (foundUserID = _AppUsersManager.resolveUsername(searchUserName)) {
@@ -48,7 +48,7 @@ var _AppPeersManager = (function () {
         });
     }
 
-    function getPeerID (peerString) {
+    function getPeerID(peerString) {
         if (angular.isObject(peerString)) {
             return peerString.user_id
                 ? peerString.user_id
@@ -60,13 +60,13 @@ var _AppPeersManager = (function () {
         return isUser ? peerParams[0] : -peerParams[0] || 0;
     }
 
-    function getPeer (peerID) {
+    function getPeer(peerID) {
         return peerID > 0
             ? _AppUsersManager.getUser(peerID)
             : _AppChatsManager.getChat(-peerID);
     }
 
-    function isChannel (peerID) {
+    function isChannel(peerID) {
         return (peerID < 0) && _AppChatsManager.isChannel(-peerID);
     }
 
@@ -75,6 +75,6 @@ var _AppPeersManager = (function () {
         getPeerID: getPeerID,
         getPeer: getPeer,
         resolveUsername: resolveUsername,
-        isChannel: isChannel,
+        isChannel: isChannel
     }
 })();

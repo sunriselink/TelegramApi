@@ -1,11 +1,11 @@
 var _TelegramMeWebService = (function () {
-    var disabled =  Config.Modes.test ||
-        location.protocol != 'http:' && location.protocol != 'https:';
+    var disabled = location.protocol != 'http:' && location.protocol != 'https:';
 
-    function sendAsyncRequest (canRedirect) {
+    function sendAsyncRequest(canRedirect) {
         if (disabled) {
             return false;
         }
+        
         _Storage.get('tgme_sync').then(function (curValue) {
             var ts = tsNow(true);
             if (canRedirect &&
@@ -17,12 +17,12 @@ var _TelegramMeWebService = (function () {
             _Storage.set({tgme_sync: {canRedirect: canRedirect, ts: ts}});
 
             var script = $('<script>').appendTo('body')
-                .on('load error', function() {
+                .on('load error', function () {
                     script.remove();
                 })
                 .attr('src', '//telegram.me/_websync_?authed=' + (canRedirect ? '1' : '0'));
         });
-    };
+    }
 
     return {
         setAuthorized: sendAsyncRequest

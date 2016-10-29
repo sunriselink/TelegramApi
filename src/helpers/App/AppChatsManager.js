@@ -51,7 +51,7 @@ var _AppChatsManager = (function () {
 
     function isChannel(id) {
         var chat = chats[id];
-        
+
         return chat && (chat._ == 'channel' || chat._ == 'channelForbidden') || channelAccess[id];
     }
 
