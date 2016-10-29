@@ -13,24 +13,6 @@ function bigStringInt (strNum) {
   return new BigInteger(strNum, 10);
 }
 
-function dHexDump (bytes) {
-  var arr = [];
-  for (var i = 0; i < bytes.length; i++) {
-    if (i && !(i % 2)) {
-      if (!(i % 16)) {
-        arr.push("\n");
-      } else if (!(i % 4)) {
-        arr.push('  ');
-      } else {
-        arr.push(' ');
-      }
-    }
-    arr.push((bytes[i] < 16 ? '0' : '') + bytes[i].toString(16));
-  }
-
-  console.log(arr.join(''));
-}
-
 function bytesToHex (bytes) {
   bytes = bytes || [];
   var arr = [];
@@ -56,86 +38,6 @@ function bytesFromHex (hexString) {
   }
 
   return bytes;
-}
-
-function bytesToBase64 (bytes) {
-  var mod3, result = '';
-
-  for (var nLen = bytes.length, nUint24 = 0, nIdx = 0; nIdx < nLen; nIdx++) {
-    mod3 = nIdx % 3;
-    nUint24 |= bytes[nIdx] << (16 >>> mod3 & 24);
-    if (mod3 === 2 || nLen - nIdx === 1) {
-      result += String.fromCharCode(
-        uint6ToBase64(nUint24 >>> 18 & 63),
-        uint6ToBase64(nUint24 >>> 12 & 63),
-        uint6ToBase64(nUint24 >>> 6 & 63),
-        uint6ToBase64(nUint24 & 63)
-      );
-      nUint24 = 0;
-    }
-  }
-
-  return result.replace(/A(?=A$|$)/g, '=');
-}
-
-function uint6ToBase64 (nUint6) {
-  return nUint6 < 26
-    ? nUint6 + 65
-    : nUint6 < 52
-      ? nUint6 + 71
-      : nUint6 < 62
-        ? nUint6 - 4
-        : nUint6 === 62
-          ? 43
-          : nUint6 === 63
-            ? 47
-            : 65;
-}
-
-function base64ToBlob(base64str, mimeType) {
-  var sliceSize = 1024;
-  var byteCharacters = atob(base64str);
-  var bytesLength = byteCharacters.length;
-  var slicesCount = Math.ceil(bytesLength / sliceSize);
-  var byteArrays = new Array(slicesCount);
-
-  for (var sliceIndex = 0; sliceIndex < slicesCount; ++sliceIndex) {
-    var begin = sliceIndex * sliceSize;
-    var end = Math.min(begin + sliceSize, bytesLength);
-
-    var bytes = new Array(end - begin);
-    for (var offset = begin, i = 0 ; offset < end; ++i, ++offset) {
-      bytes[i] = byteCharacters[offset].charCodeAt(0);
-    }
-    byteArrays[sliceIndex] = new Uint8Array(bytes);
-  }
-
-  return blobConstruct(byteArrays, mimeType);
-}
-
-function dataUrlToBlob(url) {
-  // var name = 'b64blob ' + url.length;
-  // console.time(name);
-  var urlParts = url.split(',');
-  var base64str = urlParts[1];
-  var mimeType = urlParts[0].split(':')[1].split(';')[0];
-  var blob = base64ToBlob(base64str, mimeType);
-  // console.timeEnd(name);
-  return blob;
-}
-
-function blobConstruct (blobParts, mimeType) {
-  var blob;
-  try {
-    blob = new Blob(blobParts, {type: mimeType});
-  } catch (e) {
-    var bb = new BlobBuilder;
-    forEach(blobParts, function(blobPart) {
-      bb.append(blobPart);
-    });
-    blob = bb.getBlob(mimeType);
-  }
-  return blob;
 }
 
 function bytesCmp (bytes1, bytes2) {
