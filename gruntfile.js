@@ -3,11 +3,9 @@ module.exports = function (grunt) {
         concat: {
             main: {
                 src: [
-                    'bower_components/Rusha/rusha.min.js',
-                    'bower_components/long/dist/long.min.js',
-                    'bower_components/big-int/src/BigInt.js',
-
+                    'node_modules/long/dist/long.min.js',
                     'node_modules/zlibjs/bin/gunzip.min.js',
+                    'node_modules/rusha/rusha.min.js',
 
                     'src/vendor/jsbn/jsbn_combined.min.js',
                     'src/vendor/cryptoJS/crypto.min.js',
@@ -83,10 +81,10 @@ module.exports = function (grunt) {
                     },
                     {
                         expand: true,
-                        cwd: 'bower_components',
+                        cwd: 'node_modules',
                         src: [
                             'long/dist/long.min.js',
-                            'Rusha/rusha.min.js'
+                            'rusha/rusha.min.js'
                         ],
                         dest: 'example/js/lib/vendor'
                     },
