@@ -37,7 +37,10 @@ window.telegramApi = (function () {
         startBot: startBot,
         subscribe: subscribe,
         unSubscribe: unSubscribe,
-        logOut: logOut
+        logOut: logOut,
+
+        dT: dT,
+        invokeApi: _MtpApiManager.invokeApi
     };
 
     /* Public Functions */
@@ -300,7 +303,7 @@ window.telegramApi = (function () {
         doc.size = doc.size || 0;
 
         if (!isFunction(progress)) {
-            progress = nonce;
+            progress = noop;
         }
 
         var location = {
@@ -407,7 +410,7 @@ window.telegramApi = (function () {
         };
 
         if (!isFunction(progress)) {
-            progress = nonce;
+            progress = noop;
         }
 
         var fileName = photo.id + '.jpg';

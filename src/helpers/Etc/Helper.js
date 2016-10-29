@@ -15,13 +15,12 @@ var $q = {
 
         var p = [];
         var keys = Object.keys(promises);
-        var defer = this.defer();
 
         for (var i = 0; i < keys.length; i++) {
             p.push(promises[keys[i]]);
         }
 
-        this.when.apply($, p).then(function () {
+        return this.when.apply($, p).then(function () {
             var objects = Array.prototype.slice.call(arguments);
             var result = {};
 
@@ -29,10 +28,8 @@ var $q = {
                 result[keys[i]] = objects[i];
             }
 
-            defer.resolve(result);
+            return result;
         });
-
-        return defer.promise;
     }
 };
 
