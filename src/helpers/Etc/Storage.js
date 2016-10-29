@@ -2,7 +2,7 @@ var _Storage = (function () {
     var methods = {};
     forEach(['get', 'set', 'remove'], function (methodName) {
         methods[methodName] = function () {
-            var deferred = $.Deferred(),
+            var deferred = $q.defer(),
                 args = Array.prototype.slice.call(arguments);
 
             args.push(function (result) {

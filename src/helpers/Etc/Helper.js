@@ -1,8 +1,46 @@
+var $q = {
+    defer: function () {
+        var deferred = $.Deferred();
+        deferred.promise = deferred.promise();
+        return deferred;
+    },
+    when: $.when,
+    reject: function (result) {
+        return this.defer().reject(result);
+    },
+    all: function (promises) {
+        if (isArray(promises)) {
+            return this.when.apply($, promises);
+        }
+
+        var p = [];
+        var keys = Object.keys(promises);
+        var defer = this.defer();
+
+        for (var i = 0; i < keys.length; i++) {
+            p.push(promises[keys[i]]);
+        }
+
+        this.when.apply($, p).then(function () {
+            var objects = Array.prototype.slice.call(arguments);
+            var result = {};
+
+            for (var i = 0; i < keys.length; i++) {
+                result[keys[i]] = objects[i];
+            }
+
+            defer.resolve(result);
+        });
+
+        return defer.promise;
+    }
+};
+
 var $interval = setInterval;
 
 var $timeout = function (cb, t) {
-    var defer = $.Deferred();
-    var promise = defer.promise();
+    var defer = $q.defer();
+    var promise = defer.promise;
 
     promise.__timeoutID = setTimeout(function () {
         defer.resolve(cb());
@@ -43,50 +81,12 @@ var $http = {
     }
 };
 
-var $q = {
-    defer: function () {
-        var deferred = $.Deferred();
-        deferred.promise = deferred.promise();
-        return deferred;
-    },
-    when: $.when,
-    reject: function (result) {
-        return this.defer().reject(result);
-    },
-    all: function (promises) {
-        if ($.isArray(promises)) {
-            return this.when.apply($, promises);
-        }
-
-        var p = [];
-        var keys = Object.keys(promises);
-        var defer = this.defer();
-
-        for (var i = 0; i < keys.length; i++) {
-            p.push(promises[keys[i]]);
-        }
-
-        this.when.apply($, p).then(function () {
-            var objects = Array.prototype.slice.call(arguments);
-            var result = {};
-
-            for (var i = 0; i < keys.length; i++) {
-                result[keys[i]] = objects[i];
-            }
-
-            defer.resolve(result);
-        });
-
-        return defer.promise;
-    }
-};
-
 function forEach(obj, iterator, context) {
     if (!obj) {
         return;
     }
 
-    if ($.isArray(obj)) {
+    if (isArray(obj)) {
         if (obj.forEach) {
             obj.forEach(iterator, context, obj);
         } else {
@@ -109,8 +109,12 @@ function isString(value) {
     return typeof value == 'string';
 }
 
-function isArray(array) {
-    return $.isArray(array);
+function isArray(value) {
+    return $.isArray(value);
+}
+
+function isFunction(value) {
+    return typeof value == 'function';
 }
 
 function extend() {
