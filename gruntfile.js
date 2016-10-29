@@ -25,10 +25,6 @@ module.exports = function (grunt) {
                     'src/helpers/Etc/IdleManager.js',
                     'src/helpers/Etc/TelegramMeWebService.js',
                     'src/helpers/Etc/NotificationsManager.js',
-                    'src/helpers/Etc/FileManager.js',
-                    'src/helpers/Etc/TmpfsFileStorage.js',
-                    'src/helpers/Etc/IdbFileStorage.js',
-                    'src/helpers/Etc/MemoryFileStorage.js',
 
                     'src/helpers/Mtp/MtpDcConfigurator.js',
                     'src/helpers/Mtp/MtpTimeManager.js',
