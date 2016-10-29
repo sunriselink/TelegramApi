@@ -362,7 +362,7 @@ var _MtpAuthorizer = (function () {
 
         cached[dcID] = auth.deferred.promise;
 
-        cached[dcID]['catch'](function () {
+        cached[dcID]['fail'](function () {
             delete cached[dcID];
         });
 
