@@ -1,11 +1,8 @@
-table, th, td {
-    border: 1px solid black;
+.list-group {
+    max-height: 300px;
+    overflow-y: overlay;
 }
 
-td {
-    padding: 10px 15px;
-}
-
-img {
-    width: 100px;
+.badge {
+    cursor: pointer;
 }

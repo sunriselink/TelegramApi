@@ -3,6 +3,7 @@
 <head>
     <title>Test Telegram App</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
 </head>
 
 <body>
@@ -14,21 +15,82 @@
 <div id="content" ng-app="myApp">
     <div ng-controller="mainCtrl">
         <div class="ng-hide" ng-show="visible.auth">
+            <h4>Auth panel</h4>
             <input type="text" ng-model="auth.phone" placeholder="Phone">
             <input type="text" ng-model="auth.code" placeholder="Code">
             <button ng-click="auth.sendCode()">Send code</button>
             <button ng-click="auth.signIn()">Sign In</button>
         </div>
+
         <div class="ng-hide" ng-show="visible.info">
-            <table>
-                <tr><td>ID</td><td ng-bind="info.id"></td></tr>
-                <tr><td>Photo</td><td><img ng-src="{{info.photoBase64}}" alt=""></td></tr>
-                <tr><td>First Name</td><td ng-bind="info.first_name"></td></tr>
-                <tr><td>Last Name</td><td ng-bind="info.last_name"></td></tr>
-                <tr><td>Username</td><td ng-bind="info.username"></td></tr>
-                <tr><td>Phone</td><td ng-bind="info.phone"></td></tr>
+            <h3>Info panel</h3>
+            <table class="table">
+                <thead>
+                <tr>
+                    <td>ID</td>
+                    <td ng-bind="info.id"></td>
+                </tr>
+                </thead>
+                <tbody>
+                <tr>
+                    <td>Photo</td>
+                    <td><img ng-src="{{info.photoBase64}}" alt=""></td>
+                </tr>
+                <tr>
+                    <td>First Name</td>
+                    <td ng-bind="info.first_name"></td>
+                </tr>
+                <tr>
+                    <td>Last Name</td>
+                    <td ng-bind="info.last_name"></td>
+                </tr>
+                <tr>
+                    <td>Username</td>
+                    <td ng-bind="info.username"></td>
+                </tr>
+                <tr>
+                    <td>Phone</td>
+                    <td ng-bind="info.phone"></td>
+                </tr>
+                </tbody>
             </table>
             <button ng-click="info.logOut()">Log out</button>
+
+            <input type="text" placeholder="Checking phone" ng-model="checkingPhone">
+            <button ng-click="info.checkPhone(checkingPhone)">Check phone</button>
+
+            <h3>Operations</h3>
+            <div class="row">
+                <div class="col-xs-6">
+                    <h4>Success</h4>
+                    <ul class="list-group">
+                        <li class="list-group-item" ng-repeat="item in success">
+                            {{item._}}
+                            <span class="badge" ng-click="showLog(item, 'alert')">Alert</span>
+                            <span class="badge" ng-click="showLog(item, 'console')">Console</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class="col-xs-6">
+                    <h4>Failed</h4>
+                    <ul class="list-group">
+                        <li class="list-group-item" ng-repeat="item in failed">
+                            {{item.description}}
+                            <span class="badge" ng-click="showLog(item, 'alert')">Alert</span>
+                            <span class="badge" ng-click="showLog(item, 'console')">Console</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <h3>Logs</h3>
+            <ul class="list-group">
+                <li class="list-group-item" ng-repeat="log in logs">
+                    {{log._}}
+                    <span class="badge" ng-click="showLog(log, 'alert')">Alert</span>
+                    <span class="badge" ng-click="showLog(log, 'console')">Console</span>
+                </li>
+            </ul>
         </div>
     </div>
 </div>

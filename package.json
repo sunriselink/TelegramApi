@@ -5,7 +5,7 @@
     "build": "gulp build",
     "build-lib": "npm i && npm run build",
     "example": "npm run build && gulp copy",
-    "start": "npm run example  && gulp server"
+    "start": "npm run example && gulp server"
   },
   "devDependencies": {
     "gulp": "^3.9.1",

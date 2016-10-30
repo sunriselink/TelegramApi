@@ -26,7 +26,12 @@ angular.module('myApp', [])
     .controller('mainCtrl', function ($scope) {
         angular.extend($scope, {
             update: function () {
-                setTimeout(function () {
+                if ($scope._timeout) {
+                    return;
+                }
+
+                $scope._timeout = setTimeout(function () {
+                    delete $scope._timeout;
                     $scope.$apply();
                 }, 0);
             },
@@ -34,31 +39,65 @@ angular.module('myApp', [])
                 auth: false,
                 info: false
             },
-            auth: {
-                sendCode: function () {
-                    telegramApi.sendCode($scope.auth.phone).then(function (sent_code) {
-                        $scope.phone_code_hash = sent_code.phone_code_hash;
-                    });
-                },
-                signIn: function () {
-                    telegramApi.signIn($scope.auth.phone, $scope.phone_code_hash, $scope.auth.code).then(function () {
-                        setTimeout(function () {
-                            window.location.reload();
-                        }, 1000);
-                    });
+            auth: {},
+            info: {},
+            logs: [],
+            success: [],
+            failed: [],
+            json: function (obj, indent) {
+                return JSON.stringify(obj, null, indent ? 4 : 0);
+            },
+            showLog: function (log, type) {
+                switch (type){
+                    case 'console':
+                        console.log(log);
+                        break;
+                    case 'alert':
+                        alert(this.json(log, true));
+                        break;
                 }
             },
-            info: {
-                logOut: function () {
-                    telegramApi.logOut().then(function () {
-                        // TODO: Без setTimeout
-                        setTimeout(function () {
-                            window.location.reload();
-                        }, 1500);
-                    });
-                }
+            invokeMethod: function (method, params) {
+                telegramApi[method].apply(telegramApi, params).then(function (result) {
+                    $scope.success.push(result);
+                    $scope.update();
+                }, function (err) {
+                    $scope.failed.push(err);
+                    $scope.update();
+                });
             }
         });
+
+        /* Auth methods */
+        $scope.auth.sendCode = function () {
+            telegramApi.sendCode($scope.auth.phone).then(function (sent_code) {
+                $scope.phone_code_hash = sent_code.phone_code_hash;
+            });
+        };
+
+        $scope.auth.signIn = function () {
+            telegramApi.signIn($scope.auth.phone, $scope.phone_code_hash, $scope.auth.code).then(function () {
+                setTimeout(function () {
+                    window.location.reload();
+                }, 1000);
+            });
+        };
+
+        /* Other methods */
+        $scope.info.logOut = function () {
+            telegramApi.logOut().then(function () {
+                // TODO: Без setTimeout
+                setTimeout(function () {
+                    window.location.reload();
+                }, 1500);
+            });
+        };
+
+        $scope.info.checkPhone = function (phone) {
+            $scope.invokeMethod('checkPhone', [phone]);
+        };
+
+        /* Initialize */
         telegramApi.getUserInfo().then(function (user) {
             if (!user.id) {
                 $scope.visible.auth = true;
@@ -72,5 +111,10 @@ angular.module('myApp', [])
                     $scope.update();
                 });
             }
+        });
+
+        telegramApi.subscribe('Test', function (message) {
+            $scope.logs.push(message);
+            $scope.update();
         });
     });
