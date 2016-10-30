@@ -482,7 +482,7 @@ window.telegramApi = (function () {
         var defer = $q.defer();
 
         if (!peer.deleted) {
-            return defer.resolve(peer).promise();
+            return defer.resolve(peer).promise;
         }
 
         var offsetDate = 0;
