@@ -1,11 +1,6 @@
 var _AppUsersManager = (function () {
     var users = {},
-        usernames = {},
         userAccess = {},
-        cachedPhotoLocations = {},
-        contactsFillPromise,
-        contactsList,
-        contactsIndex = SearchIndexManager.createIndex(),
         myID,
         serverTimeOffset = 0;
 
@@ -18,58 +13,6 @@ var _AppUsersManager = (function () {
     _MtpApiManager.getUserID().then(function (id) {
         myID = id;
     });
-
-    function fillContacts() {
-        if (contactsFillPromise) {
-            return contactsFillPromise;
-        }
-        return contactsFillPromise = _MtpApiManager.invokeApi('contacts.getContacts', {
-            hash: ''
-        }).then(function (result) {
-            var userID, searchText, i;
-            contactsList = [];
-            saveApiUsers(result.users);
-
-            for (var i = 0; i < result.contacts.length; i++) {
-                userID = result.contacts[i].user_id;
-                contactsList.push(userID);
-                SearchIndexManager.indexObject(userID, getUserSearchText(userID), contactsIndex);
-            }
-
-            return contactsList;
-        });
-    }
-
-    function getUserSearchText(id) {
-        var user = users[id];
-        if (!user) {
-            return false;
-        }
-
-        return (user.first_name || '') + ' ' + (user.last_name || '') + ' ' + (user.phone || '') + ' ' + (user.username || '');
-    }
-
-    function getContacts(query) {
-        return fillContacts().then(function (contactsList) {
-            if (isString(query) && query.length) {
-                var results = SearchIndexManager.search(query, contactsIndex),
-                    filteredContactsList = [];
-
-                for (var i = 0; i < contactsList.length; i++) {
-                    if (results[contactsList[i]]) {
-                        filteredContactsList.push(contactsList[i])
-                    }
-                }
-                contactsList = filteredContactsList;
-            }
-
-            return contactsList;
-        });
-    }
-
-    function resolveUsername(username) {
-        return usernames[username] || 0;
-    }
 
     function saveApiUsers(apiUsers) {
         forEach(apiUsers, saveApiUser);
@@ -85,21 +28,9 @@ var _AppUsersManager = (function () {
 
         apiUser.num = (Math.abs(userID) % 8) + 1;
 
-        if (apiUser.username) {
-            var searchUsername = SearchIndexManager.cleanUsername(apiUser.username);
-            usernames[searchUsername] = userID;
-        }
-
         if (apiUser.pFlags === undefined) {
             apiUser.pFlags = {};
         }
-
-        apiUser.sortName = apiUser.pFlags.deleted ? '' : SearchIndexManager.cleanSearchText(apiUser.first_name + ' ' + (apiUser.last_name || ''));
-
-        var nameWords = apiUser.sortName.split(' ');
-        var firstWord = nameWords.shift();
-        var lastWord = nameWords.pop();
-        apiUser.initials = firstWord.charAt(0) + (lastWord ? lastWord.charAt(0) : firstWord.charAt(1));
 
         if (apiUser.status) {
             if (apiUser.status.expires) {
@@ -121,10 +52,6 @@ var _AppUsersManager = (function () {
             result = users[userID] = apiUser;
         } else {
             safeReplaceObject(result, apiUser);
-        }
-
-        if (cachedPhotoLocations[userID] !== undefined) {
-            safeReplaceObject(cachedPhotoLocations[userID], apiUser && apiUser.photo && apiUser.photo.photo_small || {empty: true});
         }
     }
 
@@ -176,7 +103,6 @@ var _AppUsersManager = (function () {
         saveApiUser: saveApiUser,
         getUser: getUser,
         getSelf: getSelf,
-        getUserInput: getUserInput,
-        resolveUsername: resolveUsername
+        getUserInput: getUserInput
     };
 })();

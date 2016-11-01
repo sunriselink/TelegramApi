@@ -25,29 +25,6 @@ var _AppPeersManager = (function () {
         };
     }
 
-    function resolveUsername(username) {
-        var searchUserName = SearchIndexManager.cleanUsername(username);
-        var foundUserID, foundChatID, foundPeerID, foundUsername;
-        if (foundUserID = _AppUsersManager.resolveUsername(searchUserName)) {
-            foundUsername = _AppUsersManager.getUser(foundUserID).username;
-            if (SearchIndexManager.cleanUsername(foundUsername) == searchUserName) {
-                return _qSync.when(foundUserID);
-            }
-        }
-        if (foundChatID = _AppChatsManager.resolveUsername(searchUserName)) {
-            foundUsername = _AppChatsManager.getChat(foundChatID).username;
-            if (SearchIndexManager.cleanUsername(foundUsername) == searchUserName) {
-                return _qSync.when(-foundChatID);
-            }
-        }
-
-        return MtpApiManager.invokeApi('contacts.resolveUsername', {username: username}).then(function (resolveResult) {
-            _AppUsersManager.saveApiUsers(resolveResult.users);
-            _AppChatsManager.saveApiChats(resolveResult.chats);
-            return getPeerID(resolveResult.peer);
-        });
-    }
-
     function getPeerID(peerString) {
         if (isObject(peerString)) {
             return peerString.user_id
@@ -74,7 +51,6 @@ var _AppPeersManager = (function () {
         getInputPeerByID: getInputPeerByID,
         getPeerID: getPeerID,
         getPeer: getPeer,
-        resolveUsername: resolveUsername,
         isChannel: isChannel
     }
 })();

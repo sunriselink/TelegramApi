@@ -1,9 +1,6 @@
 var _AppChatsManager = (function () {
     var chats = {},
-        usernames = {},
-        channelAccess = {},
-        megagroups = {},
-        cachedPhotoLocations = {};
+        channelAccess = {};
 
     function saveApiChats(apiChats) {
         forEach(apiChats, saveApiChat);
@@ -14,20 +11,10 @@ var _AppChatsManager = (function () {
             return;
         }
 
-        var titleWords = SearchIndexManager.cleanSearchText(apiChat.title || '').split(' ');
-        var firstWord = titleWords.shift();
-        var lastWord = titleWords.pop();
-        apiChat.initials = firstWord.charAt(0) + (lastWord ? lastWord.charAt(0) : firstWord.charAt(1));
-
         apiChat.num = (Math.abs(apiChat.id >> 1) % 8) + 1;
 
         if (apiChat.pFlags === undefined) {
             apiChat.pFlags = {};
-        }
-
-        if (apiChat.username) {
-            var searchUsername = SearchIndexManager.cleanUsername(apiChat.username);
-            usernames[searchUsername] = apiChat.id;
         }
 
         if (chats[apiChat.id] === undefined) {
@@ -35,18 +22,10 @@ var _AppChatsManager = (function () {
         } else {
             safeReplaceObject(chats[apiChat.id], apiChat);
         }
-
-        if (cachedPhotoLocations[apiChat.id] !== undefined) {
-            safeReplaceObject(cachedPhotoLocations[apiChat.id], apiChat && apiChat.photo && apiChat.photo.photo_small || {empty: true});
-        }
     }
 
     function getChat(id) {
         return chats[id] || {id: id, deleted: true, access_hash: channelAccess[id]};
-    }
-
-    function resolveUsername(username) {
-        return usernames[username] || 0;
     }
 
     function isChannel(id) {
@@ -76,7 +55,6 @@ var _AppChatsManager = (function () {
         getChat: getChat,
         isChannel: isChannel,
         getChatInput: getChatInput,
-        getChannelInput: getChannelInput,
-        resolveUsername: resolveUsername
+        getChannelInput: getChannelInput
     }
 })();

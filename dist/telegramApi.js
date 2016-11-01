@@ -1645,113 +1645,6 @@ function safeReplaceObject (wasObject, newObject) {
   }
 }
 
-
-(function (global) {
-
-  var badCharsRe = /[`~!@#$%^&*()\-_=+\[\]\\|{}'";:\/?.>,<\s]+/g,
-      trimRe = /^\s+|\s$/g;
-
-  function createIndex () {
-    return {
-      shortIndexes: {},
-      fullTexts: {}
-    }
-  }
-
-  function cleanSearchText (text) {
-    var hasTag = text.charAt(0) == '%';
-    text = text.replace(badCharsRe, ' ').replace(trimRe, '');
-    text = text.toLowerCase();
-    if (hasTag) {
-      text = '%' + text;
-    }
-
-    return text;
-  }
-
-  function cleanUsername (username) {
-    return username && username.toLowerCase() || '';
-  }
-
-  function indexObject (id, searchText, searchIndex) {
-    if (searchIndex.fullTexts[id] !== undefined) {
-      return false;
-    }
-
-    searchText = cleanSearchText(searchText);
-
-    if (!searchText.length) {
-      return false;
-    }
-
-    var shortIndexes = searchIndex.shortIndexes;
-
-    searchIndex.fullTexts[id] = searchText;
-
-    forEach(searchText.split(' '), function(searchWord) {
-      var len = Math.min(searchWord.length, 3),
-          wordPart, i;
-      for (i = 1; i <= len; i++) {
-        wordPart = searchWord.substr(0, i);
-        if (shortIndexes[wordPart] === undefined) {
-          shortIndexes[wordPart] = [id];
-        } else {
-          shortIndexes[wordPart].push(id);
-        }
-      }
-    });
-  }
-
-  function search (query, searchIndex) {
-    var shortIndexes = searchIndex.shortIndexes,
-        fullTexts = searchIndex.fullTexts;
-
-    query = cleanSearchText(query);
-
-    var queryWords = query.split(' '),
-        foundObjs = false,
-        newFoundObjs, i, j, searchText, found;
-
-    for (i = 0; i < queryWords.length; i++) {
-      newFoundObjs = shortIndexes[queryWords[i].substr(0, 3)];
-      if (!newFoundObjs) {
-        foundObjs = [];
-        break;
-      }
-      if (foundObjs === false || foundObjs.length > newFoundObjs.length) {
-        foundObjs = newFoundObjs;
-      }
-    }
-
-    newFoundObjs = {};
-
-    for (j = 0; j < foundObjs.length; j++) {
-      found = true;
-      searchText = fullTexts[foundObjs[j]];
-      for (i = 0; i < queryWords.length; i++) {
-        if (searchText.indexOf(queryWords[i]) == -1) {
-          found = false;
-          break;
-        }
-      }
-      if (found) {
-        newFoundObjs[foundObjs[j]] = true;
-      }
-    }
-
-    return newFoundObjs;
-  }
-
-  global.SearchIndexManager = {
-    createIndex: createIndex,
-    indexObject: indexObject,
-    cleanSearchText: cleanSearchText,
-    cleanUsername: cleanUsername,
-    search: search
-  };
-
-})(window);
-
 var $q = {
     defer: function () {
         var deferred = $.Deferred();
@@ -1807,7 +1700,6 @@ $timeout.cancel = function (promise) {
 
     clearTimeout(promise.__timeoutID);
 };
-
 
 var $rootScope = {};
 
@@ -4112,29 +4004,6 @@ var _AppPeersManager = (function () {
         };
     }
 
-    function resolveUsername(username) {
-        var searchUserName = SearchIndexManager.cleanUsername(username);
-        var foundUserID, foundChatID, foundPeerID, foundUsername;
-        if (foundUserID = _AppUsersManager.resolveUsername(searchUserName)) {
-            foundUsername = _AppUsersManager.getUser(foundUserID).username;
-            if (SearchIndexManager.cleanUsername(foundUsername) == searchUserName) {
-                return _qSync.when(foundUserID);
-            }
-        }
-        if (foundChatID = _AppChatsManager.resolveUsername(searchUserName)) {
-            foundUsername = _AppChatsManager.getChat(foundChatID).username;
-            if (SearchIndexManager.cleanUsername(foundUsername) == searchUserName) {
-                return _qSync.when(-foundChatID);
-            }
-        }
-
-        return MtpApiManager.invokeApi('contacts.resolveUsername', {username: username}).then(function (resolveResult) {
-            _AppUsersManager.saveApiUsers(resolveResult.users);
-            _AppChatsManager.saveApiChats(resolveResult.chats);
-            return getPeerID(resolveResult.peer);
-        });
-    }
-
     function getPeerID(peerString) {
         if (isObject(peerString)) {
             return peerString.user_id
@@ -4161,16 +4030,12 @@ var _AppPeersManager = (function () {
         getInputPeerByID: getInputPeerByID,
         getPeerID: getPeerID,
         getPeer: getPeer,
-        resolveUsername: resolveUsername,
         isChannel: isChannel
     }
 })();
 var _AppChatsManager = (function () {
     var chats = {},
-        usernames = {},
-        channelAccess = {},
-        megagroups = {},
-        cachedPhotoLocations = {};
+        channelAccess = {};
 
     function saveApiChats(apiChats) {
         forEach(apiChats, saveApiChat);
@@ -4181,20 +4046,10 @@ var _AppChatsManager = (function () {
             return;
         }
 
-        var titleWords = SearchIndexManager.cleanSearchText(apiChat.title || '').split(' ');
-        var firstWord = titleWords.shift();
-        var lastWord = titleWords.pop();
-        apiChat.initials = firstWord.charAt(0) + (lastWord ? lastWord.charAt(0) : firstWord.charAt(1));
-
         apiChat.num = (Math.abs(apiChat.id >> 1) % 8) + 1;
 
         if (apiChat.pFlags === undefined) {
             apiChat.pFlags = {};
-        }
-
-        if (apiChat.username) {
-            var searchUsername = SearchIndexManager.cleanUsername(apiChat.username);
-            usernames[searchUsername] = apiChat.id;
         }
 
         if (chats[apiChat.id] === undefined) {
@@ -4202,18 +4057,10 @@ var _AppChatsManager = (function () {
         } else {
             safeReplaceObject(chats[apiChat.id], apiChat);
         }
-
-        if (cachedPhotoLocations[apiChat.id] !== undefined) {
-            safeReplaceObject(cachedPhotoLocations[apiChat.id], apiChat && apiChat.photo && apiChat.photo.photo_small || {empty: true});
-        }
     }
 
     function getChat(id) {
         return chats[id] || {id: id, deleted: true, access_hash: channelAccess[id]};
-    }
-
-    function resolveUsername(username) {
-        return usernames[username] || 0;
     }
 
     function isChannel(id) {
@@ -4243,18 +4090,12 @@ var _AppChatsManager = (function () {
         getChat: getChat,
         isChannel: isChannel,
         getChatInput: getChatInput,
-        getChannelInput: getChannelInput,
-        resolveUsername: resolveUsername
+        getChannelInput: getChannelInput
     }
 })();
 var _AppUsersManager = (function () {
     var users = {},
-        usernames = {},
         userAccess = {},
-        cachedPhotoLocations = {},
-        contactsFillPromise,
-        contactsList,
-        contactsIndex = SearchIndexManager.createIndex(),
         myID,
         serverTimeOffset = 0;
 
@@ -4267,58 +4108,6 @@ var _AppUsersManager = (function () {
     _MtpApiManager.getUserID().then(function (id) {
         myID = id;
     });
-
-    function fillContacts() {
-        if (contactsFillPromise) {
-            return contactsFillPromise;
-        }
-        return contactsFillPromise = _MtpApiManager.invokeApi('contacts.getContacts', {
-            hash: ''
-        }).then(function (result) {
-            var userID, searchText, i;
-            contactsList = [];
-            saveApiUsers(result.users);
-
-            for (var i = 0; i < result.contacts.length; i++) {
-                userID = result.contacts[i].user_id;
-                contactsList.push(userID);
-                SearchIndexManager.indexObject(userID, getUserSearchText(userID), contactsIndex);
-            }
-
-            return contactsList;
-        });
-    }
-
-    function getUserSearchText(id) {
-        var user = users[id];
-        if (!user) {
-            return false;
-        }
-
-        return (user.first_name || '') + ' ' + (user.last_name || '') + ' ' + (user.phone || '') + ' ' + (user.username || '');
-    }
-
-    function getContacts(query) {
-        return fillContacts().then(function (contactsList) {
-            if (isString(query) && query.length) {
-                var results = SearchIndexManager.search(query, contactsIndex),
-                    filteredContactsList = [];
-
-                for (var i = 0; i < contactsList.length; i++) {
-                    if (results[contactsList[i]]) {
-                        filteredContactsList.push(contactsList[i])
-                    }
-                }
-                contactsList = filteredContactsList;
-            }
-
-            return contactsList;
-        });
-    }
-
-    function resolveUsername(username) {
-        return usernames[username] || 0;
-    }
 
     function saveApiUsers(apiUsers) {
         forEach(apiUsers, saveApiUser);
@@ -4334,21 +4123,9 @@ var _AppUsersManager = (function () {
 
         apiUser.num = (Math.abs(userID) % 8) + 1;
 
-        if (apiUser.username) {
-            var searchUsername = SearchIndexManager.cleanUsername(apiUser.username);
-            usernames[searchUsername] = userID;
-        }
-
         if (apiUser.pFlags === undefined) {
             apiUser.pFlags = {};
         }
-
-        apiUser.sortName = apiUser.pFlags.deleted ? '' : SearchIndexManager.cleanSearchText(apiUser.first_name + ' ' + (apiUser.last_name || ''));
-
-        var nameWords = apiUser.sortName.split(' ');
-        var firstWord = nameWords.shift();
-        var lastWord = nameWords.pop();
-        apiUser.initials = firstWord.charAt(0) + (lastWord ? lastWord.charAt(0) : firstWord.charAt(1));
 
         if (apiUser.status) {
             if (apiUser.status.expires) {
@@ -4370,10 +4147,6 @@ var _AppUsersManager = (function () {
             result = users[userID] = apiUser;
         } else {
             safeReplaceObject(result, apiUser);
-        }
-
-        if (cachedPhotoLocations[userID] !== undefined) {
-            safeReplaceObject(cachedPhotoLocations[userID], apiUser && apiUser.photo && apiUser.photo.photo_small || {empty: true});
         }
     }
 
@@ -4425,8 +4198,7 @@ var _AppUsersManager = (function () {
         saveApiUser: saveApiUser,
         getUser: getUser,
         getSelf: getSelf,
-        getUserInput: getUserInput,
-        resolveUsername: resolveUsername
+        getUserInput: getUserInput
     };
 })();
 var _AppProfileManager = (function () {
