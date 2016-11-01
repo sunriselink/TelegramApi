@@ -54,7 +54,6 @@ $timeout.cancel = function (promise) {
     clearTimeout(promise.__timeoutID);
 };
 
-
 var $rootScope = {};
 
 var $http = {

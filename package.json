@@ -2,9 +2,12 @@
   "name": "telegram-api",
   "version": "1.2.0",
   "description": "JavaScript library for using Telegram API. Based on Webogram project.",
-  "homepage": "https://github.com/sunriselink/TelegramApi",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sunriselink/TelegramApi"
+  },
   "author": "Infinnity Solutions",
-  "license": "GPL",
+  "license": "GPL-3.0",
   "keywords": [
     "telegram",
     "telegramapi",
