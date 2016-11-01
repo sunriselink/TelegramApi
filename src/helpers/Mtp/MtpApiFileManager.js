@@ -54,16 +54,16 @@ var _MtpApiFileManager = (function () {
             })
     }
 
-    function uploadFile (file) {
-        var fileSize    = file.size,
-            isBigFile   = fileSize >= 10485760,
-            canceled    = false,
-            resolved    = false,
-            doneParts   = 0,
-            partSize    = 262144, // 256 Kb
+    function uploadFile(file) {
+        var fileSize = file.size,
+            isBigFile = fileSize >= 10485760,
+            canceled = false,
+            resolved = false,
+            doneParts = 0,
+            partSize = 262144, // 256 Kb
             activeDelta = 2;
 
-        if(!fileSize) {
+        if (!fileSize) {
             return $q.reject({type: 'EMPTY_FILE'});
         }
 

@@ -1,7 +1,7 @@
 var _MtpSingleInstanceService = (function () {
     var instanceID = nextRandomInt(0xFFFFFFFF);
     var started = false;
-    var masterInstance  = false;
+    var masterInstance = false;
     var deactivatePromise = false;
     var deactivated = false;
 
@@ -16,15 +16,16 @@ var _MtpSingleInstanceService = (function () {
 
             try {
                 $(window).on('beforeunload', clearInstance);
-            } catch (e) {}
+            } catch (e) {
+            }
         }
     }
 
-    function clearInstance () {
+    function clearInstance() {
         _Storage.remove(masterInstance ? 'xt_instance' : 'xt_idle_instance');
     }
 
-    function deactivateInstance () {
+    function deactivateInstance() {
         if (masterInstance || deactivated) {
             return false;
         }
@@ -32,7 +33,7 @@ var _MtpSingleInstanceService = (function () {
         deactivatePromise = false;
         deactivated = true;
         clearInstance();
-        
+
         $rootScope.idle.deactivated = true;
     }
 
@@ -49,8 +50,7 @@ var _MtpSingleInstanceService = (function () {
                 idleInstance = result[1];
 
             // console.log(dT(), 'check instance', newInstance, curInstance, idleInstance);
-            if (!idle ||
-                !curInstance ||
+            if (!idle || !curInstance ||
                 curInstance.id == instanceID ||
                 curInstance.time < time - 60000) {
 

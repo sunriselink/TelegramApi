@@ -3,9 +3,9 @@ var _MtpAuthorizer = (function () {
         chromeVersion = chromeMatches && parseFloat(chromeMatches[1]) || false,
         xhrSendBuffer = !('ArrayBufferView' in window) && (!chromeVersion || chromeVersion < 30);
 
-    function mtpSendPlainRequest (dcID, requestBuffer) {
+    function mtpSendPlainRequest(dcID, requestBuffer) {
         var requestLength = requestBuffer.byteLength,
-            requestArray  = new Int32Array(requestBuffer);
+            requestArray = new Int32Array(requestBuffer);
 
         var header = new TLSerialization();
         header.storeLongP(0, 0, 'auth_key_id'); // Auth key
@@ -13,11 +13,11 @@ var _MtpAuthorizer = (function () {
         header.storeInt(requestLength, 'request_length');
 
         var headerBuffer = header.getBuffer(),
-            headerArray  = new Int32Array(headerBuffer),
+            headerArray = new Int32Array(headerBuffer),
             headerLength = headerBuffer.byteLength;
 
         var resultBuffer = new ArrayBuffer(headerLength + requestLength),
-            resultArray  = new Int32Array(resultBuffer);
+            resultArray = new Int32Array(resultBuffer);
 
         resultArray.set(headerArray);
         resultArray.set(requestArray, headerArray.length);
@@ -27,7 +27,7 @@ var _MtpAuthorizer = (function () {
         var url = _MtpDcConfigurator.chooseServer(dcID);
         var baseError = {code: 406, type: 'NETWORK_BAD_RESPONSE', url: url};
         try {
-            requestPromise =  $http.post(url, requestData, {
+            requestPromise = $http.post(url, requestData, {
                 responseType: 'arraybuffer',
                 transformRequest: null
             });
@@ -43,8 +43,8 @@ var _MtpAuthorizer = (function () {
                 try {
                     var deserializer = new TLDeserialization(result.data, {mtproto: true});
                     var auth_key_id = deserializer.fetchLong('auth_key_id');
-                    var msg_id      = deserializer.fetchLong('msg_id');
-                    var msg_len     = deserializer.fetchInt('msg_len');
+                    var msg_id = deserializer.fetchLong('msg_id');
+                    var msg_len = deserializer.fetchInt('msg_len');
 
                 } catch (e) {
                     return $q.reject(extend(baseError, {originalError: e}));
@@ -59,9 +59,9 @@ var _MtpAuthorizer = (function () {
                 return $q.reject(error);
             }
         );
-    };
+    }
 
-    function mtpSendReqPQ (auth) {
+    function mtpSendReqPQ(auth) {
         var deferred = auth.deferred;
 
         var request = new TLSerialization({mtproto: true});
@@ -76,7 +76,7 @@ var _MtpAuthorizer = (function () {
                 throw new Error('resPQ response invalid: ' + response._);
             }
 
-            if (!bytesCmp (auth.nonce, response.nonce)) {
+            if (!bytesCmp(auth.nonce, response.nonce)) {
                 throw new Error('resPQ nonce mismatch');
             }
 
@@ -110,10 +110,9 @@ var _MtpAuthorizer = (function () {
         $timeout(function () {
             _MtpRsaKeysManager.prepare();
         });
-    };
+    }
 
-    function mtpSendReqDhParams (auth) {
-
+    function mtpSendReqDhParams(auth) {
         var deferred = auth.deferred;
 
         auth.newNonce = new Array(32);
@@ -151,19 +150,19 @@ var _MtpAuthorizer = (function () {
                 return false;
             }
 
-            if (!bytesCmp (auth.nonce, response.nonce)) {
+            if (!bytesCmp(auth.nonce, response.nonce)) {
                 deferred.reject(new Error('Server_DH_Params nonce mismatch'));
                 return false;
             }
 
-            if (!bytesCmp (auth.serverNonce, response.server_nonce)) {
+            if (!bytesCmp(auth.serverNonce, response.server_nonce)) {
                 deferred.reject(new Error('Server_DH_Params server_nonce mismatch'));
                 return false;
             }
 
             if (response._ == 'server_DH_params_fail') {
                 var newNonceHash = sha1BytesSync(auth.newNonce).slice(-16);
-                if (!bytesCmp (newNonceHash, response.new_nonce_hash)) {
+                if (!bytesCmp(newNonceHash, response.new_nonce_hash)) {
                     deferred.reject(new Error('server_DH_params_fail new_nonce_hash mismatch'));
                     return false;
                 }
@@ -182,9 +181,9 @@ var _MtpAuthorizer = (function () {
         }, function (error) {
             deferred.reject(error);
         });
-    };
+    }
 
-    function mtpDecryptServerDhDataAnswer (auth, encryptedAnswer) {
+    function mtpDecryptServerDhDataAnswer(auth, encryptedAnswer) {
         auth.localTime = tsNow();
 
         auth.tmpAesKey = sha1BytesSync(auth.newNonce.concat(auth.serverNonce)).concat(sha1BytesSync(auth.serverNonce.concat(auth.newNonce)).slice(0, 12));
@@ -203,20 +202,20 @@ var _MtpAuthorizer = (function () {
             throw new Error('server_DH_inner_data response invalid: ' + constructor);
         }
 
-        if (!bytesCmp (auth.nonce, response.nonce)) {
+        if (!bytesCmp(auth.nonce, response.nonce)) {
             throw new Error('server_DH_inner_data nonce mismatch');
         }
 
-        if (!bytesCmp (auth.serverNonce, response.server_nonce)) {
+        if (!bytesCmp(auth.serverNonce, response.server_nonce)) {
             throw new Error('server_DH_inner_data serverNonce mismatch');
         }
 
         console.log(dT(), 'Done decrypting answer');
-        auth.g          = response.g;
-        auth.dhPrime    = response.dh_prime;
-        auth.gA         = response.g_a;
+        auth.g = response.g;
+        auth.dhPrime = response.dh_prime;
+        auth.gA = response.g_a;
         auth.serverTime = response.server_time;
-        auth.retry      = 0;
+        auth.retry = 0;
 
         var offset = deserializer.getOffset();
 
@@ -225,7 +224,7 @@ var _MtpAuthorizer = (function () {
         }
 
         _MtpTimeManager.applyServerTime(auth.serverTime, auth.localTime);
-    };
+    }
 
     function mtpSendSetClientDhParams(auth) {
         var deferred = auth.deferred,
@@ -265,20 +264,20 @@ var _MtpAuthorizer = (function () {
                     return false;
                 }
 
-                if (!bytesCmp (auth.nonce, response.nonce)) {
+                if (!bytesCmp(auth.nonce, response.nonce)) {
                     deferred.reject(new Error('Set_client_DH_params_answer nonce mismatch'));
                     return false
                 }
 
-                if (!bytesCmp (auth.serverNonce, response.server_nonce)) {
+                if (!bytesCmp(auth.serverNonce, response.server_nonce)) {
                     deferred.reject(new Error('Set_client_DH_params_answer server_nonce mismatch'));
                     return false;
                 }
 
                 _CryptoWorker.modPow(auth.gA, auth.b, auth.dhPrime).then(function (authKey) {
                     var authKeyHash = sha1BytesSync(authKey),
-                        authKeyAux  = authKeyHash.slice(0, 8),
-                        authKeyID   = authKeyHash.slice(-8);
+                        authKeyAux = authKeyHash.slice(0, 8),
+                        authKeyID = authKeyHash.slice(-8);
 
                     console.log(dT(), 'Got Set_client_DH_params_answer', response._);
                     switch (response._) {
@@ -328,11 +327,11 @@ var _MtpAuthorizer = (function () {
         }, function (error) {
             deferred.reject(error);
         })
-    };
+    }
 
     var cached = {};
 
-    function mtpAuth (dcID) {
+    function mtpAuth(dcID) {
         if (cached[dcID] !== undefined) {
             return cached[dcID];
         }
@@ -363,7 +362,7 @@ var _MtpAuthorizer = (function () {
         });
 
         return cached[dcID];
-    };
+    }
 
     return {
         auth: mtpAuth

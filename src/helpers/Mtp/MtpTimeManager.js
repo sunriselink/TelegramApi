@@ -9,11 +9,11 @@ var _MtpTimeManager = (function () {
         }
     });
 
-    function generateMessageID () {
+    function generateMessageID() {
         var timeTicks = tsNow(),
-            timeSec   = Math.floor(timeTicks / 1000) + timeOffset,
-            timeMSec  = timeTicks % 1000,
-            random    = nextRandomInt(0xFFFF);
+            timeSec = Math.floor(timeTicks / 1000) + timeOffset,
+            timeMSec = timeTicks % 1000,
+            random = nextRandomInt(0xFFFF);
 
         var messageID = [timeSec, (timeMSec << 21) | (random << 3) | 4];
         if (lastMessageID[0] > messageID[0] ||
@@ -29,7 +29,7 @@ var _MtpTimeManager = (function () {
         return longFromInts(messageID[0], messageID[1]);
     }
 
-    function applyServerTime (serverTime, localTime) {
+    function applyServerTime(serverTime, localTime) {
         var newTimeOffset = serverTime - Math.floor((localTime || tsNow()) / 1000),
             changed = Math.abs(timeOffset - newTimeOffset) > 10;
         Storage.set({server_time_offset: newTimeOffset});

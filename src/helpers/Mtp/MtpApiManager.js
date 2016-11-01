@@ -238,7 +238,7 @@ var _MtpApiManager = (function () {
         }
 
         return deferred.promise;
-    };
+    }
 
     function mtpGetUserID() {
         return _Storage.get('user_auth').then(function (auth) {

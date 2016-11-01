@@ -40,7 +40,9 @@ window.telegramApi = (function () {
         logOut: logOut,
 
         dT: dT,
-        invokeApi: _MtpApiManager.invokeApi
+        invokeApi: _MtpApiManager.invokeApi,
+
+        VERSION: '<%TELEGRAM-API-VERSION%>'
     };
 
     /* Public Functions */

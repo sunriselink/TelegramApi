@@ -1,3 +1,7 @@
+/**
+ * telegram-api v1.2.0
+ * Infinnity Solutions
+ */
 (function(){
 /*
  long.js (c) 2013 Daniel Wirtz <dcode@dcode.io>
@@ -260,12 +264,7 @@ function uintToInt (val) {
 
 function sha1HashSync (bytes) {
   this.rushaInstance = this.rushaInstance || new Rusha(1024 * 1024);
-
-  // console.log(dT(), 'SHA-1 hash start', bytes.byteLength || bytes.length);
-  var hashBytes = rushaInstance.rawDigest(bytes).buffer;
-  // console.log(dT(), 'SHA-1 hash finish');
-
-  return hashBytes;
+  return rushaInstance.rawDigest(bytes).buffer;
 }
 
 function sha1BytesSync (bytes) {
@@ -277,12 +276,8 @@ function sha256HashSync (bytes) {
   var hashWords = CryptoJS.SHA256(bytesToWords(bytes));
   // console.log(dT(), 'SHA-2 hash finish');
 
-  var hashBytes = bytesFromWords(hashWords);
-
-  return hashBytes;
+  return bytesFromWords(hashWords);
 }
-
-
 
 function rsaEncrypt (publicKey, bytes) {
   bytes = addPadding(bytes, 255);
@@ -356,15 +351,12 @@ function aesDecryptSync (encryptedBytes, keyBytes, ivBytes) {
 }
 
 function gzipUncompress (bytes) {
-  // console.log('Gzip uncompress start');
-  var result = (new Zlib.Gunzip(bytes)).decompress();
-  // console.log('Gzip uncompress finish');
-  return result;
+  return (new Zlib.Gunzip(bytes)).decompress();
 }
 
 function nextRandomInt (maxValue) {
   return Math.floor(Math.random() * maxValue);
-};
+}
 
 function pqPrimeFactorization (pqBytes) {
   var what = new BigInteger(pqBytes),
@@ -384,7 +376,7 @@ function pqPrimeFactorization (pqBytes) {
       result = pqPrimeLong(goog.math.Long.fromString(what.toString(16), 16));
     } catch (e) {
       console.error('Pq long Exception', e);
-    };
+    }
     // console.timeEnd('PQ long');
   }
   // console.log(result);
@@ -649,7 +641,8 @@ Config.App = {
 Config.Server = {};
 
 Config.Modes = {
-  debug: location.search.indexOf('debug=1') > 0
+  debug: location.search.indexOf('debug=1') > 0,
+  test: location.search.indexOf('test=1') > 0
 };
 
 Config.Navigator = {
@@ -1826,12 +1819,13 @@ var $http = {
         xhr.open('POST', url, true);
         xhr.responseType = 'arraybuffer';
         xhr.onload = function () {
+            var result = {data: xhr.response};
             xhr.status == 200
-                ? defer.resolve({data: xhr.response})
-                : defer.reject(xhr.response);
+                ? defer.resolve(result)
+                : defer.reject(result);
         };
         xhr.onerror = xhr.onabort = function () {
-            defer.reject();
+            defer.reject({status: xhr.status});
         };
         xhr.send(data);
 
@@ -1868,7 +1862,7 @@ function isString(value) {
 }
 
 function isArray(value) {
-    return $.isArray(value);
+    return Array.isArray(value);
 }
 
 function isFunction(value) {
@@ -1894,7 +1888,7 @@ function extend() {
 }
 
 function noop() {
-    
+
 }
 
 var _qSync = (function () {
@@ -2070,7 +2064,7 @@ var _MtpDcConfigurator = (function () {
     var chosenServers = {};
 
     function chooseServer(dcID, upload) {
-        var dcOptions = Config.Server.Production;
+        var dcOptions = Config.Modes.test ? Config.Server.Test : Config.Server.Production;
 
         if (chosenServers[dcID] === undefined) {
             var chosenServer = false,
@@ -2079,7 +2073,7 @@ var _MtpDcConfigurator = (function () {
             for (i = 0; i < dcOptions.length; i++) {
                 dcOption = dcOptions[i];
                 if (dcOption.id == dcID) {
-                    chosenServer = 'http://' + dcOption.host + (dcOption.port != 80 ? ':' + dcOption.port : '') + '/apiw1';
+                    chosenServer = location.protocol + '//' + dcOption.host + (dcOption.port != 80 ? ':' + dcOption.port : '') + '/apiw1';
                     break;
                 }
             }
@@ -2104,11 +2098,11 @@ var _MtpTimeManager = (function () {
         }
     });
 
-    function generateMessageID () {
+    function generateMessageID() {
         var timeTicks = tsNow(),
-            timeSec   = Math.floor(timeTicks / 1000) + timeOffset,
-            timeMSec  = timeTicks % 1000,
-            random    = nextRandomInt(0xFFFF);
+            timeSec = Math.floor(timeTicks / 1000) + timeOffset,
+            timeMSec = timeTicks % 1000,
+            random = nextRandomInt(0xFFFF);
 
         var messageID = [timeSec, (timeMSec << 21) | (random << 3) | 4];
         if (lastMessageID[0] > messageID[0] ||
@@ -2124,7 +2118,7 @@ var _MtpTimeManager = (function () {
         return longFromInts(messageID[0], messageID[1]);
     }
 
-    function applyServerTime (serverTime, localTime) {
+    function applyServerTime(serverTime, localTime) {
         var newTimeOffset = serverTime - Math.floor((localTime || tsNow()) / 1000),
             changed = Math.abs(timeOffset - newTimeOffset) > 10;
         Storage.set({server_time_offset: newTimeOffset});
@@ -2167,7 +2161,7 @@ var _MtpRsaKeysManager = (function () {
     var publicKeysParsed = {};
     var prepared = false;
 
-    function prepareRsaKeys () {
+    function prepareRsaKeys() {
         if (prepared) {
             return;
         }
@@ -2191,9 +2185,9 @@ var _MtpRsaKeysManager = (function () {
         }
 
         prepared = true;
-    };
+    }
 
-    function selectRsaKeyByFingerPrint (fingerprints) {
+    function selectRsaKeyByFingerPrint(fingerprints) {
         prepareRsaKeys();
 
         var fingerprintHex, foundKey, i;
@@ -2205,7 +2199,7 @@ var _MtpRsaKeysManager = (function () {
         }
 
         return false;
-    };
+    }
 
     return {
         prepare: prepareRsaKeys,
@@ -2217,9 +2211,9 @@ var _MtpAuthorizer = (function () {
         chromeVersion = chromeMatches && parseFloat(chromeMatches[1]) || false,
         xhrSendBuffer = !('ArrayBufferView' in window) && (!chromeVersion || chromeVersion < 30);
 
-    function mtpSendPlainRequest (dcID, requestBuffer) {
+    function mtpSendPlainRequest(dcID, requestBuffer) {
         var requestLength = requestBuffer.byteLength,
-            requestArray  = new Int32Array(requestBuffer);
+            requestArray = new Int32Array(requestBuffer);
 
         var header = new TLSerialization();
         header.storeLongP(0, 0, 'auth_key_id'); // Auth key
@@ -2227,11 +2221,11 @@ var _MtpAuthorizer = (function () {
         header.storeInt(requestLength, 'request_length');
 
         var headerBuffer = header.getBuffer(),
-            headerArray  = new Int32Array(headerBuffer),
+            headerArray = new Int32Array(headerBuffer),
             headerLength = headerBuffer.byteLength;
 
         var resultBuffer = new ArrayBuffer(headerLength + requestLength),
-            resultArray  = new Int32Array(resultBuffer);
+            resultArray = new Int32Array(resultBuffer);
 
         resultArray.set(headerArray);
         resultArray.set(requestArray, headerArray.length);
@@ -2241,7 +2235,7 @@ var _MtpAuthorizer = (function () {
         var url = _MtpDcConfigurator.chooseServer(dcID);
         var baseError = {code: 406, type: 'NETWORK_BAD_RESPONSE', url: url};
         try {
-            requestPromise =  $http.post(url, requestData, {
+            requestPromise = $http.post(url, requestData, {
                 responseType: 'arraybuffer',
                 transformRequest: null
             });
@@ -2257,8 +2251,8 @@ var _MtpAuthorizer = (function () {
                 try {
                     var deserializer = new TLDeserialization(result.data, {mtproto: true});
                     var auth_key_id = deserializer.fetchLong('auth_key_id');
-                    var msg_id      = deserializer.fetchLong('msg_id');
-                    var msg_len     = deserializer.fetchInt('msg_len');
+                    var msg_id = deserializer.fetchLong('msg_id');
+                    var msg_len = deserializer.fetchInt('msg_len');
 
                 } catch (e) {
                     return $q.reject(extend(baseError, {originalError: e}));
@@ -2273,9 +2267,9 @@ var _MtpAuthorizer = (function () {
                 return $q.reject(error);
             }
         );
-    };
+    }
 
-    function mtpSendReqPQ (auth) {
+    function mtpSendReqPQ(auth) {
         var deferred = auth.deferred;
 
         var request = new TLSerialization({mtproto: true});
@@ -2290,7 +2284,7 @@ var _MtpAuthorizer = (function () {
                 throw new Error('resPQ response invalid: ' + response._);
             }
 
-            if (!bytesCmp (auth.nonce, response.nonce)) {
+            if (!bytesCmp(auth.nonce, response.nonce)) {
                 throw new Error('resPQ nonce mismatch');
             }
 
@@ -2324,10 +2318,9 @@ var _MtpAuthorizer = (function () {
         $timeout(function () {
             _MtpRsaKeysManager.prepare();
         });
-    };
+    }
 
-    function mtpSendReqDhParams (auth) {
-
+    function mtpSendReqDhParams(auth) {
         var deferred = auth.deferred;
 
         auth.newNonce = new Array(32);
@@ -2365,19 +2358,19 @@ var _MtpAuthorizer = (function () {
                 return false;
             }
 
-            if (!bytesCmp (auth.nonce, response.nonce)) {
+            if (!bytesCmp(auth.nonce, response.nonce)) {
                 deferred.reject(new Error('Server_DH_Params nonce mismatch'));
                 return false;
             }
 
-            if (!bytesCmp (auth.serverNonce, response.server_nonce)) {
+            if (!bytesCmp(auth.serverNonce, response.server_nonce)) {
                 deferred.reject(new Error('Server_DH_Params server_nonce mismatch'));
                 return false;
             }
 
             if (response._ == 'server_DH_params_fail') {
                 var newNonceHash = sha1BytesSync(auth.newNonce).slice(-16);
-                if (!bytesCmp (newNonceHash, response.new_nonce_hash)) {
+                if (!bytesCmp(newNonceHash, response.new_nonce_hash)) {
                     deferred.reject(new Error('server_DH_params_fail new_nonce_hash mismatch'));
                     return false;
                 }
@@ -2396,9 +2389,9 @@ var _MtpAuthorizer = (function () {
         }, function (error) {
             deferred.reject(error);
         });
-    };
+    }
 
-    function mtpDecryptServerDhDataAnswer (auth, encryptedAnswer) {
+    function mtpDecryptServerDhDataAnswer(auth, encryptedAnswer) {
         auth.localTime = tsNow();
 
         auth.tmpAesKey = sha1BytesSync(auth.newNonce.concat(auth.serverNonce)).concat(sha1BytesSync(auth.serverNonce.concat(auth.newNonce)).slice(0, 12));
@@ -2417,20 +2410,20 @@ var _MtpAuthorizer = (function () {
             throw new Error('server_DH_inner_data response invalid: ' + constructor);
         }
 
-        if (!bytesCmp (auth.nonce, response.nonce)) {
+        if (!bytesCmp(auth.nonce, response.nonce)) {
             throw new Error('server_DH_inner_data nonce mismatch');
         }
 
-        if (!bytesCmp (auth.serverNonce, response.server_nonce)) {
+        if (!bytesCmp(auth.serverNonce, response.server_nonce)) {
             throw new Error('server_DH_inner_data serverNonce mismatch');
         }
 
         console.log(dT(), 'Done decrypting answer');
-        auth.g          = response.g;
-        auth.dhPrime    = response.dh_prime;
-        auth.gA         = response.g_a;
+        auth.g = response.g;
+        auth.dhPrime = response.dh_prime;
+        auth.gA = response.g_a;
         auth.serverTime = response.server_time;
-        auth.retry      = 0;
+        auth.retry = 0;
 
         var offset = deserializer.getOffset();
 
@@ -2439,7 +2432,7 @@ var _MtpAuthorizer = (function () {
         }
 
         _MtpTimeManager.applyServerTime(auth.serverTime, auth.localTime);
-    };
+    }
 
     function mtpSendSetClientDhParams(auth) {
         var deferred = auth.deferred,
@@ -2479,20 +2472,20 @@ var _MtpAuthorizer = (function () {
                     return false;
                 }
 
-                if (!bytesCmp (auth.nonce, response.nonce)) {
+                if (!bytesCmp(auth.nonce, response.nonce)) {
                     deferred.reject(new Error('Set_client_DH_params_answer nonce mismatch'));
                     return false
                 }
 
-                if (!bytesCmp (auth.serverNonce, response.server_nonce)) {
+                if (!bytesCmp(auth.serverNonce, response.server_nonce)) {
                     deferred.reject(new Error('Set_client_DH_params_answer server_nonce mismatch'));
                     return false;
                 }
 
                 _CryptoWorker.modPow(auth.gA, auth.b, auth.dhPrime).then(function (authKey) {
                     var authKeyHash = sha1BytesSync(authKey),
-                        authKeyAux  = authKeyHash.slice(0, 8),
-                        authKeyID   = authKeyHash.slice(-8);
+                        authKeyAux = authKeyHash.slice(0, 8),
+                        authKeyID = authKeyHash.slice(-8);
 
                     console.log(dT(), 'Got Set_client_DH_params_answer', response._);
                     switch (response._) {
@@ -2542,11 +2535,11 @@ var _MtpAuthorizer = (function () {
         }, function (error) {
             deferred.reject(error);
         })
-    };
+    }
 
     var cached = {};
 
-    function mtpAuth (dcID) {
+    function mtpAuth(dcID) {
         if (cached[dcID] !== undefined) {
             return cached[dcID];
         }
@@ -2577,7 +2570,7 @@ var _MtpAuthorizer = (function () {
         });
 
         return cached[dcID];
-    };
+    }
 
     return {
         auth: mtpAuth
@@ -2585,9 +2578,6 @@ var _MtpAuthorizer = (function () {
 })();
 var _MtpNetworkerFactory = (function () {
     var updatesProcessor,
-        iii = 0,
-        offline,
-        offlineInited = false,
         akStopped = false,
         chromeMatches = navigator.userAgent.match(/Chrome\/(\d+(\.\d+)?)/),
         chromeVersion = chromeMatches && parseFloat(chromeMatches[1]) || false,
@@ -2609,11 +2599,9 @@ var _MtpNetworkerFactory = (function () {
         options = options || {};
 
         this.dcID = dcID;
-        this.iii = iii++;
 
         this.authKey = authKey;
         this.authKeyUint8 = convertToUint8Array(authKey);
-        this.authKeyBuffer = convertToArrayBuffer(authKey);
         this.authKeyID = sha1BytesSync(authKey).slice(-8);
 
         this.serverSalt = serverSalt;
@@ -2622,26 +2610,19 @@ var _MtpNetworkerFactory = (function () {
 
         this.updateSession();
 
-        this.currentRequests = 0;
         this.checkConnectionPeriod = 0;
 
         this.sentMessages = {};
         this.serverMessages = [];
-        this.clientMessages = [];
 
         this.pendingMessages = {};
         this.pendingAcks = [];
         this.pendingResends = [];
         this.connectionInited = false;
 
-        this.pendingTimeouts = [];
+        $interval(this.checkLongPoll.bind(this), 10000);
 
-        this.longPollInt = $interval(this.checkLongPoll.bind(this), 10000);
         this.checkLongPoll();
-
-        if (!offlineInited) {
-            offlineInited = true;
-        }
     }
 
     MtpNetworker.prototype.updateSession = function () {
@@ -3595,7 +3576,7 @@ var _MtpNetworkerFactory = (function () {
 var _MtpSingleInstanceService = (function () {
     var instanceID = nextRandomInt(0xFFFFFFFF);
     var started = false;
-    var masterInstance  = false;
+    var masterInstance = false;
     var deactivatePromise = false;
     var deactivated = false;
 
@@ -3610,15 +3591,16 @@ var _MtpSingleInstanceService = (function () {
 
             try {
                 $(window).on('beforeunload', clearInstance);
-            } catch (e) {}
+            } catch (e) {
+            }
         }
     }
 
-    function clearInstance () {
+    function clearInstance() {
         _Storage.remove(masterInstance ? 'xt_instance' : 'xt_idle_instance');
     }
 
-    function deactivateInstance () {
+    function deactivateInstance() {
         if (masterInstance || deactivated) {
             return false;
         }
@@ -3626,7 +3608,7 @@ var _MtpSingleInstanceService = (function () {
         deactivatePromise = false;
         deactivated = true;
         clearInstance();
-        
+
         $rootScope.idle.deactivated = true;
     }
 
@@ -3643,8 +3625,7 @@ var _MtpSingleInstanceService = (function () {
                 idleInstance = result[1];
 
             // console.log(dT(), 'check instance', newInstance, curInstance, idleInstance);
-            if (!idle ||
-                !curInstance ||
+            if (!idle || !curInstance ||
                 curInstance.id == instanceID ||
                 curInstance.time < time - 60000) {
 
@@ -3920,7 +3901,7 @@ var _MtpApiManager = (function () {
         }
 
         return deferred.promise;
-    };
+    }
 
     function mtpGetUserID() {
         return _Storage.get('user_auth').then(function (auth) {
@@ -3998,16 +3979,16 @@ var _MtpApiFileManager = (function () {
             })
     }
 
-    function uploadFile (file) {
-        var fileSize    = file.size,
-            isBigFile   = fileSize >= 10485760,
-            canceled    = false,
-            resolved    = false,
-            doneParts   = 0,
-            partSize    = 262144, // 256 Kb
+    function uploadFile(file) {
+        var fileSize = file.size,
+            isBigFile = fileSize >= 10485760,
+            canceled = false,
+            resolved = false,
+            doneParts = 0,
+            partSize = 262144, // 256 Kb
             activeDelta = 2;
 
-        if(!fileSize) {
+        if (!fileSize) {
             return $q.reject({type: 'EMPTY_FILE'});
         }
 
@@ -4626,7 +4607,9 @@ window.telegramApi = (function () {
         logOut: logOut,
 
         dT: dT,
-        invokeApi: _MtpApiManager.invokeApi
+        invokeApi: _MtpApiManager.invokeApi,
+
+        VERSION: '1.2.0'
     };
 
     /* Public Functions */
@@ -5205,4 +5188,5 @@ window.telegramApi = (function () {
 
         return result;
     }
-})();})();
+})();
+})();

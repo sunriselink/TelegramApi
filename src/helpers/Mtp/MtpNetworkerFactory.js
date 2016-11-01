@@ -1,8 +1,5 @@
 var _MtpNetworkerFactory = (function () {
     var updatesProcessor,
-        iii = 0,
-        offline,
-        offlineInited = false,
         akStopped = false,
         chromeMatches = navigator.userAgent.match(/Chrome\/(\d+(\.\d+)?)/),
         chromeVersion = chromeMatches && parseFloat(chromeMatches[1]) || false,
@@ -24,11 +21,9 @@ var _MtpNetworkerFactory = (function () {
         options = options || {};
 
         this.dcID = dcID;
-        this.iii = iii++;
 
         this.authKey = authKey;
         this.authKeyUint8 = convertToUint8Array(authKey);
-        this.authKeyBuffer = convertToArrayBuffer(authKey);
         this.authKeyID = sha1BytesSync(authKey).slice(-8);
 
         this.serverSalt = serverSalt;
@@ -37,26 +32,19 @@ var _MtpNetworkerFactory = (function () {
 
         this.updateSession();
 
-        this.currentRequests = 0;
         this.checkConnectionPeriod = 0;
 
         this.sentMessages = {};
         this.serverMessages = [];
-        this.clientMessages = [];
 
         this.pendingMessages = {};
         this.pendingAcks = [];
         this.pendingResends = [];
         this.connectionInited = false;
 
-        this.pendingTimeouts = [];
+        $interval(this.checkLongPoll.bind(this), 10000);
 
-        this.longPollInt = $interval(this.checkLongPoll.bind(this), 10000);
         this.checkLongPoll();
-
-        if (!offlineInited) {
-            offlineInited = true;
-        }
     }
 
     MtpNetworker.prototype.updateSession = function () {

@@ -1,6 +1,6 @@
-.list-group {
+.list-group, .dropdown-menu {
     max-height: 300px;
-    overflow-y: overlay;
+    overflow-y: scroll;
 }
 
 .badge {

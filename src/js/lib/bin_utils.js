@@ -207,12 +207,7 @@ function uintToInt (val) {
 
 function sha1HashSync (bytes) {
   this.rushaInstance = this.rushaInstance || new Rusha(1024 * 1024);
-
-  // console.log(dT(), 'SHA-1 hash start', bytes.byteLength || bytes.length);
-  var hashBytes = rushaInstance.rawDigest(bytes).buffer;
-  // console.log(dT(), 'SHA-1 hash finish');
-
-  return hashBytes;
+  return rushaInstance.rawDigest(bytes).buffer;
 }
 
 function sha1BytesSync (bytes) {
@@ -224,12 +219,8 @@ function sha256HashSync (bytes) {
   var hashWords = CryptoJS.SHA256(bytesToWords(bytes));
   // console.log(dT(), 'SHA-2 hash finish');
 
-  var hashBytes = bytesFromWords(hashWords);
-
-  return hashBytes;
+  return bytesFromWords(hashWords);
 }
-
-
 
 function rsaEncrypt (publicKey, bytes) {
   bytes = addPadding(bytes, 255);
@@ -303,15 +294,12 @@ function aesDecryptSync (encryptedBytes, keyBytes, ivBytes) {
 }
 
 function gzipUncompress (bytes) {
-  // console.log('Gzip uncompress start');
-  var result = (new Zlib.Gunzip(bytes)).decompress();
-  // console.log('Gzip uncompress finish');
-  return result;
+  return (new Zlib.Gunzip(bytes)).decompress();
 }
 
 function nextRandomInt (maxValue) {
   return Math.floor(Math.random() * maxValue);
-};
+}
 
 function pqPrimeFactorization (pqBytes) {
   var what = new BigInteger(pqBytes),
@@ -331,7 +319,7 @@ function pqPrimeFactorization (pqBytes) {
       result = pqPrimeLong(goog.math.Long.fromString(what.toString(16), 16));
     } catch (e) {
       console.error('Pq long Exception', e);
-    };
+    }
     // console.timeEnd('PQ long');
   }
   // console.log(result);

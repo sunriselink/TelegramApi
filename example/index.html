@@ -9,88 +9,112 @@
 <body>
 
 <script src="https://code.jquery.com/jquery-2.2.4.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
 <script src="https://code.angularjs.org/1.5.8/angular.min.js"></script>
 <script src="js/telegramApi.js"></script>
 
-<div id="content" ng-app="myApp">
-    <div ng-controller="mainCtrl">
-        <div class="ng-hide" ng-show="visible.auth">
-            <h4>Auth panel</h4>
-            <input type="text" ng-model="auth.phone" placeholder="Phone">
-            <input type="text" ng-model="auth.code" placeholder="Code">
-            <button ng-click="auth.sendCode()">Send code</button>
-            <button ng-click="auth.signIn()">Sign In</button>
-        </div>
-
-        <div class="ng-hide" ng-show="visible.info">
-            <h3>Info panel</h3>
-            <table class="table">
-                <thead>
-                <tr>
-                    <td>ID</td>
-                    <td ng-bind="info.id"></td>
-                </tr>
-                </thead>
-                <tbody>
-                <tr>
-                    <td>Photo</td>
-                    <td><img ng-src="{{info.photoBase64}}" alt=""></td>
-                </tr>
-                <tr>
-                    <td>First Name</td>
-                    <td ng-bind="info.first_name"></td>
-                </tr>
-                <tr>
-                    <td>Last Name</td>
-                    <td ng-bind="info.last_name"></td>
-                </tr>
-                <tr>
-                    <td>Username</td>
-                    <td ng-bind="info.username"></td>
-                </tr>
-                <tr>
-                    <td>Phone</td>
-                    <td ng-bind="info.phone"></td>
-                </tr>
-                </tbody>
-            </table>
-            <button ng-click="info.logOut()">Log out</button>
-
-            <input type="text" placeholder="Checking phone" ng-model="checkingPhone">
-            <button ng-click="info.checkPhone(checkingPhone)">Check phone</button>
-
-            <h3>Operations</h3>
-            <div class="row">
-                <div class="col-xs-6">
-                    <h4>Success</h4>
-                    <ul class="list-group">
-                        <li class="list-group-item" ng-repeat="item in success">
-                            {{item._}}
-                            <span class="badge" ng-click="showLog(item, 'alert')">Alert</span>
-                            <span class="badge" ng-click="showLog(item, 'console')">Console</span>
-                        </li>
-                    </ul>
-                </div>
-                <div class="col-xs-6">
-                    <h4>Failed</h4>
-                    <ul class="list-group">
-                        <li class="list-group-item" ng-repeat="item in failed">
-                            {{item.description}}
-                            <span class="badge" ng-click="showLog(item, 'alert')">Alert</span>
-                            <span class="badge" ng-click="showLog(item, 'console')">Console</span>
-                        </li>
-                    </ul>
+<div id="content" ng-app="myApp" ng-controller="mainCtrl" class="container-fluid">
+    <div class="row">
+        <div class="col-xs-6">
+            <div class="ng-hide auth-panel" ng-show="visible.auth">
+                <h4>Auth panel</h4>
+                <input type="text" ng-model="auth.phone" placeholder="Phone" class="form-control">
+                <input type="text" ng-model="auth.code" placeholder="Code" class="form-control">
+                <div class="btn-group btn-group-justified">
+                    <div class="btn-group">
+                        <button ng-click="auth.sendCode()" class="btn btn-primary">Send code</button>
+                    </div>
+                    <div class="btn-group">
+                        <button ng-click="auth.signIn()" class="btn btn-primary">Sign In</button>
+                    </div>
                 </div>
             </div>
 
-            <h3>Logs</h3>
-            <ul class="list-group">
-                <li class="list-group-item" ng-repeat="log in logs">
-                    {{log._}}
-                    <span class="badge" ng-click="showLog(log, 'alert')">Alert</span>
-                    <span class="badge" ng-click="showLog(log, 'console')">Console</span>
-                </li>
-            </ul>
+            <div class="ng-hide info-panel" ng-show="visible.info">
+                <h3>Info panel</h3>
+                <table class="table">
+                    <thead>
+                    <tr>
+                        <td>ID</td>
+                        <td ng-bind="info.id"></td>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td>Photo</td>
+                        <td><img ng-src="{{info.photoBase64}}" alt=""></td>
+                    </tr>
+                    <tr>
+                        <td>First Name</td>
+                        <td ng-bind="info.first_name"></td>
+                    </tr>
+                    <tr>
+                        <td>Last Name</td>
+                        <td ng-bind="info.last_name"></td>
+                    </tr>
+                    <tr>
+                        <td>Username</td>
+                        <td ng-bind="info.username"></td>
+                    </tr>
+                    <tr>
+                        <td>Phone</td>
+                        <td ng-bind="info.phone"></td>
+                    </tr>
+                    </tbody>
+                </table>
+                <button class="btn btn-primary" ng-click="info.logOut()">Log out</button>
+
+                <input class="form-control" type="text" placeholder="Checking phone" ng-model="checkingPhone">
+                <button class="btn btn-primary" ng-click="info.checkPhone(checkingPhone)">Check phone</button>
+            </div>
+
+            <div class="btn-group">
+                <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown">
+                    Methods
+                    <span class="caret"></span>
+                </button>
+                <ul class="dropdown-menu">
+                    <li ng-repeat="method in methods"><a href="javascript:;" ng-bind="method"></a></li>
+                </ul>
+            </div>
+
+            <div class="operations">
+                <h3>Operations</h3>
+                <div class="row">
+                    <div class="col-xs-6">
+                        <h4>Success</h4>
+                        <ul class="list-group">
+                            <li class="list-group-item" ng-repeat="item in success">
+                                {{item._}}
+                                <span class="badge" title="Alert" ng-click="showLog(item, 'alert')">A</span>
+                                <span class="badge" title="Console" ng-click="showLog(item, 'console')">C</span>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-xs-6">
+                        <h4>Failed</h4>
+                        <ul class="list-group">
+                            <li class="list-group-item" ng-repeat="item in failed">
+                                {{item.description}}
+                                <span class="badge" title="Alert" ng-click="showLog(item, 'alert')">A</span>
+                                <span class="badge" title="Console" ng-click="showLog(item, 'console')">C</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-xs-6">
+            <div class="logs">
+                <h3>Logs</h3>
+                <ul class="list-group" style="max-height: calc(100% - 80px)">
+                    <li class="list-group-item" ng-repeat="log in logs">
+                        {{log._}}
+                        <span class="badge" title="Alert" ng-click="showLog(log, 'alert')">A</span>
+                        <span class="badge" title="Console" ng-click="showLog(log, 'console')">C</span>
+                    </li>
+                </ul>
+            </div>
         </div>
     </div>
 </div>

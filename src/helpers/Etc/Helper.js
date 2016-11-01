@@ -65,12 +65,13 @@ var $http = {
         xhr.open('POST', url, true);
         xhr.responseType = 'arraybuffer';
         xhr.onload = function () {
+            var result = {data: xhr.response};
             xhr.status == 200
-                ? defer.resolve({data: xhr.response})
-                : defer.reject(xhr.response);
+                ? defer.resolve(result)
+                : defer.reject(result);
         };
         xhr.onerror = xhr.onabort = function () {
-            defer.reject();
+            defer.reject({status: xhr.status});
         };
         xhr.send(data);
 
@@ -107,7 +108,7 @@ function isString(value) {
 }
 
 function isArray(value) {
-    return $.isArray(value);
+    return Array.isArray(value);
 }
 
 function isFunction(value) {
@@ -133,5 +134,5 @@ function extend() {
 }
 
 function noop() {
-    
+
 }

@@ -1,0 +1,4 @@
+/**
+ * telegram-api v{VERSION}
+ * Infinnity Solutions
+ */

@@ -20,7 +20,7 @@ var _MtpRsaKeysManager = (function () {
     var publicKeysParsed = {};
     var prepared = false;
 
-    function prepareRsaKeys () {
+    function prepareRsaKeys() {
         if (prepared) {
             return;
         }
@@ -44,9 +44,9 @@ var _MtpRsaKeysManager = (function () {
         }
 
         prepared = true;
-    };
+    }
 
-    function selectRsaKeyByFingerPrint (fingerprints) {
+    function selectRsaKeyByFingerPrint(fingerprints) {
         prepareRsaKeys();
 
         var fingerprintHex, foundKey, i;
@@ -58,7 +58,7 @@ var _MtpRsaKeysManager = (function () {
         }
 
         return false;
-    };
+    }
 
     return {
         prepare: prepareRsaKeys,

@@ -2,7 +2,7 @@ telegramApi.setConfig({
     app: {
         id: 24939,
         hash: 'cf2f9913563b63810ca02d77d5d44f92',
-        version: '1.2.0'
+        version: telegramApi.VERSION
     },
     server: {
         test: [
@@ -44,11 +44,12 @@ angular.module('myApp', [])
             logs: [],
             success: [],
             failed: [],
+            methods: [],
             json: function (obj, indent) {
                 return JSON.stringify(obj, null, indent ? 4 : 0);
             },
             showLog: function (log, type) {
-                switch (type){
+                switch (type) {
                     case 'console':
                         console.log(log);
                         break;
@@ -57,26 +58,28 @@ angular.module('myApp', [])
                         break;
                 }
             },
-            invokeMethod: function (method, params) {
+            invokeMethod: function (method, params, onSuccess, onError) {
                 telegramApi[method].apply(telegramApi, params).then(function (result) {
                     $scope.success.push(result);
                     $scope.update();
+                    onSuccess && onSuccess(result);
                 }, function (err) {
                     $scope.failed.push(err);
                     $scope.update();
+                    onError && onError(err);
                 });
             }
         });
 
         /* Auth methods */
         $scope.auth.sendCode = function () {
-            telegramApi.sendCode($scope.auth.phone).then(function (sent_code) {
+            $scope.invokeMethod('sendCode', [$scope.auth.phone], function (sent_code) {
                 $scope.phone_code_hash = sent_code.phone_code_hash;
             });
         };
 
         $scope.auth.signIn = function () {
-            telegramApi.signIn($scope.auth.phone, $scope.phone_code_hash, $scope.auth.code).then(function () {
+            $scope.invokeMethod('signIn', [$scope.auth.phone, $scope.phone_code_hash, $scope.auth.code], function () {
                 setTimeout(function () {
                     window.location.reload();
                 }, 1000);
@@ -96,6 +99,10 @@ angular.module('myApp', [])
         $scope.info.checkPhone = function (phone) {
             $scope.invokeMethod('checkPhone', [phone]);
         };
+
+        for (var key in telegramApi) {
+            $scope.methods.push(key);
+        }
 
         /* Initialize */
         telegramApi.getUserInfo().then(function (user) {
