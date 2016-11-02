@@ -1,6 +1,6 @@
 {
   "name": "telegram-api",
-  "license": "GPL",
+  "license": "GPL-3.0",
   "ignore": [
     "example",
     "src",
