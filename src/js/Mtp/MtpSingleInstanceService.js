@@ -1,4 +1,4 @@
-function MtpSingleInstanceServiceModule(IdleManager, Storage, MtpNetworkerFactory, $interval, $rootScope, $timeout) {
+function MtpSingleInstanceServiceModule(IdleManager, Storage, MtpNetworkerFactory, $interval, $rootScope, $timeout, $) {
     var instanceID = nextRandomInt(0xFFFFFFFF);
     var started = false;
     var masterInstance = false;
@@ -93,5 +93,6 @@ MtpSingleInstanceServiceModule.dependencies = [
     'MtpNetworkerFactory',
     '$interval', 
     '$rootScope', 
-    '$timeout'
+    '$timeout',
+    'jQuery'
 ];

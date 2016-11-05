@@ -1,4 +1,4 @@
-function TelegramMeWebServiceModule(Storage) {
+function TelegramMeWebServiceModule(Storage, $) {
     var disabled = location.protocol != 'http:' && location.protocol != 'https:';
 
     function sendAsyncRequest(canRedirect) {
@@ -30,5 +30,6 @@ function TelegramMeWebServiceModule(Storage) {
 }
 
 TelegramMeWebServiceModule.dependencies = [
-    'Storage'
+    'Storage',
+    'jQuery'
 ];

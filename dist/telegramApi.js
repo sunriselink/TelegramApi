@@ -90,7 +90,7 @@ function $intervalModule() {
 
 $intervalModule.dependencies = [];
 
-function $qModule() {
+function $qModule($) {
     return {
         defer: function () {
             var deferred = $.Deferred();
@@ -127,7 +127,9 @@ function $qModule() {
     };
 }
 
-$qModule.dependencies = [];
+$qModule.dependencies = [
+    'jQuery'
+];
 
 function $rootScopeModule() {
     return {};
@@ -643,7 +645,7 @@ function noop() {
 
 }
 
-function IdleManagerModule($rootScope, $timeout) {
+function IdleManagerModule($rootScope, $timeout, $) {
     $rootScope.idle = {isIDLE: false};
 
     var toPromise, started = false;
@@ -709,8 +711,19 @@ function IdleManagerModule($rootScope, $timeout) {
 
 IdleManagerModule.dependencies = [
     '$rootScope', 
-    '$timeout'
+    '$timeout',
+    'jQuery'
 ];
+
+function jQueryModule() {
+    if (typeof window.jQuery == 'undefined') {
+        throw new Error('TelegramApi requires jQuery');
+    }
+
+    return window.jQuery;
+}
+
+jQueryModule.dependencies = [];
 
 function qSyncModule() {
     return {
@@ -760,7 +773,7 @@ StorageModule.dependencies = [
     '$q'
 ];
 
-function TelegramMeWebServiceModule(Storage) {
+function TelegramMeWebServiceModule(Storage, $) {
     var disabled = location.protocol != 'http:' && location.protocol != 'https:';
 
     function sendAsyncRequest(canRedirect) {
@@ -792,8 +805,1599 @@ function TelegramMeWebServiceModule(Storage) {
 }
 
 TelegramMeWebServiceModule.dependencies = [
-    'Storage'
+    'Storage',
+    'jQuery'
 ];
+
+/*!
+ * Webogram v0.5.3 - messaging web application for MTProto
+ * https://github.com/zhukov/webogram
+ * Copyright (C) 2014 Igor Zhukov <igor.beatle@gmail.com>
+ * https://github.com/zhukov/webogram/blob/master/LICENSE
+ */
+
+function bigint (num) {
+  return new BigInteger(num.toString(16), 16);
+}
+
+function bigStringInt (strNum) {
+  return new BigInteger(strNum, 10);
+}
+
+function bytesToHex (bytes) {
+  bytes = bytes || [];
+  var arr = [];
+  for (var i = 0; i < bytes.length; i++) {
+    arr.push((bytes[i] < 16 ? '0' : '') + (bytes[i] || 0).toString(16));
+  }
+  return arr.join('');
+}
+
+function bytesFromHex (hexString) {
+  var len = hexString.length,
+      i,
+      start = 0,
+      bytes = [];
+
+  if (hexString.length % 2) {
+    bytes.push(parseInt(hexString.charAt(0), 16));
+    start++;
+  }
+
+  for (i = start; i < len; i += 2) {
+    bytes.push(parseInt(hexString.substr(i, 2), 16));
+  }
+
+  return bytes;
+}
+
+function bytesCmp (bytes1, bytes2) {
+  var len = bytes1.length;
+  if (len != bytes2.length) {
+    return false;
+  }
+
+  for (var i = 0; i < len; i++) {
+    if (bytes1[i] != bytes2[i]) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function bytesXor (bytes1, bytes2) {
+  var len = bytes1.length,
+      bytes = [];
+
+  for (var i = 0; i < len; ++i) {
+      bytes[i] = bytes1[i] ^ bytes2[i];
+  }
+
+  return bytes;
+}
+
+function bytesToWords (bytes) {
+  if (bytes instanceof ArrayBuffer) {
+    bytes = new Uint8Array(bytes);
+  }
+  var len = bytes.length,
+      words = [], i;
+  for (i = 0; i < len; i++) {
+    words[i >>> 2] |= bytes[i] << (24 - (i % 4) * 8);
+  }
+
+  return new CryptoJS.lib.WordArray.init(words, len);
+}
+
+function bytesFromWords (wordArray) {
+  var words = wordArray.words,
+      sigBytes = wordArray.sigBytes,
+      bytes = [];
+
+  for (var i = 0; i < sigBytes; i++) {
+    bytes.push((words[i >>> 2] >>> (24 - (i % 4) * 8)) & 0xff);
+  }
+
+  return bytes;
+}
+
+function bytesFromBigInt (bigInt, len) {
+  var bytes = bigInt.toByteArray();
+
+  if (len && bytes.length < len) {
+    var padding = [];
+    for (var i = 0, needPadding = len - bytes.length; i < needPadding; i++) {
+      padding[i] = 0;
+    }
+    if (bytes instanceof ArrayBuffer) {
+      bytes = bufferConcat(padding, bytes);
+    } else {
+      bytes = padding.concat(bytes);
+    }
+  }
+  else {
+    while (!bytes[0] && (!len || bytes.length > len)) {
+      bytes = bytes.slice(1);
+    }
+  }
+
+  return bytes;
+}
+
+function bytesFromLeemonBigInt (bigInt, len) {
+  var str = bigInt2str(bigInt, 16);
+  return bytesFromHex(str);
+}
+
+
+function bytesToArrayBuffer (b) {
+  return (new Uint8Array(b)).buffer;
+}
+
+function convertToArrayBuffer(bytes) {
+  // Be careful with converting subarrays!!
+  if (bytes instanceof ArrayBuffer) {
+    return bytes;
+  }
+  if (bytes.buffer !== undefined &&
+      bytes.buffer.byteLength == bytes.length * bytes.BYTES_PER_ELEMENT) {
+    return bytes.buffer;
+  }
+  return bytesToArrayBuffer(bytes);
+}
+
+function convertToUint8Array(bytes) {
+  if (bytes.buffer !== undefined) {
+    return bytes;
+  }
+  return new Uint8Array(bytes);
+}
+
+function convertToByteArray(bytes) {
+  if (Array.isArray(bytes)) {
+    return bytes;
+  }
+  bytes = convertToUint8Array(bytes);
+  var newBytes = [];
+  for (var i = 0, len = bytes.length; i < len; i++) {
+    newBytes.push(bytes[i]);
+  }
+  return newBytes;
+}
+
+function bytesFromArrayBuffer (buffer) {
+  var len = buffer.byteLength,
+      byteView = new Uint8Array(buffer),
+      bytes = [];
+
+  for (var i = 0; i < len; ++i) {
+    bytes[i] = byteView[i];
+  }
+
+  return bytes;
+}
+
+function bufferConcat(buffer1, buffer2) {
+  var l1 = buffer1.byteLength || buffer1.length,
+      l2 = buffer2.byteLength || buffer2.length;
+  var tmp = new Uint8Array(l1 + l2);
+  tmp.set(buffer1 instanceof ArrayBuffer ? new Uint8Array(buffer1) : buffer1, 0);
+  tmp.set(buffer2 instanceof ArrayBuffer ? new Uint8Array(buffer2) : buffer2, l1);
+
+  return tmp.buffer;
+}
+
+function longToInts (sLong) {
+  var divRem = bigStringInt(sLong).divideAndRemainder(bigint(0x100000000));
+
+  return [divRem[0].intValue(), divRem[1].intValue()];
+}
+
+function longToBytes (sLong) {
+  return bytesFromWords({words: longToInts(sLong), sigBytes: 8}).reverse();
+}
+
+function longFromInts (high, low) {
+  return bigint(high).shiftLeft(32).add(bigint(low)).toString(10);
+}
+
+function intToUint (val) {
+  val = parseInt(val);
+  if (val < 0) {
+    val = val + 4294967296;
+  }
+  return val;
+}
+
+function uintToInt (val) {
+  if (val > 2147483647) {
+    val = val - 4294967296;
+  }
+  return val;
+}
+
+function sha1HashSync (bytes) {
+  this.rushaInstance = this.rushaInstance || new Rusha(1024 * 1024);
+  return rushaInstance.rawDigest(bytes).buffer;
+}
+
+function sha1BytesSync (bytes) {
+  return bytesFromArrayBuffer(sha1HashSync(bytes));
+}
+
+function sha256HashSync (bytes) {
+  // console.log(dT(), 'SHA-2 hash start', bytes.byteLength || bytes.length);
+  var hashWords = CryptoJS.SHA256(bytesToWords(bytes));
+  // console.log(dT(), 'SHA-2 hash finish');
+
+  return bytesFromWords(hashWords);
+}
+
+function rsaEncrypt (publicKey, bytes) {
+  bytes = addPadding(bytes, 255);
+
+  // console.log('RSA encrypt start');
+  var N = new BigInteger(publicKey.modulus, 16),
+      E = new BigInteger(publicKey.exponent, 16),
+      X = new BigInteger(bytes),
+      encryptedBigInt = X.modPowInt(E, N),
+      encryptedBytes  = bytesFromBigInt(encryptedBigInt, 256);
+  // console.log('RSA encrypt finish');
+
+  return encryptedBytes;
+}
+
+function addPadding(bytes, blockSize, zeroes) {
+  blockSize = blockSize || 16;
+  var len = bytes.byteLength || bytes.length;
+  var needPadding = blockSize - (len % blockSize);
+  if (needPadding > 0 && needPadding < blockSize) {
+    var padding = new Array(needPadding);
+    if (zeroes) {
+      for (var i = 0; i < needPadding; i++) {
+        padding[i] = 0
+      }
+    } else {
+      (new SecureRandom()).nextBytes(padding);
+    }
+
+    if (bytes instanceof ArrayBuffer) {
+      bytes = bufferConcat(bytes, padding);
+    } else {
+      bytes = bytes.concat(padding);
+    }
+  }
+
+  return bytes;
+}
+
+function aesEncryptSync (bytes, keyBytes, ivBytes) {
+  var len = bytes.byteLength || bytes.length;
+
+  // console.log(dT(), 'AES encrypt start', len/*, bytesToHex(keyBytes), bytesToHex(ivBytes)*/);
+  bytes = addPadding(bytes);
+
+  var encryptedWords = CryptoJS.AES.encrypt(bytesToWords(bytes), bytesToWords(keyBytes), {
+    iv: bytesToWords(ivBytes),
+    padding: CryptoJS.pad.NoPadding,
+    mode: CryptoJS.mode.IGE
+  }).ciphertext;
+
+  var encryptedBytes = bytesFromWords(encryptedWords);
+  // console.log(dT(), 'AES encrypt finish');
+
+  return encryptedBytes;
+}
+
+function aesDecryptSync (encryptedBytes, keyBytes, ivBytes) {
+
+  // console.log(dT(), 'AES decrypt start', encryptedBytes.length);
+  var decryptedWords = CryptoJS.AES.decrypt({ciphertext: bytesToWords(encryptedBytes)}, bytesToWords(keyBytes), {
+    iv: bytesToWords(ivBytes),
+    padding: CryptoJS.pad.NoPadding,
+    mode: CryptoJS.mode.IGE
+  });
+
+  var bytes = bytesFromWords(decryptedWords);
+  // console.log(dT(), 'AES decrypt finish');
+
+  return bytes;
+}
+
+function gzipUncompress (bytes) {
+  return (new Zlib.Gunzip(bytes)).decompress();
+}
+
+function nextRandomInt (maxValue) {
+  return Math.floor(Math.random() * maxValue);
+}
+
+function pqPrimeFactorization (pqBytes) {
+  var what = new BigInteger(pqBytes),
+      result = false;
+
+  // console.log(dT(), 'PQ start', pqBytes, what.toString(16), what.bitLength());
+
+  try {
+    result = pqPrimeLeemon(str2bigInt(what.toString(16), 16, Math.ceil(64 / bpe) + 1))
+  } catch (e) {
+    console.error('Pq leemon Exception', e);
+  }
+
+  if (result === false && what.bitLength() <= 64) {
+    // console.time('PQ long');
+    try {
+      result = pqPrimeLong(goog.math.Long.fromString(what.toString(16), 16));
+    } catch (e) {
+      console.error('Pq long Exception', e);
+    }
+    // console.timeEnd('PQ long');
+  }
+  // console.log(result);
+
+  if (result === false) {
+    // console.time('pq BigInt');
+    result = pqPrimeBigInteger(what);
+    // console.timeEnd('pq BigInt');
+  }
+
+  // console.log(dT(), 'PQ finish');
+
+  return result;
+}
+
+function pqPrimeBigInteger (what) {
+  var it = 0,
+      g;
+  for (var i = 0; i < 3; i++) {
+    var q = (nextRandomInt(128) & 15) + 17,
+        x = bigint(nextRandomInt(1000000000) + 1),
+        y = x.clone(),
+        lim = 1 << (i + 18);
+
+    for (var j = 1; j < lim; j++) {
+      ++it;
+      var a = x.clone(),
+          b = x.clone(),
+          c = bigint(q);
+
+      while (!b.equals(BigInteger.ZERO)) {
+        if (!b.and(BigInteger.ONE).equals(BigInteger.ZERO)) {
+          c = c.add(a);
+          if (c.compareTo(what) > 0) {
+            c = c.subtract(what);
+          }
+        }
+        a = a.add(a);
+        if (a.compareTo(what) > 0) {
+          a = a.subtract(what);
+        }
+        b = b.shiftRight(1);
+      }
+
+      x = c.clone();
+      var z = x.compareTo(y) < 0 ? y.subtract(x) : x.subtract(y);
+      g = z.gcd(what);
+      if (!g.equals(BigInteger.ONE)) {
+        break;
+      }
+      if ((j & (j - 1)) == 0) {
+        y = x.clone();
+      }
+    }
+    if (g.compareTo(BigInteger.ONE) > 0) {
+      break;
+    }
+  }
+
+  var f = what.divide(g), P, Q;
+
+  if (g.compareTo(f) > 0) {
+    P = f;
+    Q = g;
+  } else {
+    P = g;
+    Q = f;
+  }
+
+  return [bytesFromBigInt(P), bytesFromBigInt(Q), it];
+}
+
+function gcdLong(a, b) {
+  while (a.notEquals(goog.math.Long.ZERO) && b.notEquals(goog.math.Long.ZERO)) {
+    while (b.and(goog.math.Long.ONE).equals(goog.math.Long.ZERO)) {
+      b = b.shiftRight(1);
+    }
+    while (a.and(goog.math.Long.ONE).equals(goog.math.Long.ZERO)) {
+      a = a.shiftRight(1);
+    }
+    if (a.compare(b) > 0) {
+      a = a.subtract(b);
+    } else {
+      b = b.subtract(a);
+    }
+  }
+  return b.equals(goog.math.Long.ZERO) ? a : b;
+}
+
+function pqPrimeLong(what) {
+  var it = 0,
+      g;
+  for (var i = 0; i < 3; i++) {
+    var q = goog.math.Long.fromInt((nextRandomInt(128) & 15) + 17),
+        x = goog.math.Long.fromInt(nextRandomInt(1000000000) + 1),
+        y = x,
+        lim = 1 << (i + 18);
+
+    for (var j = 1; j < lim; j++) {
+      ++it;
+      var a = x,
+          b = x,
+          c = q;
+
+      while (b.notEquals(goog.math.Long.ZERO)) {
+        if (b.and(goog.math.Long.ONE).notEquals(goog.math.Long.ZERO)) {
+          c = c.add(a);
+          if (c.compare(what) > 0) {
+            c = c.subtract(what);
+          }
+        }
+        a = a.add(a);
+        if (a.compare(what) > 0) {
+          a = a.subtract(what);
+        }
+        b = b.shiftRight(1);
+      }
+
+      x = c;
+      var z = x.compare(y) < 0 ? y.subtract(x) : x.subtract(y);
+      g = gcdLong(z, what);
+      if (g.notEquals(goog.math.Long.ONE)) {
+        break;
+      }
+      if ((j & (j - 1)) == 0) {
+        y = x;
+      }
+    }
+    if (g.compare(goog.math.Long.ONE) > 0) {
+      break;
+    }
+  }
+
+  var f = what.div(g), P, Q;
+
+  if (g.compare(f) > 0) {
+    P = f;
+    Q = g;
+  } else {
+    P = g;
+    Q = f;
+  }
+
+  return [bytesFromHex(P.toString(16)), bytesFromHex(Q.toString(16)), it];
+}
+
+
+function pqPrimeLeemon (what) {
+  var minBits = 64,
+      minLen = Math.ceil(minBits / bpe) + 1,
+      it = 0, i, q, j, lim, g, P, Q,
+      a = new Array(minLen),
+      b = new Array(minLen),
+      c = new Array(minLen),
+      g = new Array(minLen),
+      z = new Array(minLen),
+      x = new Array(minLen),
+      y = new Array(minLen);
+
+  for (i = 0; i < 3; i++) {
+    q = (nextRandomInt(128) & 15) + 17;
+    copyInt_(x, nextRandomInt(1000000000) + 1);
+    copy_(y, x);
+    lim = 1 << (i + 18);
+
+    for (j = 1; j < lim; j++) {
+      ++it;
+      copy_(a, x);
+      copy_(b, x);
+      copyInt_(c, q);
+
+      while (!isZero(b)) {
+        if (b[0] & 1) {
+          add_(c, a);
+          if (greater(c, what)) {
+            sub_(c, what);
+          }
+        }
+        add_(a, a);
+        if (greater(a, what)) {
+          sub_(a, what);
+        }
+        rightShift_(b, 1);
+      }
+
+      copy_(x, c);
+      if (greater(x,y)) {
+        copy_(z, x);
+        sub_(z, y);
+      } else {
+        copy_(z, y);
+        sub_(z, x);
+      }
+      eGCD_(z, what, g, a, b);
+      if (!equalsInt(g, 1)) {
+        break;
+      }
+      if ((j & (j - 1)) == 0) {
+        copy_(y, x);
+      }
+    }
+    if (greater(g, one)) {
+      break;
+    }
+  }
+
+  divide_(what, g, x, y);
+
+  if (greater(g, x)) {
+    P = x;
+    Q = g;
+  } else {
+    P = g;
+    Q = x;
+  }
+
+  // console.log(dT(), 'done', bigInt2str(what, 10), bigInt2str(P, 10), bigInt2str(Q, 10));
+
+  return [bytesFromLeemonBigInt(P), bytesFromLeemonBigInt(Q), it];
+}
+
+
+function bytesModPow (x, y, m) {
+  try {
+    var xBigInt = str2bigInt(bytesToHex(x), 16),
+        yBigInt = str2bigInt(bytesToHex(y), 16),
+        mBigInt = str2bigInt(bytesToHex(m), 16),
+        resBigInt = powMod(xBigInt, yBigInt, mBigInt);
+
+    return bytesFromHex(bigInt2str(resBigInt, 16));
+  } catch (e) {
+    console.error('mod pow error', e);
+  }
+
+  return bytesFromBigInt(new BigInteger(x).modPow(new BigInteger(y), new BigInteger(m)), 256);
+}
+
+/*!
+ * Webogram v0.5.3 - messaging web application for MTProto
+ * https://github.com/zhukov/webogram
+ * Copyright (C) 2014 Igor Zhukov <igor.beatle@gmail.com>
+ * https://github.com/zhukov/webogram/blob/master/LICENSE
+ */
+
+
+Config = window.Config || {};
+
+/*
+
+  IMPORTANT NOTICE
+  ================
+
+  Do not publish your Webogram fork with my app credentials (below), or your application may be blocked.
+  You can get your own api_id, api_hash at https://my.telegram.org, see manual at https://core.telegram.org/api/obtaining_api_id.
+
+*/
+
+Config.App = {
+  version: '0.0.0'
+};
+
+Config.Server = {};
+
+Config.Modes = {
+  debug: location.search.indexOf('debug=1') > 0,
+  test: location.search.indexOf('test=1') > 0
+};
+
+Config.Navigator = {
+  mobile: screen.width && screen.width < 480 || navigator.userAgent.search(/iOS|iPhone OS|Android|BlackBerry|BB10|Series ?[64]0|J2ME|MIDP|opera mini|opera mobi|mobi.+Gecko|Windows Phone/i) != -1
+};
+
+Config.Schema = Config.Schema || {};
+
+Config.Schema.MTProto = {"constructors":[{"id":"481674261","predicate":"vector","params":[],"type":"Vector t"},{"id":"85337187","predicate":"resPQ","params":[{"name":"nonce","type":"int128"},{"name":"server_nonce","type":"int128"},{"name":"pq","type":"bytes"},{"name":"server_public_key_fingerprints","type":"Vector<long>"}],"type":"ResPQ"},{"id":"-2083955988","predicate":"p_q_inner_data","params":[{"name":"pq","type":"bytes"},{"name":"p","type":"bytes"},{"name":"q","type":"bytes"},{"name":"nonce","type":"int128"},{"name":"server_nonce","type":"int128"},{"name":"new_nonce","type":"int256"}],"type":"P_Q_inner_data"},{"id":"2043348061","predicate":"server_DH_params_fail","params":[{"name":"nonce","type":"int128"},{"name":"server_nonce","type":"int128"},{"name":"new_nonce_hash","type":"int128"}],"type":"Server_DH_Params"},{"id":"-790100132","predicate":"server_DH_params_ok","params":[{"name":"nonce","type":"int128"},{"name":"server_nonce","type":"int128"},{"name":"encrypted_answer","type":"bytes"}],"type":"Server_DH_Params"},{"id":"-1249309254","predicate":"server_DH_inner_data","params":[{"name":"nonce","type":"int128"},{"name":"server_nonce","type":"int128"},{"name":"g","type":"int"},{"name":"dh_prime","type":"bytes"},{"name":"g_a","type":"bytes"},{"name":"server_time","type":"int"}],"type":"Server_DH_inner_data"},{"id":"1715713620","predicate":"client_DH_inner_data","params":[{"name":"nonce","type":"int128"},{"name":"server_nonce","type":"int128"},{"name":"retry_id","type":"long"},{"name":"g_b","type":"bytes"}],"type":"Client_DH_Inner_Data"},{"id":"1003222836","predicate":"dh_gen_ok","params":[{"name":"nonce","type":"int128"},{"name":"server_nonce","type":"int128"},{"name":"new_nonce_hash1","type":"int128"}],"type":"Set_client_DH_params_answer"},{"id":"1188831161","predicate":"dh_gen_retry","params":[{"name":"nonce","type":"int128"},{"name":"server_nonce","type":"int128"},{"name":"new_nonce_hash2","type":"int128"}],"type":"Set_client_DH_params_answer"},{"id":"-1499615742","predicate":"dh_gen_fail","params":[{"name":"nonce","type":"int128"},{"name":"server_nonce","type":"int128"},{"name":"new_nonce_hash3","type":"int128"}],"type":"Set_client_DH_params_answer"},{"id":"-212046591","predicate":"rpc_result","params":[{"name":"req_msg_id","type":"long"},{"name":"result","type":"Object"}],"type":"RpcResult"},{"id":"558156313","predicate":"rpc_error","params":[{"name":"error_code","type":"int"},{"name":"error_message","type":"string"}],"type":"RpcError"},{"id":"1579864942","predicate":"rpc_answer_unknown","params":[],"type":"RpcDropAnswer"},{"id":"-847714938","predicate":"rpc_answer_dropped_running","params":[],"type":"RpcDropAnswer"},{"id":"-1539647305","predicate":"rpc_answer_dropped","params":[{"name":"msg_id","type":"long"},{"name":"seq_no","type":"int"},{"name":"bytes","type":"int"}],"type":"RpcDropAnswer"},{"id":"155834844","predicate":"future_salt","params":[{"name":"valid_since","type":"int"},{"name":"valid_until","type":"int"},{"name":"salt","type":"long"}],"type":"FutureSalt"},{"id":"-1370486635","predicate":"future_salts","params":[{"name":"req_msg_id","type":"long"},{"name":"now","type":"int"},{"name":"salts","type":"vector<future_salt>"}],"type":"FutureSalts"},{"id":"880243653","predicate":"pong","params":[{"name":"msg_id","type":"long"},{"name":"ping_id","type":"long"}],"type":"Pong"},{"id":"-501201412","predicate":"destroy_session_ok","params":[{"name":"session_id","type":"long"}],"type":"DestroySessionRes"},{"id":"1658015945","predicate":"destroy_session_none","params":[{"name":"session_id","type":"long"}],"type":"DestroySessionRes"},{"id":"-1631450872","predicate":"new_session_created","params":[{"name":"first_msg_id","type":"long"},{"name":"unique_id","type":"long"},{"name":"server_salt","type":"long"}],"type":"NewSession"},{"id":"1945237724","predicate":"msg_container","params":[{"name":"messages","type":"vector<%Message>"}],"type":"MessageContainer"},{"id":"1538843921","predicate":"message","params":[{"name":"msg_id","type":"long"},{"name":"seqno","type":"int"},{"name":"bytes","type":"int"},{"name":"body","type":"Object"}],"type":"Message"},{"id":"-530561358","predicate":"msg_copy","params":[{"name":"orig_message","type":"Message"}],"type":"MessageCopy"},{"id":"812830625","predicate":"gzip_packed","params":[{"name":"packed_data","type":"bytes"}],"type":"Object"},{"id":"1658238041","predicate":"msgs_ack","params":[{"name":"msg_ids","type":"Vector<long>"}],"type":"MsgsAck"},{"id":"-1477445615","predicate":"bad_msg_notification","params":[{"name":"bad_msg_id","type":"long"},{"name":"bad_msg_seqno","type":"int"},{"name":"error_code","type":"int"}],"type":"BadMsgNotification"},{"id":"-307542917","predicate":"bad_server_salt","params":[{"name":"bad_msg_id","type":"long"},{"name":"bad_msg_seqno","type":"int"},{"name":"error_code","type":"int"},{"name":"new_server_salt","type":"long"}],"type":"BadMsgNotification"},{"id":"2105940488","predicate":"msg_resend_req","params":[{"name":"msg_ids","type":"Vector<long>"}],"type":"MsgResendReq"},{"id":"-630588590","predicate":"msgs_state_req","params":[{"name":"msg_ids","type":"Vector<long>"}],"type":"MsgsStateReq"},{"id":"81704317","predicate":"msgs_state_info","params":[{"name":"req_msg_id","type":"long"},{"name":"info","type":"bytes"}],"type":"MsgsStateInfo"},{"id":"-1933520591","predicate":"msgs_all_info","params":[{"name":"msg_ids","type":"Vector<long>"},{"name":"info","type":"bytes"}],"type":"MsgsAllInfo"},{"id":"661470918","predicate":"msg_detailed_info","params":[{"name":"msg_id","type":"long"},{"name":"answer_msg_id","type":"long"},{"name":"bytes","type":"int"},{"name":"status","type":"int"}],"type":"MsgDetailedInfo"},{"id":"-2137147681","predicate":"msg_new_detailed_info","params":[{"name":"answer_msg_id","type":"long"},{"name":"bytes","type":"int"},{"name":"status","type":"int"}],"type":"MsgDetailedInfo"}],"methods":[{"id":"1615239032","method":"req_pq","params":[{"name":"nonce","type":"int128"}],"type":"ResPQ"},{"id":"-686627650","method":"req_DH_params","params":[{"name":"nonce","type":"int128"},{"name":"server_nonce","type":"int128"},{"name":"p","type":"bytes"},{"name":"q","type":"bytes"},{"name":"public_key_fingerprint","type":"long"},{"name":"encrypted_data","type":"bytes"}],"type":"Server_DH_Params"},{"id":"-184262881","method":"set_client_DH_params","params":[{"name":"nonce","type":"int128"},{"name":"server_nonce","type":"int128"},{"name":"encrypted_data","type":"bytes"}],"type":"Set_client_DH_params_answer"},{"id":"1491380032","method":"rpc_drop_answer","params":[{"name":"req_msg_id","type":"long"}],"type":"RpcDropAnswer"},{"id":"-1188971260","method":"get_future_salts","params":[{"name":"num","type":"int"}],"type":"FutureSalts"},{"id":"2059302892","method":"ping","params":[{"name":"ping_id","type":"long"}],"type":"Pong"},{"id":"-213746804","method":"ping_delay_disconnect","params":[{"name":"ping_id","type":"long"},{"name":"disconnect_delay","type":"int"}],"type":"Pong"},{"id":"-414113498","method":"destroy_session","params":[{"name":"session_id","type":"long"}],"type":"DestroySessionRes"},{"id":"-1835453025","method":"http_wait","params":[{"name":"max_delay","type":"int"},{"name":"wait_after","type":"int"},{"name":"max_wait","type":"int"}],"type":"HttpWait"}]};
+
+Config.Schema.API = {"constructors":[{"id":"-1132882121","predicate":"boolFalse","params":[],"type":"Bool"},{"id":"-1720552011","predicate":"boolTrue","params":[],"type":"Bool"},{"id":"1072550713","predicate":"true","params":[],"type":"True"},{"id":"481674261","predicate":"vector","params":[],"type":"Vector t"},{"id":"-994444869","predicate":"error","params":[{"name":"code","type":"int"},{"name":"text","type":"string"}],"type":"Error"},{"id":"1450380236","predicate":"null","params":[],"type":"Null"},{"id":"2134579434","predicate":"inputPeerEmpty","params":[],"type":"InputPeer"},{"id":"2107670217","predicate":"inputPeerSelf","params":[],"type":"InputPeer"},{"id":"396093539","predicate":"inputPeerChat","params":[{"name":"chat_id","type":"int"}],"type":"InputPeer"},{"id":"-1182234929","predicate":"inputUserEmpty","params":[],"type":"InputUser"},{"id":"-138301121","predicate":"inputUserSelf","params":[],"type":"InputUser"},{"id":"-208488460","predicate":"inputPhoneContact","params":[{"name":"client_id","type":"long"},{"name":"phone","type":"string"},{"name":"first_name","type":"string"},{"name":"last_name","type":"string"}],"type":"InputContact"},{"id":"-181407105","predicate":"inputFile","params":[{"name":"id","type":"long"},{"name":"parts","type":"int"},{"name":"name","type":"string"},{"name":"md5_checksum","type":"string"}],"type":"InputFile"},{"id":"-1771768449","predicate":"inputMediaEmpty","params":[],"type":"InputMedia"},{"id":"-139464256","predicate":"inputMediaUploadedPhoto","params":[{"name":"file","type":"InputFile"},{"name":"caption","type":"string"}],"type":"InputMedia"},{"id":"-373312269","predicate":"inputMediaPhoto","params":[{"name":"id","type":"InputPhoto"},{"name":"caption","type":"string"}],"type":"InputMedia"},{"id":"-104578748","predicate":"inputMediaGeoPoint","params":[{"name":"geo_point","type":"InputGeoPoint"}],"type":"InputMedia"},{"id":"-1494984313","predicate":"inputMediaContact","params":[{"name":"phone_number","type":"string"},{"name":"first_name","type":"string"},{"name":"last_name","type":"string"}],"type":"InputMedia"},{"id":"-2106507297","predicate":"inputMediaUploadedVideo","params":[{"name":"file","type":"InputFile"},{"name":"duration","type":"int"},{"name":"w","type":"int"},{"name":"h","type":"int"},{"name":"mime_type","type":"string"},{"name":"caption","type":"string"}],"type":"InputMedia"},{"id":"2004934137","predicate":"inputMediaUploadedThumbVideo","params":[{"name":"file","type":"InputFile"},{"name":"thumb","type":"InputFile"},{"name":"duration","type":"int"},{"name":"w","type":"int"},{"name":"h","type":"int"},{"name":"mime_type","type":"string"},{"name":"caption","type":"string"}],"type":"InputMedia"},{"id":"-1821749571","predicate":"inputMediaVideo","params":[{"name":"id","type":"InputVideo"},{"name":"caption","type":"string"}],"type":"InputMedia"},{"id":"480546647","predicate":"inputChatPhotoEmpty","params":[],"type":"InputChatPhoto"},{"id":"-1809496270","predicate":"inputChatUploadedPhoto","params":[{"name":"file","type":"InputFile"},{"name":"crop","type":"InputPhotoCrop"}],"type":"InputChatPhoto"},{"id":"-1293828344","predicate":"inputChatPhoto","params":[{"name":"id","type":"InputPhoto"},{"name":"crop","type":"InputPhotoCrop"}],"type":"InputChatPhoto"},{"id":"-457104426","predicate":"inputGeoPointEmpty","params":[],"type":"InputGeoPoint"},{"id":"-206066487","predicate":"inputGeoPoint","params":[{"name":"lat","type":"double"},{"name":"long","type":"double"}],"type":"InputGeoPoint"},{"id":"483901197","predicate":"inputPhotoEmpty","params":[],"type":"InputPhoto"},{"id":"-74070332","predicate":"inputPhoto","params":[{"name":"id","type":"long"},{"name":"access_hash","type":"long"}],"type":"InputPhoto"},{"id":"1426648181","predicate":"inputVideoEmpty","params":[],"type":"InputVideo"},{"id":"-296249774","predicate":"inputVideo","params":[{"name":"id","type":"long"},{"name":"access_hash","type":"long"}],"type":"InputVideo"},{"id":"342061462","predicate":"inputFileLocation","params":[{"name":"volume_id","type":"long"},{"name":"local_id","type":"int"},{"name":"secret","type":"long"}],"type":"InputFileLocation"},{"id":"1023632620","predicate":"inputVideoFileLocation","params":[{"name":"id","type":"long"},{"name":"access_hash","type":"long"}],"type":"InputFileLocation"},{"id":"-1377390588","predicate":"inputPhotoCropAuto","params":[],"type":"InputPhotoCrop"},{"id":"-644787419","predicate":"inputPhotoCrop","params":[{"name":"crop_left","type":"double"},{"name":"crop_top","type":"double"},{"name":"crop_width","type":"double"}],"type":"InputPhotoCrop"},{"id":"1996904104","predicate":"inputAppEvent","params":[{"name":"time","type":"double"},{"name":"type","type":"string"},{"name":"peer","type":"long"},{"name":"data","type":"string"}],"type":"InputAppEvent"},{"id":"-1649296275","predicate":"peerUser","params":[{"name":"user_id","type":"int"}],"type":"Peer"},{"id":"-1160714821","predicate":"peerChat","params":[{"name":"chat_id","type":"int"}],"type":"Peer"},{"id":"-1432995067","predicate":"storage.fileUnknown","params":[],"type":"storage.FileType"},{"id":"8322574","predicate":"storage.fileJpeg","params":[],"type":"storage.FileType"},{"id":"-891180321","predicate":"storage.fileGif","params":[],"type":"storage.FileType"},{"id":"172975040","predicate":"storage.filePng","params":[],"type":"storage.FileType"},{"id":"-1373745011","predicate":"storage.filePdf","params":[],"type":"storage.FileType"},{"id":"1384777335","predicate":"storage.fileMp3","params":[],"type":"storage.FileType"},{"id":"1258941372","predicate":"storage.fileMov","params":[],"type":"storage.FileType"},{"id":"1086091090","predicate":"storage.filePartial","params":[],"type":"storage.FileType"},{"id":"-1278304028","predicate":"storage.fileMp4","params":[],"type":"storage.FileType"},{"id":"276907596","predicate":"storage.fileWebp","params":[],"type":"storage.FileType"},{"id":"2086234950","predicate":"fileLocationUnavailable","params":[{"name":"volume_id","type":"long"},{"name":"local_id","type":"int"},{"name":"secret","type":"long"}],"type":"FileLocation"},{"id":"1406570614","predicate":"fileLocation","params":[{"name":"dc_id","type":"int"},{"name":"volume_id","type":"long"},{"name":"local_id","type":"int"},{"name":"secret","type":"long"}],"type":"FileLocation"},{"id":"537022650","predicate":"userEmpty","params":[{"name":"id","type":"int"}],"type":"User"},{"id":"1326562017","predicate":"userProfilePhotoEmpty","params":[],"type":"UserProfilePhoto"},{"id":"-715532088","predicate":"userProfilePhoto","params":[{"name":"photo_id","type":"long"},{"name":"photo_small","type":"FileLocation"},{"name":"photo_big","type":"FileLocation"}],"type":"UserProfilePhoto"},{"id":"164646985","predicate":"userStatusEmpty","params":[],"type":"UserStatus"},{"id":"-306628279","predicate":"userStatusOnline","params":[{"name":"expires","type":"int"}],"type":"UserStatus"},{"id":"9203775","predicate":"userStatusOffline","params":[{"name":"was_online","type":"int"}],"type":"UserStatus"},{"id":"-1683826688","predicate":"chatEmpty","params":[{"name":"id","type":"int"}],"type":"Chat"},{"id":"-652419756","predicate":"chat","params":[{"name":"flags","type":"#"},{"name":"creator","type":"flags.0?true"},{"name":"kicked","type":"flags.1?true"},{"name":"left","type":"flags.2?true"},{"name":"admins_enabled","type":"flags.3?true"},{"name":"admin","type":"flags.4?true"},{"name":"deactivated","type":"flags.5?true"},{"name":"id","type":"int"},{"name":"title","type":"string"},{"name":"photo","type":"ChatPhoto"},{"name":"participants_count","type":"int"},{"name":"date","type":"int"},{"name":"version","type":"int"},{"name":"migrated_to","type":"flags.6?InputChannel"}],"type":"Chat"},{"id":"120753115","predicate":"chatForbidden","params":[{"name":"id","type":"int"},{"name":"title","type":"string"}],"type":"Chat"},{"id":"771925524","predicate":"chatFull","params":[{"name":"id","type":"int"},{"name":"participants","type":"ChatParticipants"},{"name":"chat_photo","type":"Photo"},{"name":"notify_settings","type":"PeerNotifySettings"},{"name":"exported_invite","type":"ExportedChatInvite"},{"name":"bot_info","type":"Vector<BotInfo>"}],"type":"ChatFull"},{"id":"-925415106","predicate":"chatParticipant","params":[{"name":"user_id","type":"int"},{"name":"inviter_id","type":"int"},{"name":"date","type":"int"}],"type":"ChatParticipant"},{"id":"-57668565","predicate":"chatParticipantsForbidden","params":[{"name":"flags","type":"#"},{"name":"chat_id","type":"int"},{"name":"self_participant","type":"flags.0?ChatParticipant"}],"type":"ChatParticipants"},{"id":"1061556205","predicate":"chatParticipants","params":[{"name":"chat_id","type":"int"},{"name":"participants","type":"Vector<ChatParticipant>"},{"name":"version","type":"int"}],"type":"ChatParticipants"},{"id":"935395612","predicate":"chatPhotoEmpty","params":[],"type":"ChatPhoto"},{"id":"1632839530","predicate":"chatPhoto","params":[{"name":"photo_small","type":"FileLocation"},{"name":"photo_big","type":"FileLocation"}],"type":"ChatPhoto"},{"id":"-2082087340","predicate":"messageEmpty","params":[{"name":"id","type":"int"}],"type":"Message"},{"id":"-913120932","predicate":"message","params":[{"name":"flags","type":"#"},{"name":"unread","type":"flags.0?true"},{"name":"out","type":"flags.1?true"},{"name":"mentioned","type":"flags.4?true"},{"name":"media_unread","type":"flags.5?true"},{"name":"id","type":"int"},{"name":"from_id","type":"flags.8?int"},{"name":"to_id","type":"Peer"},{"name":"fwd_from_id","type":"flags.2?Peer"},{"name":"fwd_date","type":"flags.2?int"},{"name":"via_bot_id","type":"flags.11?int"},{"name":"reply_to_msg_id","type":"flags.3?int"},{"name":"date","type":"int"},{"name":"message","type":"string"},{"name":"media","type":"flags.9?MessageMedia"},{"name":"reply_markup","type":"flags.6?ReplyMarkup"},{"name":"entities","type":"flags.7?Vector<MessageEntity>"},{"name":"views","type":"flags.10?int"}],"type":"Message"},{"id":"-1066691065","predicate":"messageService","params":[{"name":"flags","type":"#"},{"name":"unread","type":"flags.0?true"},{"name":"out","type":"flags.1?true"},{"name":"mentioned","type":"flags.4?true"},{"name":"media_unread","type":"flags.5?true"},{"name":"id","type":"int"},{"name":"from_id","type":"flags.8?int"},{"name":"to_id","type":"Peer"},{"name":"date","type":"int"},{"name":"action","type":"MessageAction"}],"type":"Message"},{"id":"1038967584","predicate":"messageMediaEmpty","params":[],"type":"MessageMedia"},{"id":"1032643901","predicate":"messageMediaPhoto","params":[{"name":"photo","type":"Photo"},{"name":"caption","type":"string"}],"type":"MessageMedia"},{"id":"1540298357","predicate":"messageMediaVideo","params":[{"name":"video","type":"Video"},{"name":"caption","type":"string"}],"type":"MessageMedia"},{"id":"1457575028","predicate":"messageMediaGeo","params":[{"name":"geo","type":"GeoPoint"}],"type":"MessageMedia"},{"id":"1585262393","predicate":"messageMediaContact","params":[{"name":"phone_number","type":"string"},{"name":"first_name","type":"string"},{"name":"last_name","type":"string"},{"name":"user_id","type":"int"}],"type":"MessageMedia"},{"id":"-1618676578","predicate":"messageMediaUnsupported","params":[],"type":"MessageMedia"},{"id":"-1230047312","predicate":"messageActionEmpty","params":[],"type":"MessageAction"},{"id":"-1503425638","predicate":"messageActionChatCreate","params":[{"name":"title","type":"string"},{"name":"users","type":"Vector<int>"}],"type":"MessageAction"},{"id":"-1247687078","predicate":"messageActionChatEditTitle","params":[{"name":"title","type":"string"}],"type":"MessageAction"},{"id":"2144015272","predicate":"messageActionChatEditPhoto","params":[{"name":"photo","type":"Photo"}],"type":"MessageAction"},{"id":"-1780220945","predicate":"messageActionChatDeletePhoto","params":[],"type":"MessageAction"},{"id":"1217033015","predicate":"messageActionChatAddUser","params":[{"name":"users","type":"Vector<int>"}],"type":"MessageAction"},{"id":"-1297179892","predicate":"messageActionChatDeleteUser","params":[{"name":"user_id","type":"int"}],"type":"MessageAction"},{"id":"-1042448310","predicate":"dialog","params":[{"name":"peer","type":"Peer"},{"name":"top_message","type":"int"},{"name":"read_inbox_max_id","type":"int"},{"name":"unread_count","type":"int"},{"name":"notify_settings","type":"PeerNotifySettings"}],"type":"Dialog"},{"id":"590459437","predicate":"photoEmpty","params":[{"name":"id","type":"long"}],"type":"Photo"},{"id":"-840088834","predicate":"photo","params":[{"name":"id","type":"long"},{"name":"access_hash","type":"long"},{"name":"date","type":"int"},{"name":"sizes","type":"Vector<PhotoSize>"}],"type":"Photo"},{"id":"236446268","predicate":"photoSizeEmpty","params":[{"name":"type","type":"string"}],"type":"PhotoSize"},{"id":"2009052699","predicate":"photoSize","params":[{"name":"type","type":"string"},{"name":"location","type":"FileLocation"},{"name":"w","type":"int"},{"name":"h","type":"int"},{"name":"size","type":"int"}],"type":"PhotoSize"},{"id":"-374917894","predicate":"photoCachedSize","params":[{"name":"type","type":"string"},{"name":"location","type":"FileLocation"},{"name":"w","type":"int"},{"name":"h","type":"int"},{"name":"bytes","type":"bytes"}],"type":"PhotoSize"},{"id":"-1056548696","predicate":"videoEmpty","params":[{"name":"id","type":"long"}],"type":"Video"},{"id":"-148338733","predicate":"video","params":[{"name":"id","type":"long"},{"name":"access_hash","type":"long"},{"name":"date","type":"int"},{"name":"duration","type":"int"},{"name":"mime_type","type":"string"},{"name":"size","type":"int"},{"name":"thumb","type":"PhotoSize"},{"name":"dc_id","type":"int"},{"name":"w","type":"int"},{"name":"h","type":"int"}],"type":"Video"},{"id":"286776671","predicate":"geoPointEmpty","params":[],"type":"GeoPoint"},{"id":"541710092","predicate":"geoPoint","params":[{"name":"long","type":"double"},{"name":"lat","type":"double"}],"type":"GeoPoint"},{"id":"-2128698738","predicate":"auth.checkedPhone","params":[{"name":"phone_registered","type":"Bool"}],"type":"auth.CheckedPhone"},{"id":"-269659687","predicate":"auth.sentCode","params":[{"name":"phone_registered","type":"Bool"},{"name":"phone_code_hash","type":"string"},{"name":"send_call_timeout","type":"int"},{"name":"is_password","type":"Bool"}],"type":"auth.SentCode"},{"id":"-16553231","predicate":"auth.authorization","params":[{"name":"user","type":"User"}],"type":"auth.Authorization"},{"id":"-543777747","predicate":"auth.exportedAuthorization","params":[{"name":"id","type":"int"},{"name":"bytes","type":"bytes"}],"type":"auth.ExportedAuthorization"},{"id":"-1195615476","predicate":"inputNotifyPeer","params":[{"name":"peer","type":"InputPeer"}],"type":"InputNotifyPeer"},{"id":"423314455","predicate":"inputNotifyUsers","params":[],"type":"InputNotifyPeer"},{"id":"1251338318","predicate":"inputNotifyChats","params":[],"type":"InputNotifyPeer"},{"id":"-1540769658","predicate":"inputNotifyAll","params":[],"type":"InputNotifyPeer"},{"id":"-265263912","predicate":"inputPeerNotifyEventsEmpty","params":[],"type":"InputPeerNotifyEvents"},{"id":"-395694988","predicate":"inputPeerNotifyEventsAll","params":[],"type":"InputPeerNotifyEvents"},{"id":"1185074840","predicate":"inputPeerNotifySettings","params":[{"name":"mute_until","type":"int"},{"name":"sound","type":"string"},{"name":"show_previews","type":"Bool"},{"name":"events_mask","type":"int"}],"type":"InputPeerNotifySettings"},{"id":"-1378534221","predicate":"peerNotifyEventsEmpty","params":[],"type":"PeerNotifyEvents"},{"id":"1830677896","predicate":"peerNotifyEventsAll","params":[],"type":"PeerNotifyEvents"},{"id":"1889961234","predicate":"peerNotifySettingsEmpty","params":[],"type":"PeerNotifySettings"},{"id":"-1923214866","predicate":"peerNotifySettings","params":[{"name":"mute_until","type":"int"},{"name":"sound","type":"string"},{"name":"show_previews","type":"Bool"},{"name":"events_mask","type":"int"}],"type":"PeerNotifySettings"},{"id":"-860866985","predicate":"wallPaper","params":[{"name":"id","type":"int"},{"name":"title","type":"string"},{"name":"sizes","type":"Vector<PhotoSize>"},{"name":"color","type":"int"}],"type":"WallPaper"},{"id":"1490799288","predicate":"inputReportReasonSpam","params":[],"type":"ReportReason"},{"id":"505595789","predicate":"inputReportReasonViolence","params":[],"type":"ReportReason"},{"id":"777640226","predicate":"inputReportReasonPornography","params":[],"type":"ReportReason"},{"id":"-512463606","predicate":"inputReportReasonOther","params":[{"name":"text","type":"string"}],"type":"ReportReason"},{"id":"1518971995","predicate":"userFull","params":[{"name":"user","type":"User"},{"name":"link","type":"contacts.Link"},{"name":"profile_photo","type":"Photo"},{"name":"notify_settings","type":"PeerNotifySettings"},{"name":"blocked","type":"Bool"},{"name":"bot_info","type":"BotInfo"}],"type":"UserFull"},{"id":"-116274796","predicate":"contact","params":[{"name":"user_id","type":"int"},{"name":"mutual","type":"Bool"}],"type":"Contact"},{"id":"-805141448","predicate":"importedContact","params":[{"name":"user_id","type":"int"},{"name":"client_id","type":"long"}],"type":"ImportedContact"},{"id":"1444661369","predicate":"contactBlocked","params":[{"name":"user_id","type":"int"},{"name":"date","type":"int"}],"type":"ContactBlocked"},{"id":"1038193057","predicate":"contactSuggested","params":[{"name":"user_id","type":"int"},{"name":"mutual_contacts","type":"int"}],"type":"ContactSuggested"},{"id":"-748155807","predicate":"contactStatus","params":[{"name":"user_id","type":"int"},{"name":"status","type":"UserStatus"}],"type":"ContactStatus"},{"id":"986597452","predicate":"contacts.link","params":[{"name":"my_link","type":"ContactLink"},{"name":"foreign_link","type":"ContactLink"},{"name":"user","type":"User"}],"type":"contacts.Link"},{"id":"-1219778094","predicate":"contacts.contactsNotModified","params":[],"type":"contacts.Contacts"},{"id":"1871416498","predicate":"contacts.contacts","params":[{"name":"contacts","type":"Vector<Contact>"},{"name":"users","type":"Vector<User>"}],"type":"contacts.Contacts"},{"id":"-1387117803","predicate":"contacts.importedContacts","params":[{"name":"imported","type":"Vector<ImportedContact>"},{"name":"retry_contacts","type":"Vector<long>"},{"name":"users","type":"Vector<User>"}],"type":"contacts.ImportedContacts"},{"id":"471043349","predicate":"contacts.blocked","params":[{"name":"blocked","type":"Vector<ContactBlocked>"},{"name":"users","type":"Vector<User>"}],"type":"contacts.Blocked"},{"id":"-1878523231","predicate":"contacts.blockedSlice","params":[{"name":"count","type":"int"},{"name":"blocked","type":"Vector<ContactBlocked>"},{"name":"users","type":"Vector<User>"}],"type":"contacts.Blocked"},{"id":"1447681221","predicate":"contacts.suggested","params":[{"name":"results","type":"Vector<ContactSuggested>"},{"name":"users","type":"Vector<User>"}],"type":"contacts.Suggested"},{"id":"364538944","predicate":"messages.dialogs","params":[{"name":"dialogs","type":"Vector<Dialog>"},{"name":"messages","type":"Vector<Message>"},{"name":"chats","type":"Vector<Chat>"},{"name":"users","type":"Vector<User>"}],"type":"messages.Dialogs"},{"id":"1910543603","predicate":"messages.dialogsSlice","params":[{"name":"count","type":"int"},{"name":"dialogs","type":"Vector<Dialog>"},{"name":"messages","type":"Vector<Message>"},{"name":"chats","type":"Vector<Chat>"},{"name":"users","type":"Vector<User>"}],"type":"messages.Dialogs"},{"id":"-1938715001","predicate":"messages.messages","params":[{"name":"messages","type":"Vector<Message>"},{"name":"chats","type":"Vector<Chat>"},{"name":"users","type":"Vector<User>"}],"type":"messages.Messages"},{"id":"189033187","predicate":"messages.messagesSlice","params":[{"name":"count","type":"int"},{"name":"messages","type":"Vector<Message>"},{"name":"chats","type":"Vector<Chat>"},{"name":"users","type":"Vector<User>"}],"type":"messages.Messages"},{"id":"1694474197","predicate":"messages.chats","params":[{"name":"chats","type":"Vector<Chat>"}],"type":"messages.Chats"},{"id":"-438840932","predicate":"messages.chatFull","params":[{"name":"full_chat","type":"ChatFull"},{"name":"chats","type":"Vector<Chat>"},{"name":"users","type":"Vector<User>"}],"type":"messages.ChatFull"},{"id":"-1269012015","predicate":"messages.affectedHistory","params":[{"name":"pts","type":"int"},{"name":"pts_count","type":"int"},{"name":"offset","type":"int"}],"type":"messages.AffectedHistory"},{"id":"1474492012","predicate":"inputMessagesFilterEmpty","params":[],"type":"MessagesFilter"},{"id":"-1777752804","predicate":"inputMessagesFilterPhotos","params":[],"type":"MessagesFilter"},{"id":"-1614803355","predicate":"inputMessagesFilterVideo","params":[],"type":"MessagesFilter"},{"id":"1458172132","predicate":"inputMessagesFilterPhotoVideo","params":[],"type":"MessagesFilter"},{"id":"-648121413","predicate":"inputMessagesFilterPhotoVideoDocuments","params":[],"type":"MessagesFilter"},{"id":"-1629621880","predicate":"inputMessagesFilterDocument","params":[],"type":"MessagesFilter"},{"id":"-808946398","predicate":"inputMessagesFilterAudio","params":[],"type":"MessagesFilter"},{"id":"1526462308","predicate":"inputMessagesFilterAudioDocuments","params":[],"type":"MessagesFilter"},{"id":"2129714567","predicate":"inputMessagesFilterUrl","params":[],"type":"MessagesFilter"},{"id":"-3644025","predicate":"inputMessagesFilterGif","params":[],"type":"MessagesFilter"},{"id":"522914557","predicate":"updateNewMessage","params":[{"name":"message","type":"Message"},{"name":"pts","type":"int"},{"name":"pts_count","type":"int"}],"type":"Update"},{"id":"1318109142","predicate":"updateMessageID","params":[{"name":"id","type":"int"},{"name":"random_id","type":"long"}],"type":"Update"},{"id":"-1576161051","predicate":"updateDeleteMessages","params":[{"name":"messages","type":"Vector<int>"},{"name":"pts","type":"int"},{"name":"pts_count","type":"int"}],"type":"Update"},{"id":"1548249383","predicate":"updateUserTyping","params":[{"name":"user_id","type":"int"},{"name":"action","type":"SendMessageAction"}],"type":"Update"},{"id":"-1704596961","predicate":"updateChatUserTyping","params":[{"name":"chat_id","type":"int"},{"name":"user_id","type":"int"},{"name":"action","type":"SendMessageAction"}],"type":"Update"},{"id":"125178264","predicate":"updateChatParticipants","params":[{"name":"participants","type":"ChatParticipants"}],"type":"Update"},{"id":"469489699","predicate":"updateUserStatus","params":[{"name":"user_id","type":"int"},{"name":"status","type":"UserStatus"}],"type":"Update"},{"id":"-1489818765","predicate":"updateUserName","params":[{"name":"user_id","type":"int"},{"name":"first_name","type":"string"},{"name":"last_name","type":"string"},{"name":"username","type":"string"}],"type":"Update"},{"id":"-1791935732","predicate":"updateUserPhoto","params":[{"name":"user_id","type":"int"},{"name":"date","type":"int"},{"name":"photo","type":"UserProfilePhoto"},{"name":"previous","type":"Bool"}],"type":"Update"},{"id":"628472761","predicate":"updateContactRegistered","params":[{"name":"user_id","type":"int"},{"name":"date","type":"int"}],"type":"Update"},{"id":"-1657903163","predicate":"updateContactLink","params":[{"name":"user_id","type":"int"},{"name":"my_link","type":"ContactLink"},{"name":"foreign_link","type":"ContactLink"}],"type":"Update"},{"id":"-1895411046","predicate":"updateNewAuthorization","params":[{"name":"auth_key_id","type":"long"},{"name":"date","type":"int"},{"name":"device","type":"string"},{"name":"location","type":"string"}],"type":"Update"},{"id":"-1519637954","predicate":"updates.state","params":[{"name":"pts","type":"int"},{"name":"qts","type":"int"},{"name":"date","type":"int"},{"name":"seq","type":"int"},{"name":"unread_count","type":"int"}],"type":"updates.State"},{"id":"1567990072","predicate":"updates.differenceEmpty","params":[{"name":"date","type":"int"},{"name":"seq","type":"int"}],"type":"updates.Difference"},{"id":"16030880","predicate":"updates.difference","params":[{"name":"new_messages","type":"Vector<Message>"},{"name":"new_encrypted_messages","type":"Vector<EncryptedMessage>"},{"name":"other_updates","type":"Vector<Update>"},{"name":"chats","type":"Vector<Chat>"},{"name":"users","type":"Vector<User>"},{"name":"state","type":"updates.State"}],"type":"updates.Difference"},{"id":"-1459938943","predicate":"updates.differenceSlice","params":[{"name":"new_messages","type":"Vector<Message>"},{"name":"new_encrypted_messages","type":"Vector<EncryptedMessage>"},{"name":"other_updates","type":"Vector<Update>"},{"name":"chats","type":"Vector<Chat>"},{"name":"users","type":"Vector<User>"},{"name":"intermediate_state","type":"updates.State"}],"type":"updates.Difference"},{"id":"-484987010","predicate":"updatesTooLong","params":[],"type":"Updates"},{"id":"333766314","predicate":"updateShortMessage","params":[{"name":"flags","type":"#"},{"name":"unread","type":"flags.0?true"},{"name":"out","type":"flags.1?true"},{"name":"mentioned","type":"flags.4?true"},{"name":"media_unread","type":"flags.5?true"},{"name":"id","type":"int"},{"name":"user_id","type":"int"},{"name":"message","type":"string"},{"name":"pts","type":"int"},{"name":"pts_count","type":"int"},{"name":"date","type":"int"},{"name":"fwd_from_id","type":"flags.2?Peer"},{"name":"fwd_date","type":"flags.2?int"},{"name":"via_bot_id","type":"flags.11?int"},{"name":"reply_to_msg_id","type":"flags.3?int"},{"name":"entities","type":"flags.7?Vector<MessageEntity>"}],"type":"Updates"},{"id":"613087842","predicate":"updateShortChatMessage","params":[{"name":"flags","type":"#"},{"name":"unread","type":"flags.0?true"},{"name":"out","type":"flags.1?true"},{"name":"mentioned","type":"flags.4?true"},{"name":"media_unread","type":"flags.5?true"},{"name":"id","type":"int"},{"name":"from_id","type":"int"},{"name":"chat_id","type":"int"},{"name":"message","type":"string"},{"name":"pts","type":"int"},{"name":"pts_count","type":"int"},{"name":"date","type":"int"},{"name":"fwd_from_id","type":"flags.2?Peer"},{"name":"fwd_date","type":"flags.2?int"},{"name":"via_bot_id","type":"flags.11?int"},{"name":"reply_to_msg_id","type":"flags.3?int"},{"name":"entities","type":"flags.7?Vector<MessageEntity>"}],"type":"Updates"},{"id":"2027216577","predicate":"updateShort","params":[{"name":"update","type":"Update"},{"name":"date","type":"int"}],"type":"Updates"},{"id":"1918567619","predicate":"updatesCombined","params":[{"name":"updates","type":"Vector<Update>"},{"name":"users","type":"Vector<User>"},{"name":"chats","type":"Vector<Chat>"},{"name":"date","type":"int"},{"name":"seq_start","type":"int"},{"name":"seq","type":"int"}],"type":"Updates"},{"id":"1957577280","predicate":"updates","params":[{"name":"updates","type":"Vector<Update>"},{"name":"users","type":"Vector<User>"},{"name":"chats","type":"Vector<Chat>"},{"name":"date","type":"int"},{"name":"seq","type":"int"}],"type":"Updates"},{"id":"-1916114267","predicate":"photos.photos","params":[{"name":"photos","type":"Vector<Photo>"},{"name":"users","type":"Vector<User>"}],"type":"photos.Photos"},{"id":"352657236","predicate":"photos.photosSlice","params":[{"name":"count","type":"int"},{"name":"photos","type":"Vector<Photo>"},{"name":"users","type":"Vector<User>"}],"type":"photos.Photos"},{"id":"539045032","predicate":"photos.photo","params":[{"name":"photo","type":"Photo"},{"name":"users","type":"Vector<User>"}],"type":"photos.Photo"},{"id":"157948117","predicate":"upload.file","params":[{"name":"type","type":"storage.FileType"},{"name":"mtime","type":"int"},{"name":"bytes","type":"bytes"}],"type":"upload.File"},{"id":"98092748","predicate":"dcOption","params":[{"name":"flags","type":"#"},{"name":"ipv6","type":"flags.0?true"},{"name":"media_only","type":"flags.1?true"},{"name":"id","type":"int"},{"name":"ip_address","type":"string"},{"name":"port","type":"int"}],"type":"DcOption"},{"id":"112969208","predicate":"config","params":[{"name":"date","type":"int"},{"name":"expires","type":"int"},{"name":"test_mode","type":"Bool"},{"name":"this_dc","type":"int"},{"name":"dc_options","type":"Vector<DcOption>"},{"name":"chat_size_max","type":"int"},{"name":"megagroup_size_max","type":"int"},{"name":"forwarded_count_max","type":"int"},{"name":"online_update_period_ms","type":"int"},{"name":"offline_blur_timeout_ms","type":"int"},{"name":"offline_idle_timeout_ms","type":"int"},{"name":"online_cloud_timeout_ms","type":"int"},{"name":"notify_cloud_delay_ms","type":"int"},{"name":"notify_default_delay_ms","type":"int"},{"name":"chat_big_size","type":"int"},{"name":"push_chat_period_ms","type":"int"},{"name":"push_chat_limit","type":"int"},{"name":"saved_gifs_limit","type":"int"},{"name":"disabled_features","type":"Vector<DisabledFeature>"}],"type":"Config"},{"id":"-1910892683","predicate":"nearestDc","params":[{"name":"country","type":"string"},{"name":"this_dc","type":"int"},{"name":"nearest_dc","type":"int"}],"type":"NearestDc"},{"id":"-1987579119","predicate":"help.appUpdate","params":[{"name":"id","type":"int"},{"name":"critical","type":"Bool"},{"name":"url","type":"string"},{"name":"text","type":"string"}],"type":"help.AppUpdate"},{"id":"-1000708810","predicate":"help.noAppUpdate","params":[],"type":"help.AppUpdate"},{"id":"415997816","predicate":"help.inviteText","params":[{"name":"message","type":"string"}],"type":"help.InviteText"},{"id":"1662091044","predicate":"wallPaperSolid","params":[{"name":"id","type":"int"},{"name":"title","type":"string"},{"name":"bg_color","type":"int"},{"name":"color","type":"int"}],"type":"WallPaper"},{"id":"314359194","predicate":"updateNewEncryptedMessage","params":[{"name":"message","type":"EncryptedMessage"},{"name":"qts","type":"int"}],"type":"Update"},{"id":"386986326","predicate":"updateEncryptedChatTyping","params":[{"name":"chat_id","type":"int"}],"type":"Update"},{"id":"-1264392051","predicate":"updateEncryption","params":[{"name":"chat","type":"EncryptedChat"},{"name":"date","type":"int"}],"type":"Update"},{"id":"956179895","predicate":"updateEncryptedMessagesRead","params":[{"name":"chat_id","type":"int"},{"name":"max_date","type":"int"},{"name":"date","type":"int"}],"type":"Update"},{"id":"-1417756512","predicate":"encryptedChatEmpty","params":[{"name":"id","type":"int"}],"type":"EncryptedChat"},{"id":"1006044124","predicate":"encryptedChatWaiting","params":[{"name":"id","type":"int"},{"name":"access_hash","type":"long"},{"name":"date","type":"int"},{"name":"admin_id","type":"int"},{"name":"participant_id","type":"int"}],"type":"EncryptedChat"},{"id":"-931638658","predicate":"encryptedChatRequested","params":[{"name":"id","type":"int"},{"name":"access_hash","type":"long"},{"name":"date","type":"int"},{"name":"admin_id","type":"int"},{"name":"participant_id","type":"int"},{"name":"g_a","type":"bytes"}],"type":"EncryptedChat"},{"id":"-94974410","predicate":"encryptedChat","params":[{"name":"id","type":"int"},{"name":"access_hash","type":"long"},{"name":"date","type":"int"},{"name":"admin_id","type":"int"},{"name":"participant_id","type":"int"},{"name":"g_a_or_b","type":"bytes"},{"name":"key_fingerprint","type":"long"}],"type":"EncryptedChat"},{"id":"332848423","predicate":"encryptedChatDiscarded","params":[{"name":"id","type":"int"}],"type":"EncryptedChat"},{"id":"-247351839","predicate":"inputEncryptedChat","params":[{"name":"chat_id","type":"int"},{"name":"access_hash","type":"long"}],"type":"InputEncryptedChat"},{"id":"-1038136962","predicate":"encryptedFileEmpty","params":[],"type":"EncryptedFile"},{"id":"1248893260","predicate":"encryptedFile","params":[{"name":"id","type":"long"},{"name":"access_hash","type":"long"},{"name":"size","type":"int"},{"name":"dc_id","type":"int"},{"name":"key_fingerprint","type":"int"}],"type":"EncryptedFile"},{"id":"406307684","predicate":"inputEncryptedFileEmpty","params":[],"type":"InputEncryptedFile"},{"id":"1690108678","predicate":"inputEncryptedFileUploaded","params":[{"name":"id","type":"long"},{"name":"parts","type":"int"},{"name":"md5_checksum","type":"string"},{"name":"key_fingerprint","type":"int"}],"type":"InputEncryptedFile"},{"id":"1511503333","predicate":"inputEncryptedFile","params":[{"name":"id","type":"long"},{"name":"access_hash","type":"long"}],"type":"InputEncryptedFile"},{"id":"-182231723","predicate":"inputEncryptedFileLocation","params":[{"name":"id","type":"long"},{"name":"access_hash","type":"long"}],"type":"InputFileLocation"},{"id":"-317144808","predicate":"encryptedMessage","params":[{"name":"random_id","type":"long"},{"name":"chat_id","type":"int"},{"name":"date","type":"int"},{"name":"bytes","type":"bytes"},{"name":"file","type":"EncryptedFile"}],"type":"EncryptedMessage"},{"id":"594758406","predicate":"encryptedMessageService","params":[{"name":"random_id","type":"long"},{"name":"chat_id","type":"int"},{"name":"date","type":"int"},{"name":"bytes","type":"bytes"}],"type":"EncryptedMessage"},{"id":"-1058912715","predicate":"messages.dhConfigNotModified","params":[{"name":"random","type":"bytes"}],"type":"messages.DhConfig"},{"id":"740433629","predicate":"messages.dhConfig","params":[{"name":"g","type":"int"},{"name":"p","type":"bytes"},{"name":"version","type":"int"},{"name":"random","type":"bytes"}],"type":"messages.DhConfig"},{"id":"1443858741","predicate":"messages.sentEncryptedMessage","params":[{"name":"date","type":"int"}],"type":"messages.SentEncryptedMessage"},{"id":"-1802240206","predicate":"messages.sentEncryptedFile","params":[{"name":"date","type":"int"},{"name":"file","type":"EncryptedFile"}],"type":"messages.SentEncryptedMessage"},{"id":"-95482955","predicate":"inputFileBig","params":[{"name":"id","type":"long"},{"name":"parts","type":"int"},{"name":"name","type":"string"}],"type":"InputFile"},{"id":"767652808","predicate":"inputEncryptedFileBigUploaded","params":[{"name":"id","type":"long"},{"name":"parts","type":"int"},{"name":"key_fingerprint","type":"int"}],"type":"InputEncryptedFile"},{"id":"-364179876","predicate":"updateChatParticipantAdd","params":[{"name":"chat_id","type":"int"},{"name":"user_id","type":"int"},{"name":"inviter_id","type":"int"},{"name":"date","type":"int"},{"name":"version","type":"int"}],"type":"Update"},{"id":"1851755554","predicate":"updateChatParticipantDelete","params":[{"name":"chat_id","type":"int"},{"name":"user_id","type":"int"},{"name":"version","type":"int"}],"type":"Update"},{"id":"-1906403213","predicate":"updateDcOptions","params":[{"name":"dc_options","type":"Vector<DcOption>"}],"type":"Update"},{"id":"1313442987","predicate":"inputMediaUploadedAudio","params":[{"name":"file","type":"InputFile"},{"name":"duration","type":"int"},{"name":"mime_type","type":"string"}],"type":"InputMedia"},{"id":"-1986820223","predicate":"inputMediaAudio","params":[{"name":"id","type":"InputAudio"}],"type":"InputMedia"},{"id":"495530093","predicate":"inputMediaUploadedDocument","params":[{"name":"file","type":"InputFile"},{"name":"mime_type","type":"string"},{"name":"attributes","type":"Vector<DocumentAttribute>"},{"name":"caption","type":"string"}],"type":"InputMedia"},{"id":"-1386138479","predicate":"inputMediaUploadedThumbDocument","params":[{"name":"file","type":"InputFile"},{"name":"thumb","type":"InputFile"},{"name":"mime_type","type":"string"},{"name":"attributes","type":"Vector<DocumentAttribute>"},{"name":"caption","type":"string"}],"type":"InputMedia"},{"id":"444068508","predicate":"inputMediaDocument","params":[{"name":"id","type":"InputDocument"},{"name":"caption","type":"string"}],"type":"InputMedia"},{"id":"-203411800","predicate":"messageMediaDocument","params":[{"name":"document","type":"Document"},{"name":"caption","type":"string"}],"type":"MessageMedia"},{"id":"-961117440","predicate":"messageMediaAudio","params":[{"name":"audio","type":"Audio"}],"type":"MessageMedia"},{"id":"-648356732","predicate":"inputAudioEmpty","params":[],"type":"InputAudio"},{"id":"2010398975","predicate":"inputAudio","params":[{"name":"id","type":"long"},{"name":"access_hash","type":"long"}],"type":"InputAudio"},{"id":"1928391342","predicate":"inputDocumentEmpty","params":[],"type":"InputDocument"},{"id":"410618194","predicate":"inputDocument","params":[{"name":"id","type":"long"},{"name":"access_hash","type":"long"}],"type":"InputDocument"},{"id":"1960591437","predicate":"inputAudioFileLocation","params":[{"name":"id","type":"long"},{"name":"access_hash","type":"long"}],"type":"InputFileLocation"},{"id":"1313188841","predicate":"inputDocumentFileLocation","params":[{"name":"id","type":"long"},{"name":"access_hash","type":"long"}],"type":"InputFileLocation"},{"id":"1483311320","predicate":"audioEmpty","params":[{"name":"id","type":"long"}],"type":"Audio"},{"id":"-102543275","predicate":"audio","params":[{"name":"id","type":"long"},{"name":"access_hash","type":"long"},{"name":"date","type":"int"},{"name":"duration","type":"int"},{"name":"mime_type","type":"string"},{"name":"size","type":"int"},{"name":"dc_id","type":"int"}],"type":"Audio"},{"id":"922273905","predicate":"documentEmpty","params":[{"name":"id","type":"long"}],"type":"Document"},{"id":"-106717361","predicate":"document","params":[{"name":"id","type":"long"},{"name":"access_hash","type":"long"},{"name":"date","type":"int"},{"name":"mime_type","type":"string"},{"name":"size","type":"int"},{"name":"thumb","type":"PhotoSize"},{"name":"dc_id","type":"int"},{"name":"attributes","type":"Vector<DocumentAttribute>"}],"type":"Document"},{"id":"398898678","predicate":"help.support","params":[{"name":"phone_number","type":"string"},{"name":"user","type":"User"}],"type":"help.Support"},{"id":"-1613493288","predicate":"notifyPeer","params":[{"name":"peer","type":"Peer"}],"type":"NotifyPeer"},{"id":"-1261946036","predicate":"notifyUsers","params":[],"type":"NotifyPeer"},{"id":"-1073230141","predicate":"notifyChats","params":[],"type":"NotifyPeer"},{"id":"1959820384","predicate":"notifyAll","params":[],"type":"NotifyPeer"},{"id":"-2131957734","predicate":"updateUserBlocked","params":[{"name":"user_id","type":"int"},{"name":"blocked","type":"Bool"}],"type":"Update"},{"id":"-1094555409","predicate":"updateNotifySettings","params":[{"name":"peer","type":"NotifyPeer"},{"name":"notify_settings","type":"PeerNotifySettings"}],"type":"Update"},{"id":"-484053553","predicate":"auth.sentAppCode","params":[{"name":"phone_registered","type":"Bool"},{"name":"phone_code_hash","type":"string"},{"name":"send_call_timeout","type":"int"},{"name":"is_password","type":"Bool"}],"type":"auth.SentCode"},{"id":"381645902","predicate":"sendMessageTypingAction","params":[],"type":"SendMessageAction"},{"id":"-44119819","predicate":"sendMessageCancelAction","params":[],"type":"SendMessageAction"},{"id":"-1584933265","predicate":"sendMessageRecordVideoAction","params":[],"type":"SendMessageAction"},{"id":"-378127636","predicate":"sendMessageUploadVideoAction","params":[{"name":"progress","type":"int"}],"type":"SendMessageAction"},{"id":"-718310409","predicate":"sendMessageRecordAudioAction","params":[],"type":"SendMessageAction"},{"id":"-212740181","predicate":"sendMessageUploadAudioAction","params":[{"name":"progress","type":"int"}],"type":"SendMessageAction"},{"id":"-774682074","predicate":"sendMessageUploadPhotoAction","params":[{"name":"progress","type":"int"}],"type":"SendMessageAction"},{"id":"-1441998364","predicate":"sendMessageUploadDocumentAction","params":[{"name":"progress","type":"int"}],"type":"SendMessageAction"},{"id":"393186209","predicate":"sendMessageGeoLocationAction","params":[],"type":"SendMessageAction"},{"id":"1653390447","predicate":"sendMessageChooseContactAction","params":[],"type":"SendMessageAction"},{"id":"446822276","predicate":"contacts.found","params":[{"name":"results","type":"Vector<Peer>"},{"name":"chats","type":"Vector<Chat>"},{"name":"users","type":"Vector<User>"}],"type":"contacts.Found"},{"id":"942527460","predicate":"updateServiceNotification","params":[{"name":"type","type":"string"},{"name":"message","type":"string"},{"name":"media","type":"MessageMedia"},{"name":"popup","type":"Bool"}],"type":"Update"},{"id":"-496024847","predicate":"userStatusRecently","params":[],"type":"UserStatus"},{"id":"129960444","predicate":"userStatusLastWeek","params":[],"type":"UserStatus"},{"id":"2011940674","predicate":"userStatusLastMonth","params":[],"type":"UserStatus"},{"id":"-298113238","predicate":"updatePrivacy","params":[{"name":"key","type":"PrivacyKey"},{"name":"rules","type":"Vector<PrivacyRule>"}],"type":"Update"},{"id":"1335282456","predicate":"inputPrivacyKeyStatusTimestamp","params":[],"type":"InputPrivacyKey"},{"id":"-1137792208","predicate":"privacyKeyStatusTimestamp","params":[],"type":"PrivacyKey"},{"id":"218751099","predicate":"inputPrivacyValueAllowContacts","params":[],"type":"InputPrivacyRule"},{"id":"407582158","predicate":"inputPrivacyValueAllowAll","params":[],"type":"InputPrivacyRule"},{"id":"320652927","predicate":"inputPrivacyValueAllowUsers","params":[{"name":"users","type":"Vector<InputUser>"}],"type":"InputPrivacyRule"},{"id":"195371015","predicate":"inputPrivacyValueDisallowContacts","params":[],"type":"InputPrivacyRule"},{"id":"-697604407","predicate":"inputPrivacyValueDisallowAll","params":[],"type":"InputPrivacyRule"},{"id":"-1877932953","predicate":"inputPrivacyValueDisallowUsers","params":[{"name":"users","type":"Vector<InputUser>"}],"type":"InputPrivacyRule"},{"id":"-123988","predicate":"privacyValueAllowContacts","params":[],"type":"PrivacyRule"},{"id":"1698855810","predicate":"privacyValueAllowAll","params":[],"type":"PrivacyRule"},{"id":"1297858060","predicate":"privacyValueAllowUsers","params":[{"name":"users","type":"Vector<int>"}],"type":"PrivacyRule"},{"id":"-125240806","predicate":"privacyValueDisallowContacts","params":[],"type":"PrivacyRule"},{"id":"-1955338397","predicate":"privacyValueDisallowAll","params":[],"type":"PrivacyRule"},{"id":"209668535","predicate":"privacyValueDisallowUsers","params":[{"name":"users","type":"Vector<int>"}],"type":"PrivacyRule"},{"id":"1430961007","predicate":"account.privacyRules","params":[{"name":"rules","type":"Vector<PrivacyRule>"},{"name":"users","type":"Vector<User>"}],"type":"account.PrivacyRules"},{"id":"-1194283041","predicate":"accountDaysTTL","params":[{"name":"days","type":"int"}],"type":"AccountDaysTTL"},{"id":"-1527411636","predicate":"account.sentChangePhoneCode","params":[{"name":"phone_code_hash","type":"string"},{"name":"send_call_timeout","type":"int"}],"type":"account.SentChangePhoneCode"},{"id":"314130811","predicate":"updateUserPhone","params":[{"name":"user_id","type":"int"},{"name":"phone","type":"string"}],"type":"Update"},{"id":"1815593308","predicate":"documentAttributeImageSize","params":[{"name":"w","type":"int"},{"name":"h","type":"int"}],"type":"DocumentAttribute"},{"id":"297109817","predicate":"documentAttributeAnimated","params":[],"type":"DocumentAttribute"},{"id":"978674434","predicate":"documentAttributeSticker","params":[{"name":"alt","type":"string"},{"name":"stickerset","type":"InputStickerSet"}],"type":"DocumentAttribute"},{"id":"1494273227","predicate":"documentAttributeVideo","params":[{"name":"duration","type":"int"},{"name":"w","type":"int"},{"name":"h","type":"int"}],"type":"DocumentAttribute"},{"id":"-556656416","predicate":"documentAttributeAudio","params":[{"name":"duration","type":"int"},{"name":"title","type":"string"},{"name":"performer","type":"string"}],"type":"DocumentAttribute"},{"id":"358154344","predicate":"documentAttributeFilename","params":[{"name":"file_name","type":"string"}],"type":"DocumentAttribute"},{"id":"-244016606","predicate":"messages.stickersNotModified","params":[],"type":"messages.Stickers"},{"id":"-1970352846","predicate":"messages.stickers","params":[{"name":"hash","type":"string"},{"name":"stickers","type":"Vector<Document>"}],"type":"messages.Stickers"},{"id":"313694676","predicate":"stickerPack","params":[{"name":"emoticon","type":"string"},{"name":"documents","type":"Vector<long>"}],"type":"StickerPack"},{"id":"-395967805","predicate":"messages.allStickersNotModified","params":[],"type":"messages.AllStickers"},{"id":"-302170017","predicate":"messages.allStickers","params":[{"name":"hash","type":"int"},{"name":"sets","type":"Vector<StickerSet>"}],"type":"messages.AllStickers"},{"id":"-1369215196","predicate":"disabledFeature","params":[{"name":"feature","type":"string"},{"name":"description","type":"string"}],"type":"DisabledFeature"},{"id":"-1721631396","predicate":"updateReadHistoryInbox","params":[{"name":"peer","type":"Peer"},{"name":"max_id","type":"int"},{"name":"pts","type":"int"},{"name":"pts_count","type":"int"}],"type":"Update"},{"id":"791617983","predicate":"updateReadHistoryOutbox","params":[{"name":"peer","type":"Peer"},{"name":"max_id","type":"int"},{"name":"pts","type":"int"},{"name":"pts_count","type":"int"}],"type":"Update"},{"id":"-2066640507","predicate":"messages.affectedMessages","params":[{"name":"pts","type":"int"},{"name":"pts_count","type":"int"}],"type":"messages.AffectedMessages"},{"id":"1599050311","predicate":"contactLinkUnknown","params":[],"type":"ContactLink"},{"id":"-17968211","predicate":"contactLinkNone","params":[],"type":"ContactLink"},{"id":"646922073","predicate":"contactLinkHasPhone","params":[],"type":"ContactLink"},{"id":"-721239344","predicate":"contactLinkContact","params":[],"type":"ContactLink"},{"id":"2139689491","predicate":"updateWebPage","params":[{"name":"webpage","type":"WebPage"},{"name":"pts","type":"int"},{"name":"pts_count","type":"int"}],"type":"Update"},{"id":"-350980120","predicate":"webPageEmpty","params":[{"name":"id","type":"long"}],"type":"WebPage"},{"id":"-981018084","predicate":"webPagePending","params":[{"name":"id","type":"long"},{"name":"date","type":"int"}],"type":"WebPage"},{"id":"-897446185","predicate":"webPage","params":[{"name":"flags","type":"#"},{"name":"id","type":"long"},{"name":"url","type":"string"},{"name":"display_url","type":"string"},{"name":"type","type":"flags.0?string"},{"name":"site_name","type":"flags.1?string"},{"name":"title","type":"flags.2?string"},{"name":"description","type":"flags.3?string"},{"name":"photo","type":"flags.4?Photo"},{"name":"embed_url","type":"flags.5?string"},{"name":"embed_type","type":"flags.5?string"},{"name":"embed_width","type":"flags.6?int"},{"name":"embed_height","type":"flags.6?int"},{"name":"duration","type":"flags.7?int"},{"name":"author","type":"flags.8?string"},{"name":"document","type":"flags.9?Document"}],"type":"WebPage"},{"id":"-1557277184","predicate":"messageMediaWebPage","params":[{"name":"webpage","type":"WebPage"}],"type":"MessageMedia"},{"id":"2079516406","predicate":"authorization","params":[{"name":"hash","type":"long"},{"name":"flags","type":"int"},{"name":"device_model","type":"string"},{"name":"platform","type":"string"},{"name":"system_version","type":"string"},{"name":"api_id","type":"int"},{"name":"app_name","type":"string"},{"name":"app_version","type":"string"},{"name":"date_created","type":"int"},{"name":"date_active","type":"int"},{"name":"ip","type":"string"},{"name":"country","type":"string"},{"name":"region","type":"string"}],"type":"Authorization"},{"id":"307276766","predicate":"account.authorizations","params":[{"name":"authorizations","type":"Vector<Authorization>"}],"type":"account.Authorizations"},{"id":"-1764049896","predicate":"account.noPassword","params":[{"name":"new_salt","type":"bytes"},{"name":"email_unconfirmed_pattern","type":"string"}],"type":"account.Password"},{"id":"2081952796","predicate":"account.password","params":[{"name":"current_salt","type":"bytes"},{"name":"new_salt","type":"bytes"},{"name":"hint","type":"string"},{"name":"has_recovery","type":"Bool"},{"name":"email_unconfirmed_pattern","type":"string"}],"type":"account.Password"},{"id":"-1212732749","predicate":"account.passwordSettings","params":[{"name":"email","type":"string"}],"type":"account.PasswordSettings"},{"id":"-1124314324","predicate":"account.passwordInputSettings","params":[{"name":"flags","type":"#"},{"name":"new_salt","type":"flags.0?bytes"},{"name":"new_password_hash","type":"flags.0?bytes"},{"name":"hint","type":"flags.0?string"},{"name":"email","type":"flags.1?string"}],"type":"account.PasswordInputSettings"},{"id":"326715557","predicate":"auth.passwordRecovery","params":[{"name":"email_pattern","type":"string"}],"type":"auth.PasswordRecovery"},{"id":"673687578","predicate":"inputMediaVenue","params":[{"name":"geo_point","type":"InputGeoPoint"},{"name":"title","type":"string"},{"name":"address","type":"string"},{"name":"provider","type":"string"},{"name":"venue_id","type":"string"}],"type":"InputMedia"},{"id":"2031269663","predicate":"messageMediaVenue","params":[{"name":"geo","type":"GeoPoint"},{"name":"title","type":"string"},{"name":"address","type":"string"},{"name":"provider","type":"string"},{"name":"venue_id","type":"string"}],"type":"MessageMedia"},{"id":"-1551583367","predicate":"receivedNotifyMessage","params":[{"name":"id","type":"int"},{"name":"flags","type":"int"}],"type":"ReceivedNotifyMessage"},{"id":"1776236393","predicate":"chatInviteEmpty","params":[],"type":"ExportedChatInvite"},{"id":"-64092740","predicate":"chatInviteExported","params":[{"name":"link","type":"string"}],"type":"ExportedChatInvite"},{"id":"1516793212","predicate":"chatInviteAlready","params":[{"name":"chat","type":"Chat"}],"type":"ChatInvite"},{"id":"-1813406880","predicate":"chatInvite","params":[{"name":"flags","type":"#"},{"name":"channel","type":"flags.0?true"},{"name":"broadcast","type":"flags.1?true"},{"name":"public","type":"flags.2?true"},{"name":"megagroup","type":"flags.3?true"},{"name":"title","type":"string"}],"type":"ChatInvite"},{"id":"-123931160","predicate":"messageActionChatJoinedByLink","params":[{"name":"inviter_id","type":"int"}],"type":"MessageAction"},{"id":"1757493555","predicate":"updateReadMessagesContents","params":[{"name":"messages","type":"Vector<int>"},{"name":"pts","type":"int"},{"name":"pts_count","type":"int"}],"type":"Update"},{"id":"-4838507","predicate":"inputStickerSetEmpty","params":[],"type":"InputStickerSet"},{"id":"-1645763991","predicate":"inputStickerSetID","params":[{"name":"id","type":"long"},{"name":"access_hash","type":"long"}],"type":"InputStickerSet"},{"id":"-2044933984","predicate":"inputStickerSetShortName","params":[{"name":"short_name","type":"string"}],"type":"InputStickerSet"},{"id":"-852477119","predicate":"stickerSet","params":[{"name":"flags","type":"#"},{"name":"installed","type":"flags.0?true"},{"name":"disabled","type":"flags.1?true"},{"name":"official","type":"flags.2?true"},{"name":"id","type":"long"},{"name":"access_hash","type":"long"},{"name":"title","type":"string"},{"name":"short_name","type":"string"},{"name":"count","type":"int"},{"name":"hash","type":"int"}],"type":"StickerSet"},{"id":"-1240849242","predicate":"messages.stickerSet","params":[{"name":"set","type":"StickerSet"},{"name":"packs","type":"Vector<StickerPack>"},{"name":"documents","type":"Vector<Document>"}],"type":"messages.StickerSet"},{"id":"-787638374","predicate":"user","params":[{"name":"flags","type":"#"},{"name":"self","type":"flags.10?true"},{"name":"contact","type":"flags.11?true"},{"name":"mutual_contact","type":"flags.12?true"},{"name":"deleted","type":"flags.13?true"},{"name":"bot","type":"flags.14?true"},{"name":"bot_chat_history","type":"flags.15?true"},{"name":"bot_nochats","type":"flags.16?true"},{"name":"verified","type":"flags.17?true"},{"name":"restricted","type":"flags.18?true"},{"name":"id","type":"int"},{"name":"access_hash","type":"flags.0?long"},{"name":"first_name","type":"flags.1?string"},{"name":"last_name","type":"flags.2?string"},{"name":"username","type":"flags.3?string"},{"name":"phone","type":"flags.4?string"},{"name":"photo","type":"flags.5?UserProfilePhoto"},{"name":"status","type":"flags.6?UserStatus"},{"name":"bot_info_version","type":"flags.14?int"},{"name":"restriction_reason","type":"flags.18?string"},{"name":"bot_inline_placeholder","type":"flags.19?string"}],"type":"User"},{"id":"-1032140601","predicate":"botCommand","params":[{"name":"command","type":"string"},{"name":"description","type":"string"}],"type":"BotCommand"},{"id":"-1154598962","predicate":"botInfoEmpty","params":[],"type":"BotInfo"},{"id":"164583517","predicate":"botInfo","params":[{"name":"user_id","type":"int"},{"name":"version","type":"int"},{"name":"share_text","type":"string"},{"name":"description","type":"string"},{"name":"commands","type":"Vector<BotCommand>"}],"type":"BotInfo"},{"id":"-1560655744","predicate":"keyboardButton","params":[{"name":"text","type":"string"}],"type":"KeyboardButton"},{"id":"2002815875","predicate":"keyboardButtonRow","params":[{"name":"buttons","type":"Vector<KeyboardButton>"}],"type":"KeyboardButtonRow"},{"id":"-1606526075","predicate":"replyKeyboardHide","params":[{"name":"flags","type":"#"},{"name":"selective","type":"flags.2?true"}],"type":"ReplyMarkup"},{"id":"-200242528","predicate":"replyKeyboardForceReply","params":[{"name":"flags","type":"#"},{"name":"single_use","type":"flags.1?true"},{"name":"selective","type":"flags.2?true"}],"type":"ReplyMarkup"},{"id":"889353612","predicate":"replyKeyboardMarkup","params":[{"name":"flags","type":"#"},{"name":"resize","type":"flags.0?true"},{"name":"single_use","type":"flags.1?true"},{"name":"selective","type":"flags.2?true"},{"name":"rows","type":"Vector<KeyboardButtonRow>"}],"type":"ReplyMarkup"},{"id":"2072935910","predicate":"inputPeerUser","params":[{"name":"user_id","type":"int"},{"name":"access_hash","type":"long"}],"type":"InputPeer"},{"id":"-668391402","predicate":"inputUser","params":[{"name":"user_id","type":"int"},{"name":"access_hash","type":"long"}],"type":"InputUser"},{"id":"-1350696044","predicate":"help.appChangelogEmpty","params":[],"type":"help.AppChangelog"},{"id":"1181279933","predicate":"help.appChangelog","params":[{"name":"text","type":"string"}],"type":"help.AppChangelog"},{"id":"-1148011883","predicate":"messageEntityUnknown","params":[{"name":"offset","type":"int"},{"name":"length","type":"int"}],"type":"MessageEntity"},{"id":"-100378723","predicate":"messageEntityMention","params":[{"name":"offset","type":"int"},{"name":"length","type":"int"}],"type":"MessageEntity"},{"id":"1868782349","predicate":"messageEntityHashtag","params":[{"name":"offset","type":"int"},{"name":"length","type":"int"}],"type":"MessageEntity"},{"id":"1827637959","predicate":"messageEntityBotCommand","params":[{"name":"offset","type":"int"},{"name":"length","type":"int"}],"type":"MessageEntity"},{"id":"1859134776","predicate":"messageEntityUrl","params":[{"name":"offset","type":"int"},{"name":"length","type":"int"}],"type":"MessageEntity"},{"id":"1692693954","predicate":"messageEntityEmail","params":[{"name":"offset","type":"int"},{"name":"length","type":"int"}],"type":"MessageEntity"},{"id":"-1117713463","predicate":"messageEntityBold","params":[{"name":"offset","type":"int"},{"name":"length","type":"int"}],"type":"MessageEntity"},{"id":"-2106619040","predicate":"messageEntityItalic","params":[{"name":"offset","type":"int"},{"name":"length","type":"int"}],"type":"MessageEntity"},{"id":"681706865","predicate":"messageEntityCode","params":[{"name":"offset","type":"int"},{"name":"length","type":"int"}],"type":"MessageEntity"},{"id":"1938967520","predicate":"messageEntityPre","params":[{"name":"offset","type":"int"},{"name":"length","type":"int"},{"name":"language","type":"string"}],"type":"MessageEntity"},{"id":"1990644519","predicate":"messageEntityTextUrl","params":[{"name":"offset","type":"int"},{"name":"length","type":"int"},{"name":"url","type":"string"}],"type":"MessageEntity"},{"id":"301019932","predicate":"updateShortSentMessage","params":[{"name":"flags","type":"#"},{"name":"unread","type":"flags.0?true"},{"name":"out","type":"flags.1?true"},{"name":"id","type":"int"},{"name":"pts","type":"int"},{"name":"pts_count","type":"int"},{"name":"date","type":"int"},{"name":"media","type":"flags.9?MessageMedia"},{"name":"entities","type":"flags.7?Vector<MessageEntity>"}],"type":"Updates"},{"id":"-292807034","predicate":"inputChannelEmpty","params":[],"type":"InputChannel"},{"id":"-1343524562","predicate":"inputChannel","params":[{"name":"channel_id","type":"int"},{"name":"access_hash","type":"long"}],"type":"InputChannel"},{"id":"-1109531342","predicate":"peerChannel","params":[{"name":"channel_id","type":"int"}],"type":"Peer"},{"id":"548253432","predicate":"inputPeerChannel","params":[{"name":"channel_id","type":"int"},{"name":"access_hash","type":"long"}],"type":"InputPeer"},{"id":"1260090630","predicate":"channel","params":[{"name":"flags","type":"#"},{"name":"creator","type":"flags.0?true"},{"name":"kicked","type":"flags.1?true"},{"name":"left","type":"flags.2?true"},{"name":"editor","type":"flags.3?true"},{"name":"moderator","type":"flags.4?true"},{"name":"broadcast","type":"flags.5?true"},{"name":"verified","type":"flags.7?true"},{"name":"megagroup","type":"flags.8?true"},{"name":"restricted","type":"flags.9?true"},{"name":"id","type":"int"},{"name":"access_hash","type":"long"},{"name":"title","type":"string"},{"name":"username","type":"flags.6?string"},{"name":"photo","type":"ChatPhoto"},{"name":"date","type":"int"},{"name":"version","type":"int"},{"name":"restriction_reason","type":"flags.9?string"}],"type":"Chat"},{"id":"763724588","predicate":"channelForbidden","params":[{"name":"id","type":"int"},{"name":"access_hash","type":"long"},{"name":"title","type":"string"}],"type":"Chat"},{"id":"2131196633","predicate":"contacts.resolvedPeer","params":[{"name":"peer","type":"Peer"},{"name":"chats","type":"Vector<Chat>"},{"name":"users","type":"Vector<User>"}],"type":"contacts.ResolvedPeer"},{"id":"-1640751649","predicate":"channelFull","params":[{"name":"flags","type":"#"},{"name":"can_view_participants","type":"flags.3?true"},{"name":"id","type":"int"},{"name":"about","type":"string"},{"name":"participants_count","type":"flags.0?int"},{"name":"admins_count","type":"flags.1?int"},{"name":"kicked_count","type":"flags.2?int"},{"name":"read_inbox_max_id","type":"int"},{"name":"unread_count","type":"int"},{"name":"unread_important_count","type":"int"},{"name":"chat_photo","type":"Photo"},{"name":"notify_settings","type":"PeerNotifySettings"},{"name":"exported_invite","type":"ExportedChatInvite"},{"name":"bot_info","type":"Vector<BotInfo>"},{"name":"migrated_from_chat_id","type":"flags.4?int"},{"name":"migrated_from_max_id","type":"flags.4?int"}],"type":"ChatFull"},{"id":"1535415986","predicate":"dialogChannel","params":[{"name":"peer","type":"Peer"},{"name":"top_message","type":"int"},{"name":"top_important_message","type":"int"},{"name":"read_inbox_max_id","type":"int"},{"name":"unread_count","type":"int"},{"name":"unread_important_count","type":"int"},{"name":"notify_settings","type":"PeerNotifySettings"},{"name":"pts","type":"int"}],"type":"Dialog"},{"id":"182649427","predicate":"messageRange","params":[{"name":"min_id","type":"int"},{"name":"max_id","type":"int"}],"type":"MessageRange"},{"id":"-399216813","predicate":"messageGroup","params":[{"name":"min_id","type":"int"},{"name":"max_id","type":"int"},{"name":"count","type":"int"},{"name":"date","type":"int"}],"type":"MessageGroup"},{"id":"-1139861572","predicate":"messages.channelMessages","params":[{"name":"flags","type":"#"},{"name":"pts","type":"int"},{"name":"count","type":"int"},{"name":"messages","type":"Vector<Message>"},{"name":"collapsed","type":"flags.0?Vector<MessageGroup>"},{"name":"chats","type":"Vector<Chat>"},{"name":"users","type":"Vector<User>"}],"type":"messages.Messages"},{"id":"-1781355374","predicate":"messageActionChannelCreate","params":[{"name":"title","type":"string"}],"type":"MessageAction"},{"id":"1620337698","predicate":"updateChannelTooLong","params":[{"name":"channel_id","type":"int"}],"type":"Update"},{"id":"-1227598250","predicate":"updateChannel","params":[{"name":"channel_id","type":"int"}],"type":"Update"},{"id":"-1016324548","predicate":"updateChannelGroup","params":[{"name":"channel_id","type":"int"},{"name":"group","type":"MessageGroup"}],"type":"Update"},{"id":"1656358105","predicate":"updateNewChannelMessage","params":[{"name":"message","type":"Message"},{"name":"pts","type":"int"},{"name":"pts_count","type":"int"}],"type":"Update"},{"id":"1108669311","predicate":"updateReadChannelInbox","params":[{"name":"channel_id","type":"int"},{"name":"max_id","type":"int"}],"type":"Update"},{"id":"-1015733815","predicate":"updateDeleteChannelMessages","params":[{"name":"channel_id","type":"int"},{"name":"messages","type":"Vector<int>"},{"name":"pts","type":"int"},{"name":"pts_count","type":"int"}],"type":"Update"},{"id":"-1734268085","predicate":"updateChannelMessageViews","params":[{"name":"channel_id","type":"int"},{"name":"id","type":"int"},{"name":"views","type":"int"}],"type":"Update"},{"id":"1041346555","predicate":"updates.channelDifferenceEmpty","params":[{"name":"flags","type":"#"},{"name":"final","type":"flags.0?true"},{"name":"pts","type":"int"},{"name":"timeout","type":"flags.1?int"}],"type":"updates.ChannelDifference"},{"id":"1578530374","predicate":"updates.channelDifferenceTooLong","params":[{"name":"flags","type":"#"},{"name":"final","type":"flags.0?true"},{"name":"pts","type":"int"},{"name":"timeout","type":"flags.1?int"},{"name":"top_message","type":"int"},{"name":"top_important_message","type":"int"},{"name":"read_inbox_max_id","type":"int"},{"name":"unread_count","type":"int"},{"name":"unread_important_count","type":"int"},{"name":"messages","type":"Vector<Message>"},{"name":"chats","type":"Vector<Chat>"},{"name":"users","type":"Vector<User>"}],"type":"updates.ChannelDifference"},{"id":"543450958","predicate":"updates.channelDifference","params":[{"name":"flags","type":"#"},{"name":"final","type":"flags.0?true"},{"name":"pts","type":"int"},{"name":"timeout","type":"flags.1?int"},{"name":"new_messages","type":"Vector<Message>"},{"name":"other_updates","type":"Vector<Update>"},{"name":"chats","type":"Vector<Chat>"},{"name":"users","type":"Vector<User>"}],"type":"updates.ChannelDifference"},{"id":"-1798033689","predicate":"channelMessagesFilterEmpty","params":[],"type":"ChannelMessagesFilter"},{"id":"-847783593","predicate":"channelMessagesFilter","params":[{"name":"flags","type":"#"},{"name":"important_only","type":"flags.0?true"},{"name":"exclude_new_messages","type":"flags.1?true"},{"name":"ranges","type":"Vector<MessageRange>"}],"type":"ChannelMessagesFilter"},{"id":"-100588754","predicate":"channelMessagesFilterCollapsed","params":[],"type":"ChannelMessagesFilter"},{"id":"367766557","predicate":"channelParticipant","params":[{"name":"user_id","type":"int"},{"name":"date","type":"int"}],"type":"ChannelParticipant"},{"id":"-1557620115","predicate":"channelParticipantSelf","params":[{"name":"user_id","type":"int"},{"name":"inviter_id","type":"int"},{"name":"date","type":"int"}],"type":"ChannelParticipant"},{"id":"-1861910545","predicate":"channelParticipantModerator","params":[{"name":"user_id","type":"int"},{"name":"inviter_id","type":"int"},{"name":"date","type":"int"}],"type":"ChannelParticipant"},{"id":"-1743180447","predicate":"channelParticipantEditor","params":[{"name":"user_id","type":"int"},{"name":"inviter_id","type":"int"},{"name":"date","type":"int"}],"type":"ChannelParticipant"},{"id":"-1933187430","predicate":"channelParticipantKicked","params":[{"name":"user_id","type":"int"},{"name":"kicked_by","type":"int"},{"name":"date","type":"int"}],"type":"ChannelParticipant"},{"id":"-471670279","predicate":"channelParticipantCreator","params":[{"name":"user_id","type":"int"}],"type":"ChannelParticipant"},{"id":"-566281095","predicate":"channelParticipantsRecent","params":[],"type":"ChannelParticipantsFilter"},{"id":"-1268741783","predicate":"channelParticipantsAdmins","params":[],"type":"ChannelParticipantsFilter"},{"id":"1010285434","predicate":"channelParticipantsKicked","params":[],"type":"ChannelParticipantsFilter"},{"id":"-1299865402","predicate":"channelRoleEmpty","params":[],"type":"ChannelParticipantRole"},{"id":"-1776756363","predicate":"channelRoleModerator","params":[],"type":"ChannelParticipantRole"},{"id":"-2113143156","predicate":"channelRoleEditor","params":[],"type":"ChannelParticipantRole"},{"id":"-177282392","predicate":"channels.channelParticipants","params":[{"name":"count","type":"int"},{"name":"participants","type":"Vector<ChannelParticipant>"},{"name":"users","type":"Vector<User>"}],"type":"channels.ChannelParticipants"},{"id":"-791039645","predicate":"channels.channelParticipant","params":[{"name":"participant","type":"ChannelParticipant"},{"name":"users","type":"Vector<User>"}],"type":"channels.ChannelParticipant"},{"id":"-636267638","predicate":"chatParticipantCreator","params":[{"name":"user_id","type":"int"}],"type":"ChatParticipant"},{"id":"-489233354","predicate":"chatParticipantAdmin","params":[{"name":"user_id","type":"int"},{"name":"inviter_id","type":"int"},{"name":"date","type":"int"}],"type":"ChatParticipant"},{"id":"1855224129","predicate":"updateChatAdmins","params":[{"name":"chat_id","type":"int"},{"name":"enabled","type":"Bool"},{"name":"version","type":"int"}],"type":"Update"},{"id":"-1232070311","predicate":"updateChatParticipantAdmin","params":[{"name":"chat_id","type":"int"},{"name":"user_id","type":"int"},{"name":"is_admin","type":"Bool"},{"name":"version","type":"int"}],"type":"Update"},{"id":"1371385889","predicate":"messageActionChatMigrateTo","params":[{"name":"channel_id","type":"int"}],"type":"MessageAction"},{"id":"-1336546578","predicate":"messageActionChannelMigrateFrom","params":[{"name":"title","type":"string"},{"name":"chat_id","type":"int"}],"type":"MessageAction"},{"id":"-1328445861","predicate":"channelParticipantsBots","params":[],"type":"ChannelParticipantsFilter"},{"id":"-236044656","predicate":"help.termsOfService","params":[{"name":"text","type":"string"}],"type":"help.TermsOfService"},{"id":"1753886890","predicate":"updateNewStickerSet","params":[{"name":"stickerset","type":"messages.StickerSet"}],"type":"Update"},{"id":"-253774767","predicate":"updateStickerSetsOrder","params":[{"name":"order","type":"Vector<long>"}],"type":"Update"},{"id":"1135492588","predicate":"updateStickerSets","params":[],"type":"Update"},{"id":"372165663","predicate":"foundGif","params":[{"name":"url","type":"string"},{"name":"thumb_url","type":"string"},{"name":"content_url","type":"string"},{"name":"content_type","type":"string"},{"name":"w","type":"int"},{"name":"h","type":"int"}],"type":"FoundGif"},{"id":"-1670052855","predicate":"foundGifCached","params":[{"name":"url","type":"string"},{"name":"photo","type":"Photo"},{"name":"document","type":"Document"}],"type":"FoundGif"},{"id":"1212395773","predicate":"inputMediaGifExternal","params":[{"name":"url","type":"string"},{"name":"q","type":"string"}],"type":"InputMedia"},{"id":"1158290442","predicate":"messages.foundGifs","params":[{"name":"next_offset","type":"int"},{"name":"results","type":"Vector<FoundGif>"}],"type":"messages.FoundGifs"},{"id":"-402498398","predicate":"messages.savedGifsNotModified","params":[],"type":"messages.SavedGifs"},{"id":"772213157","predicate":"messages.savedGifs","params":[{"name":"hash","type":"int"},{"name":"gifs","type":"Vector<Document>"}],"type":"messages.SavedGifs"},{"id":"-1821035490","predicate":"updateSavedGifs","params":[],"type":"Update"},{"id":"776201607","predicate":"inputBotInlineMessageMediaAuto","params":[{"name":"caption","type":"string"}],"type":"InputBotInlineMessage"},{"id":"-1376723087","predicate":"inputBotInlineMessageText","params":[{"name":"flags","type":"#"},{"name":"no_webpage","type":"flags.0?true"},{"name":"message","type":"string"},{"name":"entities","type":"flags.1?Vector<MessageEntity>"}],"type":"InputBotInlineMessage"},{"id":"750510426","predicate":"inputBotInlineResult","params":[{"name":"flags","type":"#"},{"name":"id","type":"string"},{"name":"type","type":"string"},{"name":"title","type":"flags.1?string"},{"name":"description","type":"flags.2?string"},{"name":"url","type":"flags.3?string"},{"name":"thumb_url","type":"flags.4?string"},{"name":"content_url","type":"flags.5?string"},{"name":"content_type","type":"flags.5?string"},{"name":"w","type":"flags.6?int"},{"name":"h","type":"flags.6?int"},{"name":"duration","type":"flags.7?int"},{"name":"send_message","type":"InputBotInlineMessage"}],"type":"InputBotInlineResult"},{"id":"-61413251","predicate":"botInlineMessageMediaAuto","params":[{"name":"caption","type":"string"}],"type":"BotInlineMessage"},{"id":"-1520330839","predicate":"botInlineMessageText","params":[{"name":"flags","type":"#"},{"name":"no_webpage","type":"flags.0?true"},{"name":"message","type":"string"},{"name":"entities","type":"flags.1?Vector<MessageEntity>"}],"type":"BotInlineMessage"},{"id":"-124267714","predicate":"botInlineMediaResultDocument","params":[{"name":"id","type":"string"},{"name":"type","type":"string"},{"name":"document","type":"Document"},{"name":"send_message","type":"BotInlineMessage"}],"type":"BotInlineResult"},{"id":"-984447609","predicate":"botInlineMediaResultPhoto","params":[{"name":"id","type":"string"},{"name":"type","type":"string"},{"name":"photo","type":"Photo"},{"name":"send_message","type":"BotInlineMessage"}],"type":"BotInlineResult"},{"id":"-1679053127","predicate":"botInlineResult","params":[{"name":"flags","type":"#"},{"name":"id","type":"string"},{"name":"type","type":"string"},{"name":"title","type":"flags.1?string"},{"name":"description","type":"flags.2?string"},{"name":"url","type":"flags.3?string"},{"name":"thumb_url","type":"flags.4?string"},{"name":"content_url","type":"flags.5?string"},{"name":"content_type","type":"flags.5?string"},{"name":"w","type":"flags.6?int"},{"name":"h","type":"flags.6?int"},{"name":"duration","type":"flags.7?int"},{"name":"send_message","type":"BotInlineMessage"}],"type":"BotInlineResult"},{"id":"292597923","predicate":"messages.botResults","params":[{"name":"flags","type":"#"},{"name":"gallery","type":"flags.0?true"},{"name":"query_id","type":"long"},{"name":"next_offset","type":"flags.1?string"},{"name":"results","type":"Vector<BotInlineResult>"}],"type":"messages.BotResults"},{"id":"-1071715832","predicate":"updateBotInlineQuery","params":[{"name":"query_id","type":"long"},{"name":"user_id","type":"int"},{"name":"query","type":"string"},{"name":"offset","type":"string"}],"type":"Update"},{"id":"258597139","predicate":"updateBotInlineSend","params":[{"name":"user_id","type":"int"},{"name":"query","type":"string"},{"name":"id","type":"string"}],"type":"Update"}],"methods":[{"id":"-878758099","method":"invokeAfterMsg","params":[{"name":"msg_id","type":"long"},{"name":"query","type":"!X"}],"type":"X"},{"id":"1036301552","method":"invokeAfterMsgs","params":[{"name":"msg_ids","type":"Vector<long>"},{"name":"query","type":"!X"}],"type":"X"},{"id":"1877286395","method":"auth.checkPhone","params":[{"name":"phone_number","type":"string"}],"type":"auth.CheckedPhone"},{"id":"1988976461","method":"auth.sendCode","params":[{"name":"phone_number","type":"string"},{"name":"sms_type","type":"int"},{"name":"api_id","type":"int"},{"name":"api_hash","type":"string"},{"name":"lang_code","type":"string"}],"type":"auth.SentCode"},{"id":"63247716","method":"auth.sendCall","params":[{"name":"phone_number","type":"string"},{"name":"phone_code_hash","type":"string"}],"type":"Bool"},{"id":"453408308","method":"auth.signUp","params":[{"name":"phone_number","type":"string"},{"name":"phone_code_hash","type":"string"},{"name":"phone_code","type":"string"},{"name":"first_name","type":"string"},{"name":"last_name","type":"string"}],"type":"auth.Authorization"},{"id":"-1126886015","method":"auth.signIn","params":[{"name":"phone_number","type":"string"},{"name":"phone_code_hash","type":"string"},{"name":"phone_code","type":"string"}],"type":"auth.Authorization"},{"id":"1461180992","method":"auth.logOut","params":[],"type":"Bool"},{"id":"-1616179942","method":"auth.resetAuthorizations","params":[],"type":"Bool"},{"id":"1998331287","method":"auth.sendInvites","params":[{"name":"phone_numbers","type":"Vector<string>"},{"name":"message","type":"string"}],"type":"Bool"},{"id":"-440401971","method":"auth.exportAuthorization","params":[{"name":"dc_id","type":"int"}],"type":"auth.ExportedAuthorization"},{"id":"-470837741","method":"auth.importAuthorization","params":[{"name":"id","type":"int"},{"name":"bytes","type":"bytes"}],"type":"auth.Authorization"},{"id":"-841733627","method":"auth.bindTempAuthKey","params":[{"name":"perm_auth_key_id","type":"long"},{"name":"nonce","type":"long"},{"name":"expires_at","type":"int"},{"name":"encrypted_message","type":"bytes"}],"type":"Bool"},{"id":"1147957548","method":"account.registerDevice","params":[{"name":"token_type","type":"int"},{"name":"token","type":"string"},{"name":"device_model","type":"string"},{"name":"system_version","type":"string"},{"name":"app_version","type":"string"},{"name":"app_sandbox","type":"Bool"},{"name":"lang_code","type":"string"}],"type":"Bool"},{"id":"1707432768","method":"account.unregisterDevice","params":[{"name":"token_type","type":"int"},{"name":"token","type":"string"}],"type":"Bool"},{"id":"-2067899501","method":"account.updateNotifySettings","params":[{"name":"peer","type":"InputNotifyPeer"},{"name":"settings","type":"InputPeerNotifySettings"}],"type":"Bool"},{"id":"313765169","method":"account.getNotifySettings","params":[{"name":"peer","type":"InputNotifyPeer"}],"type":"PeerNotifySettings"},{"id":"-612493497","method":"account.resetNotifySettings","params":[],"type":"Bool"},{"id":"-259486360","method":"account.updateProfile","params":[{"name":"first_name","type":"string"},{"name":"last_name","type":"string"}],"type":"User"},{"id":"1713919532","method":"account.updateStatus","params":[{"name":"offline","type":"Bool"}],"type":"Bool"},{"id":"-1068696894","method":"account.getWallPapers","params":[],"type":"Vector<WallPaper>"},{"id":"-1374118561","method":"account.reportPeer","params":[{"name":"peer","type":"InputPeer"},{"name":"reason","type":"ReportReason"}],"type":"Bool"},{"id":"227648840","method":"users.getUsers","params":[{"name":"id","type":"Vector<InputUser>"}],"type":"Vector<User>"},{"id":"-902781519","method":"users.getFullUser","params":[{"name":"id","type":"InputUser"}],"type":"UserFull"},{"id":"-995929106","method":"contacts.getStatuses","params":[],"type":"Vector<ContactStatus>"},{"id":"583445000","method":"contacts.getContacts","params":[{"name":"hash","type":"string"}],"type":"contacts.Contacts"},{"id":"-634342611","method":"contacts.importContacts","params":[{"name":"contacts","type":"Vector<InputContact>"},{"name":"replace","type":"Bool"}],"type":"contacts.ImportedContacts"},{"id":"-847825880","method":"contacts.getSuggested","params":[{"name":"limit","type":"int"}],"type":"contacts.Suggested"},{"id":"-1902823612","method":"contacts.deleteContact","params":[{"name":"id","type":"InputUser"}],"type":"contacts.Link"},{"id":"1504393374","method":"contacts.deleteContacts","params":[{"name":"id","type":"Vector<InputUser>"}],"type":"Bool"},{"id":"858475004","method":"contacts.block","params":[{"name":"id","type":"InputUser"}],"type":"Bool"},{"id":"-448724803","method":"contacts.unblock","params":[{"name":"id","type":"InputUser"}],"type":"Bool"},{"id":"-176409329","method":"contacts.getBlocked","params":[{"name":"offset","type":"int"},{"name":"limit","type":"int"}],"type":"contacts.Blocked"},{"id":"-2065352905","method":"contacts.exportCard","params":[],"type":"Vector<int>"},{"id":"1340184318","method":"contacts.importCard","params":[{"name":"export_card","type":"Vector<int>"}],"type":"User"},{"id":"1109588596","method":"messages.getMessages","params":[{"name":"id","type":"Vector<int>"}],"type":"messages.Messages"},{"id":"1799878989","method":"messages.getDialogs","params":[{"name":"offset_date","type":"int"},{"name":"offset_id","type":"int"},{"name":"offset_peer","type":"InputPeer"},{"name":"limit","type":"int"}],"type":"messages.Dialogs"},{"id":"-1970355494","method":"messages.getHistory","params":[{"name":"peer","type":"InputPeer"},{"name":"offset_id","type":"int"},{"name":"add_offset","type":"int"},{"name":"limit","type":"int"},{"name":"max_id","type":"int"},{"name":"min_id","type":"int"}],"type":"messages.Messages"},{"id":"-732523960","method":"messages.search","params":[{"name":"flags","type":"#"},{"name":"important_only","type":"flags.0?true"},{"name":"peer","type":"InputPeer"},{"name":"q","type":"string"},{"name":"filter","type":"MessagesFilter"},{"name":"min_date","type":"int"},{"name":"max_date","type":"int"},{"name":"offset","type":"int"},{"name":"max_id","type":"int"},{"name":"limit","type":"int"}],"type":"messages.Messages"},{"id":"238054714","method":"messages.readHistory","params":[{"name":"peer","type":"InputPeer"},{"name":"max_id","type":"int"}],"type":"messages.AffectedMessages"},{"id":"-1212072999","method":"messages.deleteHistory","params":[{"name":"peer","type":"InputPeer"},{"name":"max_id","type":"int"}],"type":"messages.AffectedHistory"},{"id":"-1510897371","method":"messages.deleteMessages","params":[{"name":"id","type":"Vector<int>"}],"type":"messages.AffectedMessages"},{"id":"94983360","method":"messages.receivedMessages","params":[{"name":"max_id","type":"int"}],"type":"Vector<ReceivedNotifyMessage>"},{"id":"-1551737264","method":"messages.setTyping","params":[{"name":"peer","type":"InputPeer"},{"name":"action","type":"SendMessageAction"}],"type":"Bool"},{"id":"-91733382","method":"messages.sendMessage","params":[{"name":"flags","type":"#"},{"name":"no_webpage","type":"flags.1?true"},{"name":"broadcast","type":"flags.4?true"},{"name":"peer","type":"InputPeer"},{"name":"reply_to_msg_id","type":"flags.0?int"},{"name":"message","type":"string"},{"name":"random_id","type":"long"},{"name":"reply_markup","type":"flags.2?ReplyMarkup"},{"name":"entities","type":"flags.3?Vector<MessageEntity>"}],"type":"Updates"},{"id":"-923703407","method":"messages.sendMedia","params":[{"name":"flags","type":"#"},{"name":"broadcast","type":"flags.4?true"},{"name":"peer","type":"InputPeer"},{"name":"reply_to_msg_id","type":"flags.0?int"},{"name":"media","type":"InputMedia"},{"name":"random_id","type":"long"},{"name":"reply_markup","type":"flags.2?ReplyMarkup"}],"type":"Updates"},{"id":"1888354709","method":"messages.forwardMessages","params":[{"name":"flags","type":"#"},{"name":"broadcast","type":"flags.4?true"},{"name":"from_peer","type":"InputPeer"},{"name":"id","type":"Vector<int>"},{"name":"random_id","type":"Vector<long>"},{"name":"to_peer","type":"InputPeer"}],"type":"Updates"},{"id":"-820669733","method":"messages.reportSpam","params":[{"name":"peer","type":"InputPeer"}],"type":"Bool"},{"id":"1013621127","method":"messages.getChats","params":[{"name":"id","type":"Vector<int>"}],"type":"messages.Chats"},{"id":"998448230","method":"messages.getFullChat","params":[{"name":"chat_id","type":"int"}],"type":"messages.ChatFull"},{"id":"-599447467","method":"messages.editChatTitle","params":[{"name":"chat_id","type":"int"},{"name":"title","type":"string"}],"type":"Updates"},{"id":"-900957736","method":"messages.editChatPhoto","params":[{"name":"chat_id","type":"int"},{"name":"photo","type":"InputChatPhoto"}],"type":"Updates"},{"id":"-106911223","method":"messages.addChatUser","params":[{"name":"chat_id","type":"int"},{"name":"user_id","type":"InputUser"},{"name":"fwd_limit","type":"int"}],"type":"Updates"},{"id":"-530505962","method":"messages.deleteChatUser","params":[{"name":"chat_id","type":"int"},{"name":"user_id","type":"InputUser"}],"type":"Updates"},{"id":"164303470","method":"messages.createChat","params":[{"name":"users","type":"Vector<InputUser>"},{"name":"title","type":"string"}],"type":"Updates"},{"id":"-304838614","method":"updates.getState","params":[],"type":"updates.State"},{"id":"168039573","method":"updates.getDifference","params":[{"name":"pts","type":"int"},{"name":"date","type":"int"},{"name":"qts","type":"int"}],"type":"updates.Difference"},{"id":"-285902432","method":"photos.updateProfilePhoto","params":[{"name":"id","type":"InputPhoto"},{"name":"crop","type":"InputPhotoCrop"}],"type":"UserProfilePhoto"},{"id":"-720397176","method":"photos.uploadProfilePhoto","params":[{"name":"file","type":"InputFile"},{"name":"caption","type":"string"},{"name":"geo_point","type":"InputGeoPoint"},{"name":"crop","type":"InputPhotoCrop"}],"type":"photos.Photo"},{"id":"-2016444625","method":"photos.deletePhotos","params":[{"name":"id","type":"Vector<InputPhoto>"}],"type":"Vector<long>"},{"id":"-1291540959","method":"upload.saveFilePart","params":[{"name":"file_id","type":"long"},{"name":"file_part","type":"int"},{"name":"bytes","type":"bytes"}],"type":"Bool"},{"id":"-475607115","method":"upload.getFile","params":[{"name":"location","type":"InputFileLocation"},{"name":"offset","type":"int"},{"name":"limit","type":"int"}],"type":"upload.File"},{"id":"-990308245","method":"help.getConfig","params":[],"type":"Config"},{"id":"531836966","method":"help.getNearestDc","params":[],"type":"NearestDc"},{"id":"-938300290","method":"help.getAppUpdate","params":[{"name":"device_model","type":"string"},{"name":"system_version","type":"string"},{"name":"app_version","type":"string"},{"name":"lang_code","type":"string"}],"type":"help.AppUpdate"},{"id":"1862465352","method":"help.saveAppLog","params":[{"name":"events","type":"Vector<InputAppEvent>"}],"type":"Bool"},{"id":"-1532407418","method":"help.getInviteText","params":[{"name":"lang_code","type":"string"}],"type":"help.InviteText"},{"id":"-1848823128","method":"photos.getUserPhotos","params":[{"name":"user_id","type":"InputUser"},{"name":"offset","type":"int"},{"name":"max_id","type":"long"},{"name":"limit","type":"int"}],"type":"photos.Photos"},{"id":"865483769","method":"messages.forwardMessage","params":[{"name":"peer","type":"InputPeer"},{"name":"id","type":"int"},{"name":"random_id","type":"long"}],"type":"Updates"},{"id":"-1082919718","method":"messages.sendBroadcast","params":[{"name":"contacts","type":"Vector<InputUser>"},{"name":"random_id","type":"Vector<long>"},{"name":"message","type":"string"},{"name":"media","type":"InputMedia"}],"type":"Updates"},{"id":"651135312","method":"messages.getDhConfig","params":[{"name":"version","type":"int"},{"name":"random_length","type":"int"}],"type":"messages.DhConfig"},{"id":"-162681021","method":"messages.requestEncryption","params":[{"name":"user_id","type":"InputUser"},{"name":"random_id","type":"int"},{"name":"g_a","type":"bytes"}],"type":"EncryptedChat"},{"id":"1035731989","method":"messages.acceptEncryption","params":[{"name":"peer","type":"InputEncryptedChat"},{"name":"g_b","type":"bytes"},{"name":"key_fingerprint","type":"long"}],"type":"EncryptedChat"},{"id":"-304536635","method":"messages.discardEncryption","params":[{"name":"chat_id","type":"int"}],"type":"Bool"},{"id":"2031374829","method":"messages.setEncryptedTyping","params":[{"name":"peer","type":"InputEncryptedChat"},{"name":"typing","type":"Bool"}],"type":"Bool"},{"id":"2135648522","method":"messages.readEncryptedHistory","params":[{"name":"peer","type":"InputEncryptedChat"},{"name":"max_date","type":"int"}],"type":"Bool"},{"id":"-1451792525","method":"messages.sendEncrypted","params":[{"name":"peer","type":"InputEncryptedChat"},{"name":"random_id","type":"long"},{"name":"data","type":"bytes"}],"type":"messages.SentEncryptedMessage"},{"id":"-1701831834","method":"messages.sendEncryptedFile","params":[{"name":"peer","type":"InputEncryptedChat"},{"name":"random_id","type":"long"},{"name":"data","type":"bytes"},{"name":"file","type":"InputEncryptedFile"}],"type":"messages.SentEncryptedMessage"},{"id":"852769188","method":"messages.sendEncryptedService","params":[{"name":"peer","type":"InputEncryptedChat"},{"name":"random_id","type":"long"},{"name":"data","type":"bytes"}],"type":"messages.SentEncryptedMessage"},{"id":"1436924774","method":"messages.receivedQueue","params":[{"name":"max_qts","type":"int"}],"type":"Vector<long>"},{"id":"-562337987","method":"upload.saveBigFilePart","params":[{"name":"file_id","type":"long"},{"name":"file_part","type":"int"},{"name":"file_total_parts","type":"int"},{"name":"bytes","type":"bytes"}],"type":"Bool"},{"id":"1769565673","method":"initConnection","params":[{"name":"api_id","type":"int"},{"name":"device_model","type":"string"},{"name":"system_version","type":"string"},{"name":"app_version","type":"string"},{"name":"lang_code","type":"string"},{"name":"query","type":"!X"}],"type":"X"},{"id":"-1663104819","method":"help.getSupport","params":[],"type":"help.Support"},{"id":"229241832","method":"auth.sendSms","params":[{"name":"phone_number","type":"string"},{"name":"phone_code_hash","type":"string"}],"type":"Bool"},{"id":"916930423","method":"messages.readMessageContents","params":[{"name":"id","type":"Vector<int>"}],"type":"messages.AffectedMessages"},{"id":"655677548","method":"account.checkUsername","params":[{"name":"username","type":"string"}],"type":"Bool"},{"id":"1040964988","method":"account.updateUsername","params":[{"name":"username","type":"string"}],"type":"User"},{"id":"301470424","method":"contacts.search","params":[{"name":"q","type":"string"},{"name":"limit","type":"int"}],"type":"contacts.Found"},{"id":"-623130288","method":"account.getPrivacy","params":[{"name":"key","type":"InputPrivacyKey"}],"type":"account.PrivacyRules"},{"id":"-906486552","method":"account.setPrivacy","params":[{"name":"key","type":"InputPrivacyKey"},{"name":"rules","type":"Vector<InputPrivacyRule>"}],"type":"account.PrivacyRules"},{"id":"1099779595","method":"account.deleteAccount","params":[{"name":"reason","type":"string"}],"type":"Bool"},{"id":"150761757","method":"account.getAccountTTL","params":[],"type":"AccountDaysTTL"},{"id":"608323678","method":"account.setAccountTTL","params":[{"name":"ttl","type":"AccountDaysTTL"}],"type":"Bool"},{"id":"-627372787","method":"invokeWithLayer","params":[{"name":"layer","type":"int"},{"name":"query","type":"!X"}],"type":"X"},{"id":"-113456221","method":"contacts.resolveUsername","params":[{"name":"username","type":"string"}],"type":"contacts.ResolvedPeer"},{"id":"-1543001868","method":"account.sendChangePhoneCode","params":[{"name":"phone_number","type":"string"}],"type":"account.SentChangePhoneCode"},{"id":"1891839707","method":"account.changePhone","params":[{"name":"phone_number","type":"string"},{"name":"phone_code_hash","type":"string"},{"name":"phone_code","type":"string"}],"type":"User"},{"id":"-1373446075","method":"messages.getStickers","params":[{"name":"emoticon","type":"string"},{"name":"hash","type":"string"}],"type":"messages.Stickers"},{"id":"479598769","method":"messages.getAllStickers","params":[{"name":"hash","type":"int"}],"type":"messages.AllStickers"},{"id":"954152242","method":"account.updateDeviceLocked","params":[{"name":"period","type":"int"}],"type":"Bool"},{"id":"1738800940","method":"auth.importBotAuthorization","params":[{"name":"flags","type":"int"},{"name":"api_id","type":"int"},{"name":"api_hash","type":"string"},{"name":"bot_auth_token","type":"string"}],"type":"auth.Authorization"},{"id":"623001124","method":"messages.getWebPagePreview","params":[{"name":"message","type":"string"}],"type":"MessageMedia"},{"id":"-484392616","method":"account.getAuthorizations","params":[],"type":"account.Authorizations"},{"id":"-545786948","method":"account.resetAuthorization","params":[{"name":"hash","type":"long"}],"type":"Bool"},{"id":"1418342645","method":"account.getPassword","params":[],"type":"account.Password"},{"id":"-1131605573","method":"account.getPasswordSettings","params":[{"name":"current_password_hash","type":"bytes"}],"type":"account.PasswordSettings"},{"id":"-92517498","method":"account.updatePasswordSettings","params":[{"name":"current_password_hash","type":"bytes"},{"name":"new_settings","type":"account.PasswordInputSettings"}],"type":"Bool"},{"id":"174260510","method":"auth.checkPassword","params":[{"name":"password_hash","type":"bytes"}],"type":"auth.Authorization"},{"id":"-661144474","method":"auth.requestPasswordRecovery","params":[],"type":"auth.PasswordRecovery"},{"id":"1319464594","method":"auth.recoverPassword","params":[{"name":"code","type":"string"}],"type":"auth.Authorization"},{"id":"-1080796745","method":"invokeWithoutUpdates","params":[{"name":"query","type":"!X"}],"type":"X"},{"id":"2106086025","method":"messages.exportChatInvite","params":[{"name":"chat_id","type":"int"}],"type":"ExportedChatInvite"},{"id":"1051570619","method":"messages.checkChatInvite","params":[{"name":"hash","type":"string"}],"type":"ChatInvite"},{"id":"1817183516","method":"messages.importChatInvite","params":[{"name":"hash","type":"string"}],"type":"Updates"},{"id":"639215886","method":"messages.getStickerSet","params":[{"name":"stickerset","type":"InputStickerSet"}],"type":"messages.StickerSet"},{"id":"2066793382","method":"messages.installStickerSet","params":[{"name":"stickerset","type":"InputStickerSet"},{"name":"disabled","type":"Bool"}],"type":"Bool"},{"id":"-110209570","method":"messages.uninstallStickerSet","params":[{"name":"stickerset","type":"InputStickerSet"}],"type":"Bool"},{"id":"-421563528","method":"messages.startBot","params":[{"name":"bot","type":"InputUser"},{"name":"peer","type":"InputPeer"},{"name":"random_id","type":"long"},{"name":"start_param","type":"string"}],"type":"Updates"},{"id":"1537966002","method":"help.getAppChangelog","params":[{"name":"device_model","type":"string"},{"name":"system_version","type":"string"},{"name":"app_version","type":"string"},{"name":"lang_code","type":"string"}],"type":"help.AppChangelog"},{"id":"-993483427","method":"messages.getMessagesViews","params":[{"name":"peer","type":"InputPeer"},{"name":"id","type":"Vector<int>"},{"name":"increment","type":"Bool"}],"type":"Vector<int>"},{"id":"-1445735863","method":"channels.getDialogs","params":[{"name":"offset","type":"int"},{"name":"limit","type":"int"}],"type":"messages.Dialogs"},{"id":"-575067701","method":"channels.getImportantHistory","params":[{"name":"channel","type":"InputChannel"},{"name":"offset_id","type":"int"},{"name":"add_offset","type":"int"},{"name":"limit","type":"int"},{"name":"max_id","type":"int"},{"name":"min_id","type":"int"}],"type":"messages.Messages"},{"id":"-871347913","method":"channels.readHistory","params":[{"name":"channel","type":"InputChannel"},{"name":"max_id","type":"int"}],"type":"Bool"},{"id":"-2067661490","method":"channels.deleteMessages","params":[{"name":"channel","type":"InputChannel"},{"name":"id","type":"Vector<int>"}],"type":"messages.AffectedMessages"},{"id":"-787622117","method":"channels.deleteUserHistory","params":[{"name":"channel","type":"InputChannel"},{"name":"user_id","type":"InputUser"}],"type":"messages.AffectedHistory"},{"id":"-32999408","method":"channels.reportSpam","params":[{"name":"channel","type":"InputChannel"},{"name":"user_id","type":"InputUser"},{"name":"id","type":"Vector<int>"}],"type":"Bool"},{"id":"-1814580409","method":"channels.getMessages","params":[{"name":"channel","type":"InputChannel"},{"name":"id","type":"Vector<int>"}],"type":"messages.Messages"},{"id":"618237842","method":"channels.getParticipants","params":[{"name":"channel","type":"InputChannel"},{"name":"filter","type":"ChannelParticipantsFilter"},{"name":"offset","type":"int"},{"name":"limit","type":"int"}],"type":"channels.ChannelParticipants"},{"id":"1416484774","method":"channels.getParticipant","params":[{"name":"channel","type":"InputChannel"},{"name":"user_id","type":"InputUser"}],"type":"channels.ChannelParticipant"},{"id":"176122811","method":"channels.getChannels","params":[{"name":"id","type":"Vector<InputChannel>"}],"type":"messages.Chats"},{"id":"141781513","method":"channels.getFullChannel","params":[{"name":"channel","type":"InputChannel"}],"type":"messages.ChatFull"},{"id":"-192332417","method":"channels.createChannel","params":[{"name":"flags","type":"#"},{"name":"broadcast","type":"flags.0?true"},{"name":"megagroup","type":"flags.1?true"},{"name":"title","type":"string"},{"name":"about","type":"string"}],"type":"Updates"},{"id":"333610782","method":"channels.editAbout","params":[{"name":"channel","type":"InputChannel"},{"name":"about","type":"string"}],"type":"Bool"},{"id":"-344583728","method":"channels.editAdmin","params":[{"name":"channel","type":"InputChannel"},{"name":"user_id","type":"InputUser"},{"name":"role","type":"ChannelParticipantRole"}],"type":"Updates"},{"id":"1450044624","method":"channels.editTitle","params":[{"name":"channel","type":"InputChannel"},{"name":"title","type":"string"}],"type":"Updates"},{"id":"-248621111","method":"channels.editPhoto","params":[{"name":"channel","type":"InputChannel"},{"name":"photo","type":"InputChatPhoto"}],"type":"Updates"},{"id":"-1432183160","method":"channels.toggleComments","params":[{"name":"channel","type":"InputChannel"},{"name":"enabled","type":"Bool"}],"type":"Updates"},{"id":"283557164","method":"channels.checkUsername","params":[{"name":"channel","type":"InputChannel"},{"name":"username","type":"string"}],"type":"Bool"},{"id":"890549214","method":"channels.updateUsername","params":[{"name":"channel","type":"InputChannel"},{"name":"username","type":"string"}],"type":"Bool"},{"id":"615851205","method":"channels.joinChannel","params":[{"name":"channel","type":"InputChannel"}],"type":"Updates"},{"id":"-130635115","method":"channels.leaveChannel","params":[{"name":"channel","type":"InputChannel"}],"type":"Updates"},{"id":"429865580","method":"channels.inviteToChannel","params":[{"name":"channel","type":"InputChannel"},{"name":"users","type":"Vector<InputUser>"}],"type":"Updates"},{"id":"-1502421484","method":"channels.kickFromChannel","params":[{"name":"channel","type":"InputChannel"},{"name":"user_id","type":"InputUser"},{"name":"kicked","type":"Bool"}],"type":"Updates"},{"id":"-950663035","method":"channels.exportInvite","params":[{"name":"channel","type":"InputChannel"}],"type":"ExportedChatInvite"},{"id":"-1072619549","method":"channels.deleteChannel","params":[{"name":"channel","type":"InputChannel"}],"type":"Updates"},{"id":"-1154295872","method":"updates.getChannelDifference","params":[{"name":"channel","type":"InputChannel"},{"name":"filter","type":"ChannelMessagesFilter"},{"name":"pts","type":"int"},{"name":"limit","type":"int"}],"type":"updates.ChannelDifference"},{"id":"-326379039","method":"messages.toggleChatAdmins","params":[{"name":"chat_id","type":"int"},{"name":"enabled","type":"Bool"}],"type":"Updates"},{"id":"-1444503762","method":"messages.editChatAdmin","params":[{"name":"chat_id","type":"int"},{"name":"user_id","type":"InputUser"},{"name":"is_admin","type":"Bool"}],"type":"Bool"},{"id":"363051235","method":"messages.migrateChat","params":[{"name":"chat_id","type":"int"}],"type":"Updates"},{"id":"-1640190800","method":"messages.searchGlobal","params":[{"name":"q","type":"string"},{"name":"offset_date","type":"int"},{"name":"offset_peer","type":"InputPeer"},{"name":"offset_id","type":"int"},{"name":"limit","type":"int"}],"type":"messages.Messages"},{"id":"936873859","method":"help.getTermsOfService","params":[{"name":"lang_code","type":"string"}],"type":"help.TermsOfService"},{"id":"-1613775824","method":"messages.reorderStickerSets","params":[{"name":"order","type":"Vector<long>"}],"type":"Bool"},{"id":"864953444","method":"messages.getDocumentByHash","params":[{"name":"sha256","type":"bytes"},{"name":"size","type":"int"},{"name":"mime_type","type":"string"}],"type":"Document"},{"id":"-1080395925","method":"messages.searchGifs","params":[{"name":"q","type":"string"},{"name":"offset","type":"int"}],"type":"messages.FoundGifs"},{"id":"-2084618926","method":"messages.getSavedGifs","params":[{"name":"hash","type":"int"}],"type":"messages.SavedGifs"},{"id":"846868683","method":"messages.saveGif","params":[{"name":"id","type":"InputDocument"},{"name":"unsave","type":"Bool"}],"type":"Bool"},{"id":"-1826332659","method":"messages.getInlineBotResults","params":[{"name":"bot","type":"InputUser"},{"name":"query","type":"string"},{"name":"offset","type":"string"}],"type":"messages.BotResults"},{"id":"1059318802","method":"messages.setInlineBotResults","params":[{"name":"flags","type":"#"},{"name":"gallery","type":"flags.0?true"},{"name":"private","type":"flags.1?true"},{"name":"query_id","type":"long"},{"name":"results","type":"Vector<InputBotInlineResult>"},{"name":"cache_time","type":"int"},{"name":"next_offset","type":"flags.2?string"}],"type":"Bool"},{"id":"-1318189314","method":"messages.sendInlineBotResult","params":[{"name":"flags","type":"#"},{"name":"broadcast","type":"flags.4?true"},{"name":"peer","type":"InputPeer"},{"name":"reply_to_msg_id","type":"flags.0?int"},{"name":"random_id","type":"long"},{"name":"query_id","type":"long"},{"name":"id","type":"string"}],"type":"Updates"}]};
+
+Config.Schema.API.layer = 45;
+
+// ConfigStorage
+(function (window) {
+  var keyPrefix = '';
+  var noPrefix = false;
+  var cache = {};
+  var useCs = !!(window.chrome && chrome.storage && chrome.storage.local);
+  var useLs = !useCs && !!window.localStorage;
+
+  function storageSetPrefix (newPrefix) {
+    keyPrefix = newPrefix;
+  }
+
+  function storageSetNoPrefix() {
+    noPrefix = true;
+  }
+
+  function storageGetPrefix () {
+    if (noPrefix) {
+      noPrefix = false;
+      return '';
+    }
+    return keyPrefix;
+  }
+
+  function storageGetValue() {
+    var keys = Array.prototype.slice.call(arguments),
+        callback = keys.pop(),
+        result = [],
+        single = keys.length == 1,
+        value,
+        allFound = true,
+        prefix = storageGetPrefix(),
+        i, key;
+
+    for (i = 0; i < keys.length; i++) {
+      key = keys[i] = prefix + keys[i];
+      if (key.substr(0, 3) != 'xt_' && cache[key] !== undefined) {
+        result.push(cache[key]);
+      }
+      else if (useLs) {
+        try {
+          value = localStorage.getItem(key);
+        } catch (e) {
+          useLs = false;
+        }
+        try {
+          value = (value === undefined || value === null) ? false : JSON.parse(value);
+        } catch (e) {
+          value = false;
+        }
+        result.push(cache[key] = value);
+      }
+      else if (!useCs) {
+        result.push(cache[key] = false);
+      }
+      else {
+        allFound = false;
+      }
+    }
+
+    if (allFound) {
+      return callback(single ? result[0] : result);
+    }
+
+    chrome.storage.local.get(keys, function (resultObj) {
+      var value;
+      result = [];
+      for (i = 0; i < keys.length; i++) {
+        key = keys[i];
+        value = resultObj[key];
+        value = value === undefined || value === null ? false : JSON.parse(value);
+        result.push(cache[key] = value);
+      }
+
+      callback(single ? result[0] : result);
+    });
+  }
+
+  function storageSetValue(obj, callback) {
+    var keyValues = {},
+        prefix = storageGetPrefix(),
+        key, value;
+
+    for (key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        value = obj[key];
+        key = prefix + key;
+        cache[key] = value;
+        value = JSON.stringify(value);
+        if (useLs) {
+          try {
+            localStorage.setItem(key, value);
+          } catch (e) {
+            useLs = false;
+          }
+        } else {
+          keyValues[key] = value;
+        }
+      }
+    }
+
+    if (useLs || !useCs) {
+      if (callback) {
+        callback();
+      }
+      return;
+    }
+
+    chrome.storage.local.set(keyValues, callback);
+  }
+
+  function storageRemoveValue () {
+    var keys = Array.prototype.slice.call(arguments),
+        prefix = storageGetPrefix(),
+        i, key, callback;
+
+    if (typeof keys[keys.length - 1] === 'function') {
+      callback = keys.pop();
+    }
+
+    for (i = 0; i < keys.length; i++) {
+      key = keys[i] = prefix + keys[i];
+      delete cache[key];
+      if (useLs) {
+        try {
+          localStorage.removeItem(key);
+        } catch (e) {
+          useLs = false;
+        }
+      }
+    }
+    if (useCs) {
+      chrome.storage.local.remove(keys, callback);
+    }
+    else if (callback) {
+      callback();
+    }
+  }
+
+  window.ConfigStorage = {
+    prefix: storageSetPrefix,
+    noPrefix: storageSetNoPrefix,
+    get: storageGetValue,
+    set: storageSetValue,
+    remove: storageRemoveValue
+  };
+
+})(this);
+
+// Console-polyfill. MIT license.
+// https://github.com/paulmillr/console-polyfill
+// Make it safe to do console.log() always.
+;(function(global) {
+  'use strict';
+  global.console = global.console || {};
+  var con = global.console;
+  var prop, method;
+  var empty = {};
+  var dummy = function() {};
+  var properties = 'memory'.split(',');
+  var methods = ('assert,clear,count,debug,dir,dirxml,error,exception,group,' +
+     'groupCollapsed,groupEnd,info,log,markTimeline,profile,profiles,profileEnd,' +
+     'show,table,time,timeEnd,timeline,timelineEnd,timeStamp,trace,warn').split(',');
+  while (prop = properties.pop()) if (!con[prop]) con[prop] = empty;
+  while (method = methods.pop()) if (!con[method]) con[method] = dummy;
+})(typeof window === 'undefined' ? this : window);
+// Using `this` for web workers while maintaining compatibility with browser
+// targeted script loaders such as Browserify or Webpack where the only way to
+// get to the global object is via `window`.
+
+/* Array.indexOf polyfill */
+if (!Array.prototype.indexOf) {
+  Array.prototype.indexOf = function(searchElement, fromIndex) {
+    var k;
+    if (this == null) {
+      throw new TypeError('"this" is null or not defined');
+    }
+
+    var O = Object(this);
+    var len = O.length >>> 0;
+    if (len === 0) {
+      return -1;
+    }
+    var n = +fromIndex || 0;
+
+    if (Math.abs(n) === Infinity) {
+      n = 0;
+    }
+    if (n >= len) {
+      return -1;
+    }
+    k = Math.max(n >= 0 ? n : len - Math.abs(n), 0);
+    while (k < len) {
+      if (k in O && O[k] === searchElement) {
+        return k;
+      }
+      k++;
+    }
+    return -1;
+  };
+}
+
+/* Array.isArray polyfill */
+if (!Array.isArray) {
+  Array.isArray = function(arg) {
+    return Object.prototype.toString.call(arg) === '[object Array]';
+  };
+}
+
+/* Object.create polyfill */
+if (typeof Object.create != 'function') {
+  Object.create = (function() {
+    var Object = function() {};
+    return function (prototype) {
+      if (arguments.length > 1) {
+        throw Error('Second argument not supported');
+      }
+      if (typeof prototype != 'object') {
+        throw TypeError('Argument must be an object');
+      }
+      Object.prototype = prototype;
+      var result = new Object();
+      Object.prototype = null;
+      return result;
+    };
+  })();
+}
+
+/* Function.bind polyfill */
+if (!Function.prototype.bind) {
+  Function.prototype.bind = function (oThis) {
+    if (typeof this !== "function") {
+      throw new TypeError("Function.prototype.bind - what is trying to be bound is not callable");
+    }
+
+    var aArgs = Array.prototype.slice.call(arguments, 1),
+        fToBind = this,
+        fNOP = function () {},
+        fBound = function () {
+          return fToBind.apply(this instanceof fNOP && oThis
+                 ? this
+                 : oThis,
+                 aArgs.concat(Array.prototype.slice.call(arguments)));
+        };
+
+    fNOP.prototype = this.prototype;
+    fBound.prototype = new fNOP();
+
+    return fBound;
+  };
+}
+
+/* setZeroTimeout polyfill, from http://dbaron.org/log/20100309-faster-timeouts */
+(function(global) {
+  var timeouts = [];
+  var messageName = 'zero-timeout-message';
+
+  function setZeroTimeout(fn) {
+    timeouts.push(fn);
+    global.postMessage(messageName, '*');
+  }
+
+  function handleMessage(event) {
+    if (event.source == global && event.data == messageName) {
+      event.stopPropagation();
+      if (timeouts.length > 0) {
+        var fn = timeouts.shift();
+        fn();
+      }
+    }
+  }
+
+  global.addEventListener('message', handleMessage, true);
+
+  var originalSetTimeout = global.setTimeout;
+  global.setTimeout = function (callback, delay) {
+    if (!delay || delay <= 5) {
+      return setZeroTimeout(callback);
+    }
+    return originalSetTimeout(callback, delay);
+  };
+
+  global.setZeroTimeout = setZeroTimeout;
+})(this);
+
+/*!
+ * Webogram v0.5.3 - messaging web application for MTProto
+ * https://github.com/zhukov/webogram
+ * Copyright (C) 2014 Igor Zhukov <igor.beatle@gmail.com>
+ * https://github.com/zhukov/webogram/blob/master/LICENSE
+ */
+
+ function TLSerialization (options) {
+  options = options || {};
+  this.maxLength = options.startMaxLength || 2048; // 2Kb
+  this.offset = 0; // in bytes
+
+  this.createBuffer();
+
+  // this.debug = options.debug !== undefined ? options.debug : Config.Modes.debug;
+  this.mtproto = options.mtproto || false;
+  return this;
+}
+
+TLSerialization.prototype.createBuffer = function () {
+  this.buffer   = new ArrayBuffer(this.maxLength);
+  this.intView  = new Int32Array(this.buffer);
+  this.byteView = new Uint8Array(this.buffer);
+};
+
+TLSerialization.prototype.getArray = function () {
+  var resultBuffer = new ArrayBuffer(this.offset);
+  var resultArray  = new Int32Array(resultBuffer);
+
+  resultArray.set(this.intView.subarray(0, this.offset / 4));
+
+  return resultArray;
+};
+
+TLSerialization.prototype.getBuffer = function () {
+  return this.getArray().buffer;
+};
+
+TLSerialization.prototype.getBytes = function (typed) {
+  if (typed) {
+    var resultBuffer = new ArrayBuffer(this.offset);
+    var resultArray  = new Uint8Array(resultBuffer);
+
+    resultArray.set(this.byteView.subarray(0, this.offset));
+
+    return resultArray;
+  }
+
+  var bytes = [];
+  for (var i = 0; i < this.offset; i++) {
+    bytes.push(this.byteView[i]);
+  }
+  return bytes;
+};
+
+TLSerialization.prototype.checkLength = function (needBytes) {
+  if (this.offset + needBytes < this.maxLength) {
+    return;
+  }
+
+  console.trace('Increase buffer', this.offset, needBytes, this.maxLength);
+  this.maxLength = Math.ceil(Math.max(this.maxLength * 2, this.offset + needBytes + 16) / 4) * 4;
+  var previousBuffer = this.buffer,
+      previousArray = new Int32Array(previousBuffer);
+
+  this.createBuffer();
+
+  new Int32Array(this.buffer).set(previousArray);
+};
+
+TLSerialization.prototype.writeInt = function (i, field) {
+  this.debug && console.log('>>>', i.toString(16), i, field);
+
+  this.checkLength(4);
+  this.intView[this.offset / 4] = i;
+  this.offset += 4;
+};
+
+TLSerialization.prototype.storeInt = function (i, field) {
+  this.writeInt(i, (field || '') + ':int');
+};
+
+TLSerialization.prototype.storeBool = function (i, field) {
+  if (i) {
+    this.writeInt(0x997275b5, (field || '') + ':bool');
+  } else {
+    this.writeInt(0xbc799737, (field || '') + ':bool');
+  }
+};
+
+TLSerialization.prototype.storeLongP = function (iHigh, iLow, field) {
+  this.writeInt(iLow, (field || '') + ':long[low]');
+  this.writeInt(iHigh, (field || '') + ':long[high]');
+};
+
+TLSerialization.prototype.storeLong = function (sLong, field) {
+  if (isArray(sLong)) {
+    if (sLong.length == 2) {
+      return this.storeLongP(sLong[0], sLong[1], field);
+    } else {
+      return this.storeIntBytes(sLong, 64, field);
+    }
+  }
+
+  if (typeof sLong != 'string') {
+    sLong = sLong ? sLong.toString() : '0';
+  }
+  var divRem = bigStringInt(sLong).divideAndRemainder(bigint(0x100000000));
+
+  this.writeInt(intToUint(divRem[1].intValue()), (field || '') + ':long[low]');
+  this.writeInt(intToUint(divRem[0].intValue()), (field || '') + ':long[high]');
+};
+
+TLSerialization.prototype.storeDouble = function (f) {
+  var buffer     = new ArrayBuffer(8);
+  var intView    = new Int32Array(buffer);
+  var doubleView = new Float64Array(buffer);
+
+  doubleView[0] = f;
+
+  this.writeInt(intView[0], (field || '') + ':double[low]');
+  this.writeInt(intView[1], (field || '') + ':double[high]');
+};
+
+TLSerialization.prototype.storeString = function (s, field) {
+  this.debug && console.log('>>>', s, (field || '') + ':string');
+
+  if (s === undefined) {
+    s = '';
+  }
+  var sUTF8 = unescape(encodeURIComponent(s));
+
+  this.checkLength(sUTF8.length + 8);
+
+
+  var len = sUTF8.length;
+  if (len <= 253) {
+    this.byteView[this.offset++] = len;
+  } else {
+    this.byteView[this.offset++] = 254;
+    this.byteView[this.offset++] = len & 0xFF;
+    this.byteView[this.offset++] = (len & 0xFF00) >> 8;
+    this.byteView[this.offset++] = (len & 0xFF0000) >> 16;
+  }
+  for (var i = 0; i < len; i++) {
+    this.byteView[this.offset++] = sUTF8.charCodeAt(i);
+  }
+
+  // Padding
+  while (this.offset % 4) {
+    this.byteView[this.offset++] = 0;
+  }
+}
+
+
+TLSerialization.prototype.storeBytes = function (bytes, field) {
+  if (bytes instanceof ArrayBuffer) {
+    bytes = new Uint8Array(bytes);
+  }
+  else if (bytes === undefined) {
+    bytes = [];
+  }
+  this.debug && console.log('>>>', bytesToHex(bytes), (field || '') + ':bytes');
+
+  var len = bytes.byteLength || bytes.length;
+  this.checkLength(len + 8);
+  if (len <= 253) {
+    this.byteView[this.offset++] = len;
+  } else {
+    this.byteView[this.offset++] = 254;
+    this.byteView[this.offset++] = len & 0xFF;
+    this.byteView[this.offset++] = (len & 0xFF00) >> 8;
+    this.byteView[this.offset++] = (len & 0xFF0000) >> 16;
+  }
+
+  this.byteView.set(bytes, this.offset);
+  this.offset += len;
+
+  // Padding
+  while (this.offset % 4) {
+    this.byteView[this.offset++] = 0;
+  }
+}
+
+TLSerialization.prototype.storeIntBytes = function (bytes, bits, field) {
+  if (bytes instanceof ArrayBuffer) {
+    bytes = new Uint8Array(bytes);
+  }
+  var len = bytes.length;
+  if ((bits % 32) || (len * 8) != bits) {
+    throw new Error('Invalid bits: ' + bits + ', ' + bytes.length);
+  }
+
+  this.debug && console.log('>>>', bytesToHex(bytes), (field || '') + ':int' + bits);
+  this.checkLength(len);
+
+  this.byteView.set(bytes, this.offset);
+  this.offset += len;
+};
+
+TLSerialization.prototype.storeRawBytes = function (bytes, field) {
+  if (bytes instanceof ArrayBuffer) {
+    bytes = new Uint8Array(bytes);
+  }
+  var len = bytes.length;
+
+  this.debug && console.log('>>>', bytesToHex(bytes), (field || ''));
+  this.checkLength(len);
+
+  this.byteView.set(bytes, this.offset);
+  this.offset += len;
+};
+
+
+TLSerialization.prototype.storeMethod = function (methodName, params) {
+  var schema = this.mtproto ? Config.Schema.MTProto : Config.Schema.API,
+      methodData = false,
+      i;
+
+  for (i = 0; i < schema.methods.length; i++) {
+    if (schema.methods[i].method == methodName) {
+      methodData = schema.methods[i];
+      break
+    }
+  }
+  if (!methodData) {
+    throw new Error('No method ' + methodName + ' found');
+  }
+
+  this.storeInt(intToUint(methodData.id), methodName + '[id]');
+
+  var param, type, i, condType, fieldBit;
+  var len = methodData.params.length;
+  for (i = 0; i < len; i++) {
+    param = methodData.params[i];
+    type = param.type;
+    if (type.indexOf('?') !== -1) {
+      condType = type.split('?');
+      fieldBit = condType[0].split('.');
+      if (!(params[fieldBit[0]] & (1 << fieldBit[1]))) {
+        continue;
+      }
+      type = condType[1];
+    }
+
+    this.storeObject(params[param.name], type, methodName + '[' + param.name + ']');
+  }
+
+  return methodData.type;
+};
+
+TLSerialization.prototype.storeObject = function (obj, type, field) {
+  switch (type) {
+    case '#':
+    case 'int':    return this.storeInt(obj,  field);
+    case 'long':   return this.storeLong(obj,  field);
+    case 'int128': return this.storeIntBytes(obj, 128, field);
+    case 'int256': return this.storeIntBytes(obj, 256, field);
+    case 'int512': return this.storeIntBytes(obj, 512, field);
+    case 'string': return this.storeString(obj,   field);
+    case 'bytes':  return this.storeBytes(obj,  field);
+    case 'double': return this.storeDouble(obj,   field);
+    case 'Bool':   return this.storeBool(obj,   field);
+    case 'true':   return;
+  }
+
+  if (isArray(obj)) {
+    if (type.substr(0, 6) == 'Vector') {
+      this.writeInt(0x1cb5c415, field + '[id]');
+    }
+    else if (type.substr(0, 6) != 'vector') {
+      throw new Error('Invalid vector type ' + type);
+    }
+    var itemType = type.substr(7, type.length - 8); // for "Vector<itemType>"
+    this.writeInt(obj.length, field + '[count]');
+    for (var i = 0; i < obj.length; i++) {
+      this.storeObject(obj[i], itemType, field + '[' + i + ']');
+    }
+    return true;
+  }
+  else if (type.substr(0, 6).toLowerCase() == 'vector') {
+    throw new Error('Invalid vector object');
+  }
+
+  if (!isObject(obj)) {
+    throw new Error('Invalid object for type ' + type);
+  }
+
+  var schema = this.mtproto ? Config.Schema.MTProto : Config.Schema.API,
+      predicate = obj['_'],
+      isBare = false,
+      constructorData = false,
+      i;
+
+  if (isBare = (type.charAt(0) == '%')) {
+    type = type.substr(1);
+  }
+
+  for (i = 0; i < schema.constructors.length; i++) {
+    if (schema.constructors[i].predicate == predicate) {
+      constructorData = schema.constructors[i];
+      break
+    }
+  }
+  if (!constructorData) {
+    throw new Error('No predicate ' + predicate + ' found');
+  }
+
+  if (predicate == type) {
+    isBare = true;
+  }
+
+  if (!isBare) {
+    this.writeInt(intToUint(constructorData.id), field + '[' + predicate + '][id]');
+  }
+
+  var param, type, i, condType, fieldBit;
+  var len = constructorData.params.length;
+  for (i = 0; i < len; i++) {
+    param = constructorData.params[i];
+    type = param.type;
+    if (type.indexOf('?') !== -1) {
+      condType = type.split('?');
+      fieldBit = condType[0].split('.');
+      if (!(obj[fieldBit[0]] & (1 << fieldBit[1]))) {
+        continue;
+      }
+      type = condType[1];
+    }
+
+    this.storeObject(obj[param.name], type, field + '[' + predicate + '][' + param.name + ']');
+  }
+
+  return constructorData.type;
+};
+
+
+
+function TLDeserialization (buffer, options) {
+  options = options || {};
+
+  this.offset = 0; // in bytes
+  this.override = options.override || {};
+
+  this.buffer = buffer;
+  this.intView  = new Uint32Array(this.buffer);
+  this.byteView = new Uint8Array(this.buffer);
+
+  // this.debug = options.debug !== undefined ? options.debug : Config.Modes.debug;
+  this.mtproto = options.mtproto || false;
+  return this;
+}
+
+TLDeserialization.prototype.readInt = function (field) {
+  if (this.offset >= this.intView.length * 4) {
+    throw new Error('Nothing to fetch: ' + field);
+  }
+
+  var i = this.intView[this.offset / 4];
+
+  this.debug && console.log('<<<', i.toString(16), i, field);
+
+  this.offset += 4;
+
+  return i;
+};
+
+TLDeserialization.prototype.fetchInt = function (field) {
+  return this.readInt((field || '') + ':int');
+}
+
+TLDeserialization.prototype.fetchDouble = function (field) {
+  var buffer     = new ArrayBuffer(8);
+  var intView    = new Int32Array(buffer);
+  var doubleView = new Float64Array(buffer);
+
+  intView[0] = this.readInt((field || '') + ':double[low]'),
+  intView[1] = this.readInt((field || '') + ':double[high]');
+
+  return doubleView[0];
+};
+
+TLDeserialization.prototype.fetchLong = function (field) {
+  var iLow = this.readInt((field || '') + ':long[low]'),
+      iHigh = this.readInt((field || '') + ':long[high]');
+
+  var longDec = bigint(iHigh).shiftLeft(32).add(bigint(iLow)).toString();
+
+  return longDec;
+}
+
+TLDeserialization.prototype.fetchBool = function (field) {
+  var i = this.readInt((field || '') + ':bool');
+  if (i == 0x997275b5) {
+    return true;
+  } else if (i == 0xbc799737) {
+    return false
+  }
+
+  this.offset -= 4;
+  return this.fetchObject('Object', field);
+}
+
+TLDeserialization.prototype.fetchString = function (field) {
+  var len = this.byteView[this.offset++];
+
+  if (len == 254) {
+    var len = this.byteView[this.offset++] |
+              (this.byteView[this.offset++] << 8) |
+              (this.byteView[this.offset++] << 16);
+  }
+
+  var sUTF8 = '';
+  for (var i = 0; i < len; i++) {
+    sUTF8 += String.fromCharCode(this.byteView[this.offset++]);
+  }
+
+  // Padding
+  while (this.offset % 4) {
+    this.offset++;
+  }
+
+  try {
+    var s = decodeURIComponent(escape(sUTF8));
+  } catch (e) {
+    var s = sUTF8;
+  }
+
+  this.debug && console.log('<<<', s, (field || '') + ':string');
+
+  return s;
+}
+
+
+TLDeserialization.prototype.fetchBytes = function (field) {
+  var len = this.byteView[this.offset++];
+
+  if (len == 254) {
+    var len = this.byteView[this.offset++] |
+              (this.byteView[this.offset++] << 8) |
+              (this.byteView[this.offset++] << 16);
+  }
+
+  var bytes = this.byteView.subarray(this.offset, this.offset + len);
+  this.offset += len;
+
+  // Padding
+  while (this.offset % 4) {
+    this.offset++;
+  }
+
+  this.debug && console.log('<<<', bytesToHex(bytes), (field || '') + ':bytes');
+
+  return bytes;
+}
+
+TLDeserialization.prototype.fetchIntBytes = function (bits, typed, field) {
+  if (bits % 32) {
+    throw new Error('Invalid bits: ' + bits);
+  }
+
+  var len = bits / 8;
+  if (typed) {
+    var result = this.byteView.subarray(this.offset, this.offset + len);
+    this.offset += len;
+    return result;
+  }
+
+  var bytes = [];
+  for (var i = 0; i < len; i++) {
+    bytes.push(this.byteView[this.offset++]);
+  }
+
+  this.debug && console.log('<<<', bytesToHex(bytes), (field || '') + ':int' + bits);
+
+  return bytes;
+};
+
+
+TLDeserialization.prototype.fetchRawBytes = function (len, typed, field) {
+  if (len === false) {
+    len = this.readInt((field || '') + '_length');
+  }
+
+  if (typed) {
+    var bytes = new Uint8Array(len);
+    bytes.set(this.byteView.subarray(this.offset, this.offset + len));
+    this.offset += len;
+    return bytes;
+  }
+
+  var bytes = [];
+  for (var i = 0; i < len; i++) {
+    bytes.push(this.byteView[this.offset++]);
+  }
+
+  this.debug && console.log('<<<', bytesToHex(bytes), (field || ''));
+
+  return bytes;
+};
+
+TLDeserialization.prototype.fetchObject = function (type, field) {
+  switch (type) {
+    case '#':
+    case 'int':    return this.fetchInt(field);
+    case 'long':   return this.fetchLong(field);
+    case 'int128': return this.fetchIntBytes(128, false, field);
+    case 'int256': return this.fetchIntBytes(256, false, field);
+    case 'int512': return this.fetchIntBytes(512, false, field);
+    case 'string': return this.fetchString(field);
+    case 'bytes':  return this.fetchBytes(field);
+    case 'double': return this.fetchDouble(field);
+    case 'Bool':   return this.fetchBool(field);
+    case 'true':   return true;
+  }
+
+  field = field || type || 'Object';
+
+  if (type.substr(0, 6) == 'Vector' || type.substr(0, 6) == 'vector') {
+    if (type.charAt(0) == 'V') {
+      var constructor = this.readInt(field + '[id]'),
+          constructorCmp = uintToInt(constructor);
+
+      if (constructorCmp == 0x3072cfa1) { // Gzip packed
+        var compressed = this.fetchBytes(field + '[packed_string]'),
+            uncompressed = gzipUncompress(compressed),
+            buffer = bytesToArrayBuffer(uncompressed),
+            newDeserializer = (new TLDeserialization(buffer));
+
+        return newDeserializer.fetchObject(type, field);
+      }
+      if (constructorCmp != 0x1cb5c415) {
+        throw new Error('Invalid vector constructor ' + constructor);
+      }
+    }
+    var len = this.readInt(field + '[count]');
+    var result = [];
+    if (len > 0) {
+      var itemType = type.substr(7, type.length - 8); // for "Vector<itemType>"
+      for (var i = 0; i < len; i++) {
+        result.push(this.fetchObject(itemType, field + '[' + i + ']'))
+      }
+    }
+
+    return result;
+  }
+
+  var schema = this.mtproto ? Config.Schema.MTProto : Config.Schema.API,
+      predicate = false,
+      constructorData = false;
+
+  if (type.charAt(0) == '%') {
+    var checkType = type.substr(1);
+    for (var i = 0; i < schema.constructors.length; i++) {
+      if (schema.constructors[i].type == checkType) {
+        constructorData = schema.constructors[i];
+        break
+      }
+    }
+    if (!constructorData) {
+      throw new Error('Constructor not found for type: ' + type);
+    }
+  }
+  else if (type.charAt(0) >= 97 && type.charAt(0) <= 122) {
+    for (var i = 0; i < schema.constructors.length; i++) {
+      if (schema.constructors[i].predicate == type) {
+        constructorData = schema.constructors[i];
+        break
+      }
+    }
+    if (!constructorData) {
+      throw new Error('Constructor not found for predicate: ' + type);
+    }
+  }
+  else {
+    var constructor = this.readInt(field + '[id]'),
+        constructorCmp = uintToInt(constructor);
+
+    if (constructorCmp == 0x3072cfa1) { // Gzip packed
+      var compressed = this.fetchBytes(field + '[packed_string]'),
+          uncompressed = gzipUncompress(compressed),
+          buffer = bytesToArrayBuffer(uncompressed),
+          newDeserializer = (new TLDeserialization(buffer));
+
+      return newDeserializer.fetchObject(type, field);
+    }
+
+    var index = schema.constructorsIndex;
+    if (!index) {
+      schema.constructorsIndex = index = {};
+      for (var i = 0; i < schema.constructors.length; i++) {
+        index[schema.constructors[i].id] = i;
+      }
+    }
+    var i = index[constructorCmp];
+    if (i) {
+      constructorData = schema.constructors[i];
+    }
+
+    var fallback = false;
+    if (!constructorData && this.mtproto) {
+      var schemaFallback = Config.Schema.API;
+      for (i = 0; i < schemaFallback.constructors.length; i++) {
+        if (schemaFallback.constructors[i].id == constructorCmp) {
+          constructorData = schemaFallback.constructors[i];
+
+          delete this.mtproto;
+          fallback = true;
+          break;
+        }
+      }
+    }
+    if (!constructorData) {
+      throw new Error('Constructor not found: ' + constructor +' '+ this.fetchInt()+' '+ this.fetchInt());
+    }
+  }
+
+  predicate = constructorData.predicate;
+
+  var result = {'_': predicate},
+      overrideKey = (this.mtproto ? 'mt_' : '') + predicate,
+      self = this;
+
+
+  if (this.override[overrideKey]) {
+    this.override[overrideKey].apply(this, [result, field + '[' + predicate + ']']);
+  } else {
+    var i, param, type, isCond, condType, fieldBit, value;
+    var len = constructorData.params.length;
+    for (i = 0; i < len; i++) {
+      param = constructorData.params[i];
+      type = param.type;
+      if (type == '#' && result.pFlags === undefined) {
+        result.pFlags = {};
+      }
+      if (isCond = (type.indexOf('?') !== -1)) {
+        condType = type.split('?');
+        fieldBit = condType[0].split('.');
+        if (!(result[fieldBit[0]] & (1 << fieldBit[1]))) {
+          continue;
+        }
+        type = condType[1];
+      }
+
+      value = self.fetchObject(type, field + '[' + predicate + '][' + param.name + ']');
+
+      if (isCond && type === 'true') {
+        result.pFlags[param.name] = value;
+      } else {
+        result[param.name] = value;
+      }
+    }
+  }
+
+  if (fallback) {
+    this.mtproto = true;
+  }
+
+  return result;
+};
+
+TLDeserialization.prototype.getOffset = function () {
+  return this.offset;
+};
+
+TLDeserialization.prototype.fetchEnd = function () {
+  if (this.offset != this.byteView.length) {
+    throw new Error('Fetch end with non-empty buffer');
+  }
+  return true;
+};
+
+/*!
+ * Webogram v0.5.3 - messaging web application for MTProto
+ * https://github.com/zhukov/webogram
+ * Copyright (C) 2014 Igor Zhukov <igor.beatle@gmail.com>
+ * https://github.com/zhukov/webogram/blob/master/LICENSE
+ */
+
+var _logTimer = (new Date()).getTime();
+
+function dT () {
+  return '[' + (((new Date()).getTime() - _logTimer) / 1000).toFixed(3) + ']';
+}
+
+function tsNow (seconds) {
+  var t = +new Date() + (window.tsOffset || 0);
+  return seconds ? Math.floor(t / 1000) : t;
+}
+
+function safeReplaceObject (wasObject, newObject) {
+  for (var key in wasObject) {
+    if (!newObject.hasOwnProperty(key) && key.charAt(0) != '$') {
+      delete wasObject[key];
+    }
+  }
+  for (var key in newObject) {
+    if (newObject.hasOwnProperty(key)) {
+      wasObject[key] = newObject[key];
+    }
+  }
+}
 
 function MtpApiFileManagerModule(MtpApiManager, $q) {
     var cachedFs = false;
@@ -2727,14 +4331,16 @@ function MtpRsaKeysManagerModule() {
 
 MtpRsaKeysManagerModule.dependencies = [];
 
-function MtpSecureRandomModule() {
+function MtpSecureRandomModule($) {
     $(window).on('click keydown', rng_seed_time);
     return new SecureRandom();
 }
 
-MtpSecureRandomModule.dependencies = [];
+MtpSecureRandomModule.dependencies = [
+    'jQuery'
+];
 
-function MtpSingleInstanceServiceModule(IdleManager, Storage, MtpNetworkerFactory, $interval, $rootScope, $timeout) {
+function MtpSingleInstanceServiceModule(IdleManager, Storage, MtpNetworkerFactory, $interval, $rootScope, $timeout, $) {
     var instanceID = nextRandomInt(0xFFFFFFFF);
     var started = false;
     var masterInstance = false;
@@ -2829,7 +4435,8 @@ MtpSingleInstanceServiceModule.dependencies = [
     'MtpNetworkerFactory',
     '$interval', 
     '$rootScope', 
-    '$timeout'
+    '$timeout',
+    'jQuery'
 ];
 
 function MtpTimeManagerModule(Storage) {
@@ -2881,1596 +4488,6 @@ function MtpTimeManagerModule(Storage) {
 MtpTimeManagerModule.dependencies = [
     'Storage'
 ];
-
-/*!
- * Webogram v0.5.3 - messaging web application for MTProto
- * https://github.com/zhukov/webogram
- * Copyright (C) 2014 Igor Zhukov <igor.beatle@gmail.com>
- * https://github.com/zhukov/webogram/blob/master/LICENSE
- */
-
-function bigint (num) {
-  return new BigInteger(num.toString(16), 16);
-}
-
-function bigStringInt (strNum) {
-  return new BigInteger(strNum, 10);
-}
-
-function bytesToHex (bytes) {
-  bytes = bytes || [];
-  var arr = [];
-  for (var i = 0; i < bytes.length; i++) {
-    arr.push((bytes[i] < 16 ? '0' : '') + (bytes[i] || 0).toString(16));
-  }
-  return arr.join('');
-}
-
-function bytesFromHex (hexString) {
-  var len = hexString.length,
-      i,
-      start = 0,
-      bytes = [];
-
-  if (hexString.length % 2) {
-    bytes.push(parseInt(hexString.charAt(0), 16));
-    start++;
-  }
-
-  for (i = start; i < len; i += 2) {
-    bytes.push(parseInt(hexString.substr(i, 2), 16));
-  }
-
-  return bytes;
-}
-
-function bytesCmp (bytes1, bytes2) {
-  var len = bytes1.length;
-  if (len != bytes2.length) {
-    return false;
-  }
-
-  for (var i = 0; i < len; i++) {
-    if (bytes1[i] != bytes2[i]) {
-      return false;
-    }
-  }
-  return true;
-}
-
-function bytesXor (bytes1, bytes2) {
-  var len = bytes1.length,
-      bytes = [];
-
-  for (var i = 0; i < len; ++i) {
-      bytes[i] = bytes1[i] ^ bytes2[i];
-  }
-
-  return bytes;
-}
-
-function bytesToWords (bytes) {
-  if (bytes instanceof ArrayBuffer) {
-    bytes = new Uint8Array(bytes);
-  }
-  var len = bytes.length,
-      words = [], i;
-  for (i = 0; i < len; i++) {
-    words[i >>> 2] |= bytes[i] << (24 - (i % 4) * 8);
-  }
-
-  return new CryptoJS.lib.WordArray.init(words, len);
-}
-
-function bytesFromWords (wordArray) {
-  var words = wordArray.words,
-      sigBytes = wordArray.sigBytes,
-      bytes = [];
-
-  for (var i = 0; i < sigBytes; i++) {
-    bytes.push((words[i >>> 2] >>> (24 - (i % 4) * 8)) & 0xff);
-  }
-
-  return bytes;
-}
-
-function bytesFromBigInt (bigInt, len) {
-  var bytes = bigInt.toByteArray();
-
-  if (len && bytes.length < len) {
-    var padding = [];
-    for (var i = 0, needPadding = len - bytes.length; i < needPadding; i++) {
-      padding[i] = 0;
-    }
-    if (bytes instanceof ArrayBuffer) {
-      bytes = bufferConcat(padding, bytes);
-    } else {
-      bytes = padding.concat(bytes);
-    }
-  }
-  else {
-    while (!bytes[0] && (!len || bytes.length > len)) {
-      bytes = bytes.slice(1);
-    }
-  }
-
-  return bytes;
-}
-
-function bytesFromLeemonBigInt (bigInt, len) {
-  var str = bigInt2str(bigInt, 16);
-  return bytesFromHex(str);
-}
-
-
-function bytesToArrayBuffer (b) {
-  return (new Uint8Array(b)).buffer;
-}
-
-function convertToArrayBuffer(bytes) {
-  // Be careful with converting subarrays!!
-  if (bytes instanceof ArrayBuffer) {
-    return bytes;
-  }
-  if (bytes.buffer !== undefined &&
-      bytes.buffer.byteLength == bytes.length * bytes.BYTES_PER_ELEMENT) {
-    return bytes.buffer;
-  }
-  return bytesToArrayBuffer(bytes);
-}
-
-function convertToUint8Array(bytes) {
-  if (bytes.buffer !== undefined) {
-    return bytes;
-  }
-  return new Uint8Array(bytes);
-}
-
-function convertToByteArray(bytes) {
-  if (Array.isArray(bytes)) {
-    return bytes;
-  }
-  bytes = convertToUint8Array(bytes);
-  var newBytes = [];
-  for (var i = 0, len = bytes.length; i < len; i++) {
-    newBytes.push(bytes[i]);
-  }
-  return newBytes;
-}
-
-function bytesFromArrayBuffer (buffer) {
-  var len = buffer.byteLength,
-      byteView = new Uint8Array(buffer),
-      bytes = [];
-
-  for (var i = 0; i < len; ++i) {
-    bytes[i] = byteView[i];
-  }
-
-  return bytes;
-}
-
-function bufferConcat(buffer1, buffer2) {
-  var l1 = buffer1.byteLength || buffer1.length,
-      l2 = buffer2.byteLength || buffer2.length;
-  var tmp = new Uint8Array(l1 + l2);
-  tmp.set(buffer1 instanceof ArrayBuffer ? new Uint8Array(buffer1) : buffer1, 0);
-  tmp.set(buffer2 instanceof ArrayBuffer ? new Uint8Array(buffer2) : buffer2, l1);
-
-  return tmp.buffer;
-}
-
-function longToInts (sLong) {
-  var divRem = bigStringInt(sLong).divideAndRemainder(bigint(0x100000000));
-
-  return [divRem[0].intValue(), divRem[1].intValue()];
-}
-
-function longToBytes (sLong) {
-  return bytesFromWords({words: longToInts(sLong), sigBytes: 8}).reverse();
-}
-
-function longFromInts (high, low) {
-  return bigint(high).shiftLeft(32).add(bigint(low)).toString(10);
-}
-
-function intToUint (val) {
-  val = parseInt(val);
-  if (val < 0) {
-    val = val + 4294967296;
-  }
-  return val;
-}
-
-function uintToInt (val) {
-  if (val > 2147483647) {
-    val = val - 4294967296;
-  }
-  return val;
-}
-
-function sha1HashSync (bytes) {
-  this.rushaInstance = this.rushaInstance || new Rusha(1024 * 1024);
-  return rushaInstance.rawDigest(bytes).buffer;
-}
-
-function sha1BytesSync (bytes) {
-  return bytesFromArrayBuffer(sha1HashSync(bytes));
-}
-
-function sha256HashSync (bytes) {
-  // console.log(dT(), 'SHA-2 hash start', bytes.byteLength || bytes.length);
-  var hashWords = CryptoJS.SHA256(bytesToWords(bytes));
-  // console.log(dT(), 'SHA-2 hash finish');
-
-  return bytesFromWords(hashWords);
-}
-
-function rsaEncrypt (publicKey, bytes) {
-  bytes = addPadding(bytes, 255);
-
-  // console.log('RSA encrypt start');
-  var N = new BigInteger(publicKey.modulus, 16),
-      E = new BigInteger(publicKey.exponent, 16),
-      X = new BigInteger(bytes),
-      encryptedBigInt = X.modPowInt(E, N),
-      encryptedBytes  = bytesFromBigInt(encryptedBigInt, 256);
-  // console.log('RSA encrypt finish');
-
-  return encryptedBytes;
-}
-
-function addPadding(bytes, blockSize, zeroes) {
-  blockSize = blockSize || 16;
-  var len = bytes.byteLength || bytes.length;
-  var needPadding = blockSize - (len % blockSize);
-  if (needPadding > 0 && needPadding < blockSize) {
-    var padding = new Array(needPadding);
-    if (zeroes) {
-      for (var i = 0; i < needPadding; i++) {
-        padding[i] = 0
-      }
-    } else {
-      (new SecureRandom()).nextBytes(padding);
-    }
-
-    if (bytes instanceof ArrayBuffer) {
-      bytes = bufferConcat(bytes, padding);
-    } else {
-      bytes = bytes.concat(padding);
-    }
-  }
-
-  return bytes;
-}
-
-function aesEncryptSync (bytes, keyBytes, ivBytes) {
-  var len = bytes.byteLength || bytes.length;
-
-  // console.log(dT(), 'AES encrypt start', len/*, bytesToHex(keyBytes), bytesToHex(ivBytes)*/);
-  bytes = addPadding(bytes);
-
-  var encryptedWords = CryptoJS.AES.encrypt(bytesToWords(bytes), bytesToWords(keyBytes), {
-    iv: bytesToWords(ivBytes),
-    padding: CryptoJS.pad.NoPadding,
-    mode: CryptoJS.mode.IGE
-  }).ciphertext;
-
-  var encryptedBytes = bytesFromWords(encryptedWords);
-  // console.log(dT(), 'AES encrypt finish');
-
-  return encryptedBytes;
-}
-
-function aesDecryptSync (encryptedBytes, keyBytes, ivBytes) {
-
-  // console.log(dT(), 'AES decrypt start', encryptedBytes.length);
-  var decryptedWords = CryptoJS.AES.decrypt({ciphertext: bytesToWords(encryptedBytes)}, bytesToWords(keyBytes), {
-    iv: bytesToWords(ivBytes),
-    padding: CryptoJS.pad.NoPadding,
-    mode: CryptoJS.mode.IGE
-  });
-
-  var bytes = bytesFromWords(decryptedWords);
-  // console.log(dT(), 'AES decrypt finish');
-
-  return bytes;
-}
-
-function gzipUncompress (bytes) {
-  return (new Zlib.Gunzip(bytes)).decompress();
-}
-
-function nextRandomInt (maxValue) {
-  return Math.floor(Math.random() * maxValue);
-}
-
-function pqPrimeFactorization (pqBytes) {
-  var what = new BigInteger(pqBytes),
-      result = false;
-
-  // console.log(dT(), 'PQ start', pqBytes, what.toString(16), what.bitLength());
-
-  try {
-    result = pqPrimeLeemon(str2bigInt(what.toString(16), 16, Math.ceil(64 / bpe) + 1))
-  } catch (e) {
-    console.error('Pq leemon Exception', e);
-  }
-
-  if (result === false && what.bitLength() <= 64) {
-    // console.time('PQ long');
-    try {
-      result = pqPrimeLong(goog.math.Long.fromString(what.toString(16), 16));
-    } catch (e) {
-      console.error('Pq long Exception', e);
-    }
-    // console.timeEnd('PQ long');
-  }
-  // console.log(result);
-
-  if (result === false) {
-    // console.time('pq BigInt');
-    result = pqPrimeBigInteger(what);
-    // console.timeEnd('pq BigInt');
-  }
-
-  // console.log(dT(), 'PQ finish');
-
-  return result;
-}
-
-function pqPrimeBigInteger (what) {
-  var it = 0,
-      g;
-  for (var i = 0; i < 3; i++) {
-    var q = (nextRandomInt(128) & 15) + 17,
-        x = bigint(nextRandomInt(1000000000) + 1),
-        y = x.clone(),
-        lim = 1 << (i + 18);
-
-    for (var j = 1; j < lim; j++) {
-      ++it;
-      var a = x.clone(),
-          b = x.clone(),
-          c = bigint(q);
-
-      while (!b.equals(BigInteger.ZERO)) {
-        if (!b.and(BigInteger.ONE).equals(BigInteger.ZERO)) {
-          c = c.add(a);
-          if (c.compareTo(what) > 0) {
-            c = c.subtract(what);
-          }
-        }
-        a = a.add(a);
-        if (a.compareTo(what) > 0) {
-          a = a.subtract(what);
-        }
-        b = b.shiftRight(1);
-      }
-
-      x = c.clone();
-      var z = x.compareTo(y) < 0 ? y.subtract(x) : x.subtract(y);
-      g = z.gcd(what);
-      if (!g.equals(BigInteger.ONE)) {
-        break;
-      }
-      if ((j & (j - 1)) == 0) {
-        y = x.clone();
-      }
-    }
-    if (g.compareTo(BigInteger.ONE) > 0) {
-      break;
-    }
-  }
-
-  var f = what.divide(g), P, Q;
-
-  if (g.compareTo(f) > 0) {
-    P = f;
-    Q = g;
-  } else {
-    P = g;
-    Q = f;
-  }
-
-  return [bytesFromBigInt(P), bytesFromBigInt(Q), it];
-}
-
-function gcdLong(a, b) {
-  while (a.notEquals(goog.math.Long.ZERO) && b.notEquals(goog.math.Long.ZERO)) {
-    while (b.and(goog.math.Long.ONE).equals(goog.math.Long.ZERO)) {
-      b = b.shiftRight(1);
-    }
-    while (a.and(goog.math.Long.ONE).equals(goog.math.Long.ZERO)) {
-      a = a.shiftRight(1);
-    }
-    if (a.compare(b) > 0) {
-      a = a.subtract(b);
-    } else {
-      b = b.subtract(a);
-    }
-  }
-  return b.equals(goog.math.Long.ZERO) ? a : b;
-}
-
-function pqPrimeLong(what) {
-  var it = 0,
-      g;
-  for (var i = 0; i < 3; i++) {
-    var q = goog.math.Long.fromInt((nextRandomInt(128) & 15) + 17),
-        x = goog.math.Long.fromInt(nextRandomInt(1000000000) + 1),
-        y = x,
-        lim = 1 << (i + 18);
-
-    for (var j = 1; j < lim; j++) {
-      ++it;
-      var a = x,
-          b = x,
-          c = q;
-
-      while (b.notEquals(goog.math.Long.ZERO)) {
-        if (b.and(goog.math.Long.ONE).notEquals(goog.math.Long.ZERO)) {
-          c = c.add(a);
-          if (c.compare(what) > 0) {
-            c = c.subtract(what);
-          }
-        }
-        a = a.add(a);
-        if (a.compare(what) > 0) {
-          a = a.subtract(what);
-        }
-        b = b.shiftRight(1);
-      }
-
-      x = c;
-      var z = x.compare(y) < 0 ? y.subtract(x) : x.subtract(y);
-      g = gcdLong(z, what);
-      if (g.notEquals(goog.math.Long.ONE)) {
-        break;
-      }
-      if ((j & (j - 1)) == 0) {
-        y = x;
-      }
-    }
-    if (g.compare(goog.math.Long.ONE) > 0) {
-      break;
-    }
-  }
-
-  var f = what.div(g), P, Q;
-
-  if (g.compare(f) > 0) {
-    P = f;
-    Q = g;
-  } else {
-    P = g;
-    Q = f;
-  }
-
-  return [bytesFromHex(P.toString(16)), bytesFromHex(Q.toString(16)), it];
-}
-
-
-function pqPrimeLeemon (what) {
-  var minBits = 64,
-      minLen = Math.ceil(minBits / bpe) + 1,
-      it = 0, i, q, j, lim, g, P, Q,
-      a = new Array(minLen),
-      b = new Array(minLen),
-      c = new Array(minLen),
-      g = new Array(minLen),
-      z = new Array(minLen),
-      x = new Array(minLen),
-      y = new Array(minLen);
-
-  for (i = 0; i < 3; i++) {
-    q = (nextRandomInt(128) & 15) + 17;
-    copyInt_(x, nextRandomInt(1000000000) + 1);
-    copy_(y, x);
-    lim = 1 << (i + 18);
-
-    for (j = 1; j < lim; j++) {
-      ++it;
-      copy_(a, x);
-      copy_(b, x);
-      copyInt_(c, q);
-
-      while (!isZero(b)) {
-        if (b[0] & 1) {
-          add_(c, a);
-          if (greater(c, what)) {
-            sub_(c, what);
-          }
-        }
-        add_(a, a);
-        if (greater(a, what)) {
-          sub_(a, what);
-        }
-        rightShift_(b, 1);
-      }
-
-      copy_(x, c);
-      if (greater(x,y)) {
-        copy_(z, x);
-        sub_(z, y);
-      } else {
-        copy_(z, y);
-        sub_(z, x);
-      }
-      eGCD_(z, what, g, a, b);
-      if (!equalsInt(g, 1)) {
-        break;
-      }
-      if ((j & (j - 1)) == 0) {
-        copy_(y, x);
-      }
-    }
-    if (greater(g, one)) {
-      break;
-    }
-  }
-
-  divide_(what, g, x, y);
-
-  if (greater(g, x)) {
-    P = x;
-    Q = g;
-  } else {
-    P = g;
-    Q = x;
-  }
-
-  // console.log(dT(), 'done', bigInt2str(what, 10), bigInt2str(P, 10), bigInt2str(Q, 10));
-
-  return [bytesFromLeemonBigInt(P), bytesFromLeemonBigInt(Q), it];
-}
-
-
-function bytesModPow (x, y, m) {
-  try {
-    var xBigInt = str2bigInt(bytesToHex(x), 16),
-        yBigInt = str2bigInt(bytesToHex(y), 16),
-        mBigInt = str2bigInt(bytesToHex(m), 16),
-        resBigInt = powMod(xBigInt, yBigInt, mBigInt);
-
-    return bytesFromHex(bigInt2str(resBigInt, 16));
-  } catch (e) {
-    console.error('mod pow error', e);
-  }
-
-  return bytesFromBigInt(new BigInteger(x).modPow(new BigInteger(y), new BigInteger(m)), 256);
-}
-
-/*!
- * Webogram v0.5.3 - messaging web application for MTProto
- * https://github.com/zhukov/webogram
- * Copyright (C) 2014 Igor Zhukov <igor.beatle@gmail.com>
- * https://github.com/zhukov/webogram/blob/master/LICENSE
- */
-
-
-Config = window.Config || {};
-
-/*
-
-  IMPORTANT NOTICE
-  ================
-
-  Do not publish your Webogram fork with my app credentials (below), or your application may be blocked.
-  You can get your own api_id, api_hash at https://my.telegram.org, see manual at https://core.telegram.org/api/obtaining_api_id.
-
-*/
-
-Config.App = {
-  version: '0.0.0'
-};
-
-Config.Server = {};
-
-Config.Modes = {
-  debug: location.search.indexOf('debug=1') > 0,
-  test: location.search.indexOf('test=1') > 0
-};
-
-Config.Navigator = {
-  mobile: screen.width && screen.width < 480 || navigator.userAgent.search(/iOS|iPhone OS|Android|BlackBerry|BB10|Series ?[64]0|J2ME|MIDP|opera mini|opera mobi|mobi.+Gecko|Windows Phone/i) != -1
-};
-
-Config.Schema = Config.Schema || {};
-
-Config.Schema.MTProto = {"constructors":[{"id":"481674261","predicate":"vector","params":[],"type":"Vector t"},{"id":"85337187","predicate":"resPQ","params":[{"name":"nonce","type":"int128"},{"name":"server_nonce","type":"int128"},{"name":"pq","type":"bytes"},{"name":"server_public_key_fingerprints","type":"Vector<long>"}],"type":"ResPQ"},{"id":"-2083955988","predicate":"p_q_inner_data","params":[{"name":"pq","type":"bytes"},{"name":"p","type":"bytes"},{"name":"q","type":"bytes"},{"name":"nonce","type":"int128"},{"name":"server_nonce","type":"int128"},{"name":"new_nonce","type":"int256"}],"type":"P_Q_inner_data"},{"id":"2043348061","predicate":"server_DH_params_fail","params":[{"name":"nonce","type":"int128"},{"name":"server_nonce","type":"int128"},{"name":"new_nonce_hash","type":"int128"}],"type":"Server_DH_Params"},{"id":"-790100132","predicate":"server_DH_params_ok","params":[{"name":"nonce","type":"int128"},{"name":"server_nonce","type":"int128"},{"name":"encrypted_answer","type":"bytes"}],"type":"Server_DH_Params"},{"id":"-1249309254","predicate":"server_DH_inner_data","params":[{"name":"nonce","type":"int128"},{"name":"server_nonce","type":"int128"},{"name":"g","type":"int"},{"name":"dh_prime","type":"bytes"},{"name":"g_a","type":"bytes"},{"name":"server_time","type":"int"}],"type":"Server_DH_inner_data"},{"id":"1715713620","predicate":"client_DH_inner_data","params":[{"name":"nonce","type":"int128"},{"name":"server_nonce","type":"int128"},{"name":"retry_id","type":"long"},{"name":"g_b","type":"bytes"}],"type":"Client_DH_Inner_Data"},{"id":"1003222836","predicate":"dh_gen_ok","params":[{"name":"nonce","type":"int128"},{"name":"server_nonce","type":"int128"},{"name":"new_nonce_hash1","type":"int128"}],"type":"Set_client_DH_params_answer"},{"id":"1188831161","predicate":"dh_gen_retry","params":[{"name":"nonce","type":"int128"},{"name":"server_nonce","type":"int128"},{"name":"new_nonce_hash2","type":"int128"}],"type":"Set_client_DH_params_answer"},{"id":"-1499615742","predicate":"dh_gen_fail","params":[{"name":"nonce","type":"int128"},{"name":"server_nonce","type":"int128"},{"name":"new_nonce_hash3","type":"int128"}],"type":"Set_client_DH_params_answer"},{"id":"-212046591","predicate":"rpc_result","params":[{"name":"req_msg_id","type":"long"},{"name":"result","type":"Object"}],"type":"RpcResult"},{"id":"558156313","predicate":"rpc_error","params":[{"name":"error_code","type":"int"},{"name":"error_message","type":"string"}],"type":"RpcError"},{"id":"1579864942","predicate":"rpc_answer_unknown","params":[],"type":"RpcDropAnswer"},{"id":"-847714938","predicate":"rpc_answer_dropped_running","params":[],"type":"RpcDropAnswer"},{"id":"-1539647305","predicate":"rpc_answer_dropped","params":[{"name":"msg_id","type":"long"},{"name":"seq_no","type":"int"},{"name":"bytes","type":"int"}],"type":"RpcDropAnswer"},{"id":"155834844","predicate":"future_salt","params":[{"name":"valid_since","type":"int"},{"name":"valid_until","type":"int"},{"name":"salt","type":"long"}],"type":"FutureSalt"},{"id":"-1370486635","predicate":"future_salts","params":[{"name":"req_msg_id","type":"long"},{"name":"now","type":"int"},{"name":"salts","type":"vector<future_salt>"}],"type":"FutureSalts"},{"id":"880243653","predicate":"pong","params":[{"name":"msg_id","type":"long"},{"name":"ping_id","type":"long"}],"type":"Pong"},{"id":"-501201412","predicate":"destroy_session_ok","params":[{"name":"session_id","type":"long"}],"type":"DestroySessionRes"},{"id":"1658015945","predicate":"destroy_session_none","params":[{"name":"session_id","type":"long"}],"type":"DestroySessionRes"},{"id":"-1631450872","predicate":"new_session_created","params":[{"name":"first_msg_id","type":"long"},{"name":"unique_id","type":"long"},{"name":"server_salt","type":"long"}],"type":"NewSession"},{"id":"1945237724","predicate":"msg_container","params":[{"name":"messages","type":"vector<%Message>"}],"type":"MessageContainer"},{"id":"1538843921","predicate":"message","params":[{"name":"msg_id","type":"long"},{"name":"seqno","type":"int"},{"name":"bytes","type":"int"},{"name":"body","type":"Object"}],"type":"Message"},{"id":"-530561358","predicate":"msg_copy","params":[{"name":"orig_message","type":"Message"}],"type":"MessageCopy"},{"id":"812830625","predicate":"gzip_packed","params":[{"name":"packed_data","type":"bytes"}],"type":"Object"},{"id":"1658238041","predicate":"msgs_ack","params":[{"name":"msg_ids","type":"Vector<long>"}],"type":"MsgsAck"},{"id":"-1477445615","predicate":"bad_msg_notification","params":[{"name":"bad_msg_id","type":"long"},{"name":"bad_msg_seqno","type":"int"},{"name":"error_code","type":"int"}],"type":"BadMsgNotification"},{"id":"-307542917","predicate":"bad_server_salt","params":[{"name":"bad_msg_id","type":"long"},{"name":"bad_msg_seqno","type":"int"},{"name":"error_code","type":"int"},{"name":"new_server_salt","type":"long"}],"type":"BadMsgNotification"},{"id":"2105940488","predicate":"msg_resend_req","params":[{"name":"msg_ids","type":"Vector<long>"}],"type":"MsgResendReq"},{"id":"-630588590","predicate":"msgs_state_req","params":[{"name":"msg_ids","type":"Vector<long>"}],"type":"MsgsStateReq"},{"id":"81704317","predicate":"msgs_state_info","params":[{"name":"req_msg_id","type":"long"},{"name":"info","type":"bytes"}],"type":"MsgsStateInfo"},{"id":"-1933520591","predicate":"msgs_all_info","params":[{"name":"msg_ids","type":"Vector<long>"},{"name":"info","type":"bytes"}],"type":"MsgsAllInfo"},{"id":"661470918","predicate":"msg_detailed_info","params":[{"name":"msg_id","type":"long"},{"name":"answer_msg_id","type":"long"},{"name":"bytes","type":"int"},{"name":"status","type":"int"}],"type":"MsgDetailedInfo"},{"id":"-2137147681","predicate":"msg_new_detailed_info","params":[{"name":"answer_msg_id","type":"long"},{"name":"bytes","type":"int"},{"name":"status","type":"int"}],"type":"MsgDetailedInfo"}],"methods":[{"id":"1615239032","method":"req_pq","params":[{"name":"nonce","type":"int128"}],"type":"ResPQ"},{"id":"-686627650","method":"req_DH_params","params":[{"name":"nonce","type":"int128"},{"name":"server_nonce","type":"int128"},{"name":"p","type":"bytes"},{"name":"q","type":"bytes"},{"name":"public_key_fingerprint","type":"long"},{"name":"encrypted_data","type":"bytes"}],"type":"Server_DH_Params"},{"id":"-184262881","method":"set_client_DH_params","params":[{"name":"nonce","type":"int128"},{"name":"server_nonce","type":"int128"},{"name":"encrypted_data","type":"bytes"}],"type":"Set_client_DH_params_answer"},{"id":"1491380032","method":"rpc_drop_answer","params":[{"name":"req_msg_id","type":"long"}],"type":"RpcDropAnswer"},{"id":"-1188971260","method":"get_future_salts","params":[{"name":"num","type":"int"}],"type":"FutureSalts"},{"id":"2059302892","method":"ping","params":[{"name":"ping_id","type":"long"}],"type":"Pong"},{"id":"-213746804","method":"ping_delay_disconnect","params":[{"name":"ping_id","type":"long"},{"name":"disconnect_delay","type":"int"}],"type":"Pong"},{"id":"-414113498","method":"destroy_session","params":[{"name":"session_id","type":"long"}],"type":"DestroySessionRes"},{"id":"-1835453025","method":"http_wait","params":[{"name":"max_delay","type":"int"},{"name":"wait_after","type":"int"},{"name":"max_wait","type":"int"}],"type":"HttpWait"}]};
-
-Config.Schema.API = {"constructors":[{"id":"-1132882121","predicate":"boolFalse","params":[],"type":"Bool"},{"id":"-1720552011","predicate":"boolTrue","params":[],"type":"Bool"},{"id":"1072550713","predicate":"true","params":[],"type":"True"},{"id":"481674261","predicate":"vector","params":[],"type":"Vector t"},{"id":"-994444869","predicate":"error","params":[{"name":"code","type":"int"},{"name":"text","type":"string"}],"type":"Error"},{"id":"1450380236","predicate":"null","params":[],"type":"Null"},{"id":"2134579434","predicate":"inputPeerEmpty","params":[],"type":"InputPeer"},{"id":"2107670217","predicate":"inputPeerSelf","params":[],"type":"InputPeer"},{"id":"396093539","predicate":"inputPeerChat","params":[{"name":"chat_id","type":"int"}],"type":"InputPeer"},{"id":"-1182234929","predicate":"inputUserEmpty","params":[],"type":"InputUser"},{"id":"-138301121","predicate":"inputUserSelf","params":[],"type":"InputUser"},{"id":"-208488460","predicate":"inputPhoneContact","params":[{"name":"client_id","type":"long"},{"name":"phone","type":"string"},{"name":"first_name","type":"string"},{"name":"last_name","type":"string"}],"type":"InputContact"},{"id":"-181407105","predicate":"inputFile","params":[{"name":"id","type":"long"},{"name":"parts","type":"int"},{"name":"name","type":"string"},{"name":"md5_checksum","type":"string"}],"type":"InputFile"},{"id":"-1771768449","predicate":"inputMediaEmpty","params":[],"type":"InputMedia"},{"id":"-139464256","predicate":"inputMediaUploadedPhoto","params":[{"name":"file","type":"InputFile"},{"name":"caption","type":"string"}],"type":"InputMedia"},{"id":"-373312269","predicate":"inputMediaPhoto","params":[{"name":"id","type":"InputPhoto"},{"name":"caption","type":"string"}],"type":"InputMedia"},{"id":"-104578748","predicate":"inputMediaGeoPoint","params":[{"name":"geo_point","type":"InputGeoPoint"}],"type":"InputMedia"},{"id":"-1494984313","predicate":"inputMediaContact","params":[{"name":"phone_number","type":"string"},{"name":"first_name","type":"string"},{"name":"last_name","type":"string"}],"type":"InputMedia"},{"id":"-2106507297","predicate":"inputMediaUploadedVideo","params":[{"name":"file","type":"InputFile"},{"name":"duration","type":"int"},{"name":"w","type":"int"},{"name":"h","type":"int"},{"name":"mime_type","type":"string"},{"name":"caption","type":"string"}],"type":"InputMedia"},{"id":"2004934137","predicate":"inputMediaUploadedThumbVideo","params":[{"name":"file","type":"InputFile"},{"name":"thumb","type":"InputFile"},{"name":"duration","type":"int"},{"name":"w","type":"int"},{"name":"h","type":"int"},{"name":"mime_type","type":"string"},{"name":"caption","type":"string"}],"type":"InputMedia"},{"id":"-1821749571","predicate":"inputMediaVideo","params":[{"name":"id","type":"InputVideo"},{"name":"caption","type":"string"}],"type":"InputMedia"},{"id":"480546647","predicate":"inputChatPhotoEmpty","params":[],"type":"InputChatPhoto"},{"id":"-1809496270","predicate":"inputChatUploadedPhoto","params":[{"name":"file","type":"InputFile"},{"name":"crop","type":"InputPhotoCrop"}],"type":"InputChatPhoto"},{"id":"-1293828344","predicate":"inputChatPhoto","params":[{"name":"id","type":"InputPhoto"},{"name":"crop","type":"InputPhotoCrop"}],"type":"InputChatPhoto"},{"id":"-457104426","predicate":"inputGeoPointEmpty","params":[],"type":"InputGeoPoint"},{"id":"-206066487","predicate":"inputGeoPoint","params":[{"name":"lat","type":"double"},{"name":"long","type":"double"}],"type":"InputGeoPoint"},{"id":"483901197","predicate":"inputPhotoEmpty","params":[],"type":"InputPhoto"},{"id":"-74070332","predicate":"inputPhoto","params":[{"name":"id","type":"long"},{"name":"access_hash","type":"long"}],"type":"InputPhoto"},{"id":"1426648181","predicate":"inputVideoEmpty","params":[],"type":"InputVideo"},{"id":"-296249774","predicate":"inputVideo","params":[{"name":"id","type":"long"},{"name":"access_hash","type":"long"}],"type":"InputVideo"},{"id":"342061462","predicate":"inputFileLocation","params":[{"name":"volume_id","type":"long"},{"name":"local_id","type":"int"},{"name":"secret","type":"long"}],"type":"InputFileLocation"},{"id":"1023632620","predicate":"inputVideoFileLocation","params":[{"name":"id","type":"long"},{"name":"access_hash","type":"long"}],"type":"InputFileLocation"},{"id":"-1377390588","predicate":"inputPhotoCropAuto","params":[],"type":"InputPhotoCrop"},{"id":"-644787419","predicate":"inputPhotoCrop","params":[{"name":"crop_left","type":"double"},{"name":"crop_top","type":"double"},{"name":"crop_width","type":"double"}],"type":"InputPhotoCrop"},{"id":"1996904104","predicate":"inputAppEvent","params":[{"name":"time","type":"double"},{"name":"type","type":"string"},{"name":"peer","type":"long"},{"name":"data","type":"string"}],"type":"InputAppEvent"},{"id":"-1649296275","predicate":"peerUser","params":[{"name":"user_id","type":"int"}],"type":"Peer"},{"id":"-1160714821","predicate":"peerChat","params":[{"name":"chat_id","type":"int"}],"type":"Peer"},{"id":"-1432995067","predicate":"storage.fileUnknown","params":[],"type":"storage.FileType"},{"id":"8322574","predicate":"storage.fileJpeg","params":[],"type":"storage.FileType"},{"id":"-891180321","predicate":"storage.fileGif","params":[],"type":"storage.FileType"},{"id":"172975040","predicate":"storage.filePng","params":[],"type":"storage.FileType"},{"id":"-1373745011","predicate":"storage.filePdf","params":[],"type":"storage.FileType"},{"id":"1384777335","predicate":"storage.fileMp3","params":[],"type":"storage.FileType"},{"id":"1258941372","predicate":"storage.fileMov","params":[],"type":"storage.FileType"},{"id":"1086091090","predicate":"storage.filePartial","params":[],"type":"storage.FileType"},{"id":"-1278304028","predicate":"storage.fileMp4","params":[],"type":"storage.FileType"},{"id":"276907596","predicate":"storage.fileWebp","params":[],"type":"storage.FileType"},{"id":"2086234950","predicate":"fileLocationUnavailable","params":[{"name":"volume_id","type":"long"},{"name":"local_id","type":"int"},{"name":"secret","type":"long"}],"type":"FileLocation"},{"id":"1406570614","predicate":"fileLocation","params":[{"name":"dc_id","type":"int"},{"name":"volume_id","type":"long"},{"name":"local_id","type":"int"},{"name":"secret","type":"long"}],"type":"FileLocation"},{"id":"537022650","predicate":"userEmpty","params":[{"name":"id","type":"int"}],"type":"User"},{"id":"1326562017","predicate":"userProfilePhotoEmpty","params":[],"type":"UserProfilePhoto"},{"id":"-715532088","predicate":"userProfilePhoto","params":[{"name":"photo_id","type":"long"},{"name":"photo_small","type":"FileLocation"},{"name":"photo_big","type":"FileLocation"}],"type":"UserProfilePhoto"},{"id":"164646985","predicate":"userStatusEmpty","params":[],"type":"UserStatus"},{"id":"-306628279","predicate":"userStatusOnline","params":[{"name":"expires","type":"int"}],"type":"UserStatus"},{"id":"9203775","predicate":"userStatusOffline","params":[{"name":"was_online","type":"int"}],"type":"UserStatus"},{"id":"-1683826688","predicate":"chatEmpty","params":[{"name":"id","type":"int"}],"type":"Chat"},{"id":"-652419756","predicate":"chat","params":[{"name":"flags","type":"#"},{"name":"creator","type":"flags.0?true"},{"name":"kicked","type":"flags.1?true"},{"name":"left","type":"flags.2?true"},{"name":"admins_enabled","type":"flags.3?true"},{"name":"admin","type":"flags.4?true"},{"name":"deactivated","type":"flags.5?true"},{"name":"id","type":"int"},{"name":"title","type":"string"},{"name":"photo","type":"ChatPhoto"},{"name":"participants_count","type":"int"},{"name":"date","type":"int"},{"name":"version","type":"int"},{"name":"migrated_to","type":"flags.6?InputChannel"}],"type":"Chat"},{"id":"120753115","predicate":"chatForbidden","params":[{"name":"id","type":"int"},{"name":"title","type":"string"}],"type":"Chat"},{"id":"771925524","predicate":"chatFull","params":[{"name":"id","type":"int"},{"name":"participants","type":"ChatParticipants"},{"name":"chat_photo","type":"Photo"},{"name":"notify_settings","type":"PeerNotifySettings"},{"name":"exported_invite","type":"ExportedChatInvite"},{"name":"bot_info","type":"Vector<BotInfo>"}],"type":"ChatFull"},{"id":"-925415106","predicate":"chatParticipant","params":[{"name":"user_id","type":"int"},{"name":"inviter_id","type":"int"},{"name":"date","type":"int"}],"type":"ChatParticipant"},{"id":"-57668565","predicate":"chatParticipantsForbidden","params":[{"name":"flags","type":"#"},{"name":"chat_id","type":"int"},{"name":"self_participant","type":"flags.0?ChatParticipant"}],"type":"ChatParticipants"},{"id":"1061556205","predicate":"chatParticipants","params":[{"name":"chat_id","type":"int"},{"name":"participants","type":"Vector<ChatParticipant>"},{"name":"version","type":"int"}],"type":"ChatParticipants"},{"id":"935395612","predicate":"chatPhotoEmpty","params":[],"type":"ChatPhoto"},{"id":"1632839530","predicate":"chatPhoto","params":[{"name":"photo_small","type":"FileLocation"},{"name":"photo_big","type":"FileLocation"}],"type":"ChatPhoto"},{"id":"-2082087340","predicate":"messageEmpty","params":[{"name":"id","type":"int"}],"type":"Message"},{"id":"-913120932","predicate":"message","params":[{"name":"flags","type":"#"},{"name":"unread","type":"flags.0?true"},{"name":"out","type":"flags.1?true"},{"name":"mentioned","type":"flags.4?true"},{"name":"media_unread","type":"flags.5?true"},{"name":"id","type":"int"},{"name":"from_id","type":"flags.8?int"},{"name":"to_id","type":"Peer"},{"name":"fwd_from_id","type":"flags.2?Peer"},{"name":"fwd_date","type":"flags.2?int"},{"name":"via_bot_id","type":"flags.11?int"},{"name":"reply_to_msg_id","type":"flags.3?int"},{"name":"date","type":"int"},{"name":"message","type":"string"},{"name":"media","type":"flags.9?MessageMedia"},{"name":"reply_markup","type":"flags.6?ReplyMarkup"},{"name":"entities","type":"flags.7?Vector<MessageEntity>"},{"name":"views","type":"flags.10?int"}],"type":"Message"},{"id":"-1066691065","predicate":"messageService","params":[{"name":"flags","type":"#"},{"name":"unread","type":"flags.0?true"},{"name":"out","type":"flags.1?true"},{"name":"mentioned","type":"flags.4?true"},{"name":"media_unread","type":"flags.5?true"},{"name":"id","type":"int"},{"name":"from_id","type":"flags.8?int"},{"name":"to_id","type":"Peer"},{"name":"date","type":"int"},{"name":"action","type":"MessageAction"}],"type":"Message"},{"id":"1038967584","predicate":"messageMediaEmpty","params":[],"type":"MessageMedia"},{"id":"1032643901","predicate":"messageMediaPhoto","params":[{"name":"photo","type":"Photo"},{"name":"caption","type":"string"}],"type":"MessageMedia"},{"id":"1540298357","predicate":"messageMediaVideo","params":[{"name":"video","type":"Video"},{"name":"caption","type":"string"}],"type":"MessageMedia"},{"id":"1457575028","predicate":"messageMediaGeo","params":[{"name":"geo","type":"GeoPoint"}],"type":"MessageMedia"},{"id":"1585262393","predicate":"messageMediaContact","params":[{"name":"phone_number","type":"string"},{"name":"first_name","type":"string"},{"name":"last_name","type":"string"},{"name":"user_id","type":"int"}],"type":"MessageMedia"},{"id":"-1618676578","predicate":"messageMediaUnsupported","params":[],"type":"MessageMedia"},{"id":"-1230047312","predicate":"messageActionEmpty","params":[],"type":"MessageAction"},{"id":"-1503425638","predicate":"messageActionChatCreate","params":[{"name":"title","type":"string"},{"name":"users","type":"Vector<int>"}],"type":"MessageAction"},{"id":"-1247687078","predicate":"messageActionChatEditTitle","params":[{"name":"title","type":"string"}],"type":"MessageAction"},{"id":"2144015272","predicate":"messageActionChatEditPhoto","params":[{"name":"photo","type":"Photo"}],"type":"MessageAction"},{"id":"-1780220945","predicate":"messageActionChatDeletePhoto","params":[],"type":"MessageAction"},{"id":"1217033015","predicate":"messageActionChatAddUser","params":[{"name":"users","type":"Vector<int>"}],"type":"MessageAction"},{"id":"-1297179892","predicate":"messageActionChatDeleteUser","params":[{"name":"user_id","type":"int"}],"type":"MessageAction"},{"id":"-1042448310","predicate":"dialog","params":[{"name":"peer","type":"Peer"},{"name":"top_message","type":"int"},{"name":"read_inbox_max_id","type":"int"},{"name":"unread_count","type":"int"},{"name":"notify_settings","type":"PeerNotifySettings"}],"type":"Dialog"},{"id":"590459437","predicate":"photoEmpty","params":[{"name":"id","type":"long"}],"type":"Photo"},{"id":"-840088834","predicate":"photo","params":[{"name":"id","type":"long"},{"name":"access_hash","type":"long"},{"name":"date","type":"int"},{"name":"sizes","type":"Vector<PhotoSize>"}],"type":"Photo"},{"id":"236446268","predicate":"photoSizeEmpty","params":[{"name":"type","type":"string"}],"type":"PhotoSize"},{"id":"2009052699","predicate":"photoSize","params":[{"name":"type","type":"string"},{"name":"location","type":"FileLocation"},{"name":"w","type":"int"},{"name":"h","type":"int"},{"name":"size","type":"int"}],"type":"PhotoSize"},{"id":"-374917894","predicate":"photoCachedSize","params":[{"name":"type","type":"string"},{"name":"location","type":"FileLocation"},{"name":"w","type":"int"},{"name":"h","type":"int"},{"name":"bytes","type":"bytes"}],"type":"PhotoSize"},{"id":"-1056548696","predicate":"videoEmpty","params":[{"name":"id","type":"long"}],"type":"Video"},{"id":"-148338733","predicate":"video","params":[{"name":"id","type":"long"},{"name":"access_hash","type":"long"},{"name":"date","type":"int"},{"name":"duration","type":"int"},{"name":"mime_type","type":"string"},{"name":"size","type":"int"},{"name":"thumb","type":"PhotoSize"},{"name":"dc_id","type":"int"},{"name":"w","type":"int"},{"name":"h","type":"int"}],"type":"Video"},{"id":"286776671","predicate":"geoPointEmpty","params":[],"type":"GeoPoint"},{"id":"541710092","predicate":"geoPoint","params":[{"name":"long","type":"double"},{"name":"lat","type":"double"}],"type":"GeoPoint"},{"id":"-2128698738","predicate":"auth.checkedPhone","params":[{"name":"phone_registered","type":"Bool"}],"type":"auth.CheckedPhone"},{"id":"-269659687","predicate":"auth.sentCode","params":[{"name":"phone_registered","type":"Bool"},{"name":"phone_code_hash","type":"string"},{"name":"send_call_timeout","type":"int"},{"name":"is_password","type":"Bool"}],"type":"auth.SentCode"},{"id":"-16553231","predicate":"auth.authorization","params":[{"name":"user","type":"User"}],"type":"auth.Authorization"},{"id":"-543777747","predicate":"auth.exportedAuthorization","params":[{"name":"id","type":"int"},{"name":"bytes","type":"bytes"}],"type":"auth.ExportedAuthorization"},{"id":"-1195615476","predicate":"inputNotifyPeer","params":[{"name":"peer","type":"InputPeer"}],"type":"InputNotifyPeer"},{"id":"423314455","predicate":"inputNotifyUsers","params":[],"type":"InputNotifyPeer"},{"id":"1251338318","predicate":"inputNotifyChats","params":[],"type":"InputNotifyPeer"},{"id":"-1540769658","predicate":"inputNotifyAll","params":[],"type":"InputNotifyPeer"},{"id":"-265263912","predicate":"inputPeerNotifyEventsEmpty","params":[],"type":"InputPeerNotifyEvents"},{"id":"-395694988","predicate":"inputPeerNotifyEventsAll","params":[],"type":"InputPeerNotifyEvents"},{"id":"1185074840","predicate":"inputPeerNotifySettings","params":[{"name":"mute_until","type":"int"},{"name":"sound","type":"string"},{"name":"show_previews","type":"Bool"},{"name":"events_mask","type":"int"}],"type":"InputPeerNotifySettings"},{"id":"-1378534221","predicate":"peerNotifyEventsEmpty","params":[],"type":"PeerNotifyEvents"},{"id":"1830677896","predicate":"peerNotifyEventsAll","params":[],"type":"PeerNotifyEvents"},{"id":"1889961234","predicate":"peerNotifySettingsEmpty","params":[],"type":"PeerNotifySettings"},{"id":"-1923214866","predicate":"peerNotifySettings","params":[{"name":"mute_until","type":"int"},{"name":"sound","type":"string"},{"name":"show_previews","type":"Bool"},{"name":"events_mask","type":"int"}],"type":"PeerNotifySettings"},{"id":"-860866985","predicate":"wallPaper","params":[{"name":"id","type":"int"},{"name":"title","type":"string"},{"name":"sizes","type":"Vector<PhotoSize>"},{"name":"color","type":"int"}],"type":"WallPaper"},{"id":"1490799288","predicate":"inputReportReasonSpam","params":[],"type":"ReportReason"},{"id":"505595789","predicate":"inputReportReasonViolence","params":[],"type":"ReportReason"},{"id":"777640226","predicate":"inputReportReasonPornography","params":[],"type":"ReportReason"},{"id":"-512463606","predicate":"inputReportReasonOther","params":[{"name":"text","type":"string"}],"type":"ReportReason"},{"id":"1518971995","predicate":"userFull","params":[{"name":"user","type":"User"},{"name":"link","type":"contacts.Link"},{"name":"profile_photo","type":"Photo"},{"name":"notify_settings","type":"PeerNotifySettings"},{"name":"blocked","type":"Bool"},{"name":"bot_info","type":"BotInfo"}],"type":"UserFull"},{"id":"-116274796","predicate":"contact","params":[{"name":"user_id","type":"int"},{"name":"mutual","type":"Bool"}],"type":"Contact"},{"id":"-805141448","predicate":"importedContact","params":[{"name":"user_id","type":"int"},{"name":"client_id","type":"long"}],"type":"ImportedContact"},{"id":"1444661369","predicate":"contactBlocked","params":[{"name":"user_id","type":"int"},{"name":"date","type":"int"}],"type":"ContactBlocked"},{"id":"1038193057","predicate":"contactSuggested","params":[{"name":"user_id","type":"int"},{"name":"mutual_contacts","type":"int"}],"type":"ContactSuggested"},{"id":"-748155807","predicate":"contactStatus","params":[{"name":"user_id","type":"int"},{"name":"status","type":"UserStatus"}],"type":"ContactStatus"},{"id":"986597452","predicate":"contacts.link","params":[{"name":"my_link","type":"ContactLink"},{"name":"foreign_link","type":"ContactLink"},{"name":"user","type":"User"}],"type":"contacts.Link"},{"id":"-1219778094","predicate":"contacts.contactsNotModified","params":[],"type":"contacts.Contacts"},{"id":"1871416498","predicate":"contacts.contacts","params":[{"name":"contacts","type":"Vector<Contact>"},{"name":"users","type":"Vector<User>"}],"type":"contacts.Contacts"},{"id":"-1387117803","predicate":"contacts.importedContacts","params":[{"name":"imported","type":"Vector<ImportedContact>"},{"name":"retry_contacts","type":"Vector<long>"},{"name":"users","type":"Vector<User>"}],"type":"contacts.ImportedContacts"},{"id":"471043349","predicate":"contacts.blocked","params":[{"name":"blocked","type":"Vector<ContactBlocked>"},{"name":"users","type":"Vector<User>"}],"type":"contacts.Blocked"},{"id":"-1878523231","predicate":"contacts.blockedSlice","params":[{"name":"count","type":"int"},{"name":"blocked","type":"Vector<ContactBlocked>"},{"name":"users","type":"Vector<User>"}],"type":"contacts.Blocked"},{"id":"1447681221","predicate":"contacts.suggested","params":[{"name":"results","type":"Vector<ContactSuggested>"},{"name":"users","type":"Vector<User>"}],"type":"contacts.Suggested"},{"id":"364538944","predicate":"messages.dialogs","params":[{"name":"dialogs","type":"Vector<Dialog>"},{"name":"messages","type":"Vector<Message>"},{"name":"chats","type":"Vector<Chat>"},{"name":"users","type":"Vector<User>"}],"type":"messages.Dialogs"},{"id":"1910543603","predicate":"messages.dialogsSlice","params":[{"name":"count","type":"int"},{"name":"dialogs","type":"Vector<Dialog>"},{"name":"messages","type":"Vector<Message>"},{"name":"chats","type":"Vector<Chat>"},{"name":"users","type":"Vector<User>"}],"type":"messages.Dialogs"},{"id":"-1938715001","predicate":"messages.messages","params":[{"name":"messages","type":"Vector<Message>"},{"name":"chats","type":"Vector<Chat>"},{"name":"users","type":"Vector<User>"}],"type":"messages.Messages"},{"id":"189033187","predicate":"messages.messagesSlice","params":[{"name":"count","type":"int"},{"name":"messages","type":"Vector<Message>"},{"name":"chats","type":"Vector<Chat>"},{"name":"users","type":"Vector<User>"}],"type":"messages.Messages"},{"id":"1694474197","predicate":"messages.chats","params":[{"name":"chats","type":"Vector<Chat>"}],"type":"messages.Chats"},{"id":"-438840932","predicate":"messages.chatFull","params":[{"name":"full_chat","type":"ChatFull"},{"name":"chats","type":"Vector<Chat>"},{"name":"users","type":"Vector<User>"}],"type":"messages.ChatFull"},{"id":"-1269012015","predicate":"messages.affectedHistory","params":[{"name":"pts","type":"int"},{"name":"pts_count","type":"int"},{"name":"offset","type":"int"}],"type":"messages.AffectedHistory"},{"id":"1474492012","predicate":"inputMessagesFilterEmpty","params":[],"type":"MessagesFilter"},{"id":"-1777752804","predicate":"inputMessagesFilterPhotos","params":[],"type":"MessagesFilter"},{"id":"-1614803355","predicate":"inputMessagesFilterVideo","params":[],"type":"MessagesFilter"},{"id":"1458172132","predicate":"inputMessagesFilterPhotoVideo","params":[],"type":"MessagesFilter"},{"id":"-648121413","predicate":"inputMessagesFilterPhotoVideoDocuments","params":[],"type":"MessagesFilter"},{"id":"-1629621880","predicate":"inputMessagesFilterDocument","params":[],"type":"MessagesFilter"},{"id":"-808946398","predicate":"inputMessagesFilterAudio","params":[],"type":"MessagesFilter"},{"id":"1526462308","predicate":"inputMessagesFilterAudioDocuments","params":[],"type":"MessagesFilter"},{"id":"2129714567","predicate":"inputMessagesFilterUrl","params":[],"type":"MessagesFilter"},{"id":"-3644025","predicate":"inputMessagesFilterGif","params":[],"type":"MessagesFilter"},{"id":"522914557","predicate":"updateNewMessage","params":[{"name":"message","type":"Message"},{"name":"pts","type":"int"},{"name":"pts_count","type":"int"}],"type":"Update"},{"id":"1318109142","predicate":"updateMessageID","params":[{"name":"id","type":"int"},{"name":"random_id","type":"long"}],"type":"Update"},{"id":"-1576161051","predicate":"updateDeleteMessages","params":[{"name":"messages","type":"Vector<int>"},{"name":"pts","type":"int"},{"name":"pts_count","type":"int"}],"type":"Update"},{"id":"1548249383","predicate":"updateUserTyping","params":[{"name":"user_id","type":"int"},{"name":"action","type":"SendMessageAction"}],"type":"Update"},{"id":"-1704596961","predicate":"updateChatUserTyping","params":[{"name":"chat_id","type":"int"},{"name":"user_id","type":"int"},{"name":"action","type":"SendMessageAction"}],"type":"Update"},{"id":"125178264","predicate":"updateChatParticipants","params":[{"name":"participants","type":"ChatParticipants"}],"type":"Update"},{"id":"469489699","predicate":"updateUserStatus","params":[{"name":"user_id","type":"int"},{"name":"status","type":"UserStatus"}],"type":"Update"},{"id":"-1489818765","predicate":"updateUserName","params":[{"name":"user_id","type":"int"},{"name":"first_name","type":"string"},{"name":"last_name","type":"string"},{"name":"username","type":"string"}],"type":"Update"},{"id":"-1791935732","predicate":"updateUserPhoto","params":[{"name":"user_id","type":"int"},{"name":"date","type":"int"},{"name":"photo","type":"UserProfilePhoto"},{"name":"previous","type":"Bool"}],"type":"Update"},{"id":"628472761","predicate":"updateContactRegistered","params":[{"name":"user_id","type":"int"},{"name":"date","type":"int"}],"type":"Update"},{"id":"-1657903163","predicate":"updateContactLink","params":[{"name":"user_id","type":"int"},{"name":"my_link","type":"ContactLink"},{"name":"foreign_link","type":"ContactLink"}],"type":"Update"},{"id":"-1895411046","predicate":"updateNewAuthorization","params":[{"name":"auth_key_id","type":"long"},{"name":"date","type":"int"},{"name":"device","type":"string"},{"name":"location","type":"string"}],"type":"Update"},{"id":"-1519637954","predicate":"updates.state","params":[{"name":"pts","type":"int"},{"name":"qts","type":"int"},{"name":"date","type":"int"},{"name":"seq","type":"int"},{"name":"unread_count","type":"int"}],"type":"updates.State"},{"id":"1567990072","predicate":"updates.differenceEmpty","params":[{"name":"date","type":"int"},{"name":"seq","type":"int"}],"type":"updates.Difference"},{"id":"16030880","predicate":"updates.difference","params":[{"name":"new_messages","type":"Vector<Message>"},{"name":"new_encrypted_messages","type":"Vector<EncryptedMessage>"},{"name":"other_updates","type":"Vector<Update>"},{"name":"chats","type":"Vector<Chat>"},{"name":"users","type":"Vector<User>"},{"name":"state","type":"updates.State"}],"type":"updates.Difference"},{"id":"-1459938943","predicate":"updates.differenceSlice","params":[{"name":"new_messages","type":"Vector<Message>"},{"name":"new_encrypted_messages","type":"Vector<EncryptedMessage>"},{"name":"other_updates","type":"Vector<Update>"},{"name":"chats","type":"Vector<Chat>"},{"name":"users","type":"Vector<User>"},{"name":"intermediate_state","type":"updates.State"}],"type":"updates.Difference"},{"id":"-484987010","predicate":"updatesTooLong","params":[],"type":"Updates"},{"id":"333766314","predicate":"updateShortMessage","params":[{"name":"flags","type":"#"},{"name":"unread","type":"flags.0?true"},{"name":"out","type":"flags.1?true"},{"name":"mentioned","type":"flags.4?true"},{"name":"media_unread","type":"flags.5?true"},{"name":"id","type":"int"},{"name":"user_id","type":"int"},{"name":"message","type":"string"},{"name":"pts","type":"int"},{"name":"pts_count","type":"int"},{"name":"date","type":"int"},{"name":"fwd_from_id","type":"flags.2?Peer"},{"name":"fwd_date","type":"flags.2?int"},{"name":"via_bot_id","type":"flags.11?int"},{"name":"reply_to_msg_id","type":"flags.3?int"},{"name":"entities","type":"flags.7?Vector<MessageEntity>"}],"type":"Updates"},{"id":"613087842","predicate":"updateShortChatMessage","params":[{"name":"flags","type":"#"},{"name":"unread","type":"flags.0?true"},{"name":"out","type":"flags.1?true"},{"name":"mentioned","type":"flags.4?true"},{"name":"media_unread","type":"flags.5?true"},{"name":"id","type":"int"},{"name":"from_id","type":"int"},{"name":"chat_id","type":"int"},{"name":"message","type":"string"},{"name":"pts","type":"int"},{"name":"pts_count","type":"int"},{"name":"date","type":"int"},{"name":"fwd_from_id","type":"flags.2?Peer"},{"name":"fwd_date","type":"flags.2?int"},{"name":"via_bot_id","type":"flags.11?int"},{"name":"reply_to_msg_id","type":"flags.3?int"},{"name":"entities","type":"flags.7?Vector<MessageEntity>"}],"type":"Updates"},{"id":"2027216577","predicate":"updateShort","params":[{"name":"update","type":"Update"},{"name":"date","type":"int"}],"type":"Updates"},{"id":"1918567619","predicate":"updatesCombined","params":[{"name":"updates","type":"Vector<Update>"},{"name":"users","type":"Vector<User>"},{"name":"chats","type":"Vector<Chat>"},{"name":"date","type":"int"},{"name":"seq_start","type":"int"},{"name":"seq","type":"int"}],"type":"Updates"},{"id":"1957577280","predicate":"updates","params":[{"name":"updates","type":"Vector<Update>"},{"name":"users","type":"Vector<User>"},{"name":"chats","type":"Vector<Chat>"},{"name":"date","type":"int"},{"name":"seq","type":"int"}],"type":"Updates"},{"id":"-1916114267","predicate":"photos.photos","params":[{"name":"photos","type":"Vector<Photo>"},{"name":"users","type":"Vector<User>"}],"type":"photos.Photos"},{"id":"352657236","predicate":"photos.photosSlice","params":[{"name":"count","type":"int"},{"name":"photos","type":"Vector<Photo>"},{"name":"users","type":"Vector<User>"}],"type":"photos.Photos"},{"id":"539045032","predicate":"photos.photo","params":[{"name":"photo","type":"Photo"},{"name":"users","type":"Vector<User>"}],"type":"photos.Photo"},{"id":"157948117","predicate":"upload.file","params":[{"name":"type","type":"storage.FileType"},{"name":"mtime","type":"int"},{"name":"bytes","type":"bytes"}],"type":"upload.File"},{"id":"98092748","predicate":"dcOption","params":[{"name":"flags","type":"#"},{"name":"ipv6","type":"flags.0?true"},{"name":"media_only","type":"flags.1?true"},{"name":"id","type":"int"},{"name":"ip_address","type":"string"},{"name":"port","type":"int"}],"type":"DcOption"},{"id":"112969208","predicate":"config","params":[{"name":"date","type":"int"},{"name":"expires","type":"int"},{"name":"test_mode","type":"Bool"},{"name":"this_dc","type":"int"},{"name":"dc_options","type":"Vector<DcOption>"},{"name":"chat_size_max","type":"int"},{"name":"megagroup_size_max","type":"int"},{"name":"forwarded_count_max","type":"int"},{"name":"online_update_period_ms","type":"int"},{"name":"offline_blur_timeout_ms","type":"int"},{"name":"offline_idle_timeout_ms","type":"int"},{"name":"online_cloud_timeout_ms","type":"int"},{"name":"notify_cloud_delay_ms","type":"int"},{"name":"notify_default_delay_ms","type":"int"},{"name":"chat_big_size","type":"int"},{"name":"push_chat_period_ms","type":"int"},{"name":"push_chat_limit","type":"int"},{"name":"saved_gifs_limit","type":"int"},{"name":"disabled_features","type":"Vector<DisabledFeature>"}],"type":"Config"},{"id":"-1910892683","predicate":"nearestDc","params":[{"name":"country","type":"string"},{"name":"this_dc","type":"int"},{"name":"nearest_dc","type":"int"}],"type":"NearestDc"},{"id":"-1987579119","predicate":"help.appUpdate","params":[{"name":"id","type":"int"},{"name":"critical","type":"Bool"},{"name":"url","type":"string"},{"name":"text","type":"string"}],"type":"help.AppUpdate"},{"id":"-1000708810","predicate":"help.noAppUpdate","params":[],"type":"help.AppUpdate"},{"id":"415997816","predicate":"help.inviteText","params":[{"name":"message","type":"string"}],"type":"help.InviteText"},{"id":"1662091044","predicate":"wallPaperSolid","params":[{"name":"id","type":"int"},{"name":"title","type":"string"},{"name":"bg_color","type":"int"},{"name":"color","type":"int"}],"type":"WallPaper"},{"id":"314359194","predicate":"updateNewEncryptedMessage","params":[{"name":"message","type":"EncryptedMessage"},{"name":"qts","type":"int"}],"type":"Update"},{"id":"386986326","predicate":"updateEncryptedChatTyping","params":[{"name":"chat_id","type":"int"}],"type":"Update"},{"id":"-1264392051","predicate":"updateEncryption","params":[{"name":"chat","type":"EncryptedChat"},{"name":"date","type":"int"}],"type":"Update"},{"id":"956179895","predicate":"updateEncryptedMessagesRead","params":[{"name":"chat_id","type":"int"},{"name":"max_date","type":"int"},{"name":"date","type":"int"}],"type":"Update"},{"id":"-1417756512","predicate":"encryptedChatEmpty","params":[{"name":"id","type":"int"}],"type":"EncryptedChat"},{"id":"1006044124","predicate":"encryptedChatWaiting","params":[{"name":"id","type":"int"},{"name":"access_hash","type":"long"},{"name":"date","type":"int"},{"name":"admin_id","type":"int"},{"name":"participant_id","type":"int"}],"type":"EncryptedChat"},{"id":"-931638658","predicate":"encryptedChatRequested","params":[{"name":"id","type":"int"},{"name":"access_hash","type":"long"},{"name":"date","type":"int"},{"name":"admin_id","type":"int"},{"name":"participant_id","type":"int"},{"name":"g_a","type":"bytes"}],"type":"EncryptedChat"},{"id":"-94974410","predicate":"encryptedChat","params":[{"name":"id","type":"int"},{"name":"access_hash","type":"long"},{"name":"date","type":"int"},{"name":"admin_id","type":"int"},{"name":"participant_id","type":"int"},{"name":"g_a_or_b","type":"bytes"},{"name":"key_fingerprint","type":"long"}],"type":"EncryptedChat"},{"id":"332848423","predicate":"encryptedChatDiscarded","params":[{"name":"id","type":"int"}],"type":"EncryptedChat"},{"id":"-247351839","predicate":"inputEncryptedChat","params":[{"name":"chat_id","type":"int"},{"name":"access_hash","type":"long"}],"type":"InputEncryptedChat"},{"id":"-1038136962","predicate":"encryptedFileEmpty","params":[],"type":"EncryptedFile"},{"id":"1248893260","predicate":"encryptedFile","params":[{"name":"id","type":"long"},{"name":"access_hash","type":"long"},{"name":"size","type":"int"},{"name":"dc_id","type":"int"},{"name":"key_fingerprint","type":"int"}],"type":"EncryptedFile"},{"id":"406307684","predicate":"inputEncryptedFileEmpty","params":[],"type":"InputEncryptedFile"},{"id":"1690108678","predicate":"inputEncryptedFileUploaded","params":[{"name":"id","type":"long"},{"name":"parts","type":"int"},{"name":"md5_checksum","type":"string"},{"name":"key_fingerprint","type":"int"}],"type":"InputEncryptedFile"},{"id":"1511503333","predicate":"inputEncryptedFile","params":[{"name":"id","type":"long"},{"name":"access_hash","type":"long"}],"type":"InputEncryptedFile"},{"id":"-182231723","predicate":"inputEncryptedFileLocation","params":[{"name":"id","type":"long"},{"name":"access_hash","type":"long"}],"type":"InputFileLocation"},{"id":"-317144808","predicate":"encryptedMessage","params":[{"name":"random_id","type":"long"},{"name":"chat_id","type":"int"},{"name":"date","type":"int"},{"name":"bytes","type":"bytes"},{"name":"file","type":"EncryptedFile"}],"type":"EncryptedMessage"},{"id":"594758406","predicate":"encryptedMessageService","params":[{"name":"random_id","type":"long"},{"name":"chat_id","type":"int"},{"name":"date","type":"int"},{"name":"bytes","type":"bytes"}],"type":"EncryptedMessage"},{"id":"-1058912715","predicate":"messages.dhConfigNotModified","params":[{"name":"random","type":"bytes"}],"type":"messages.DhConfig"},{"id":"740433629","predicate":"messages.dhConfig","params":[{"name":"g","type":"int"},{"name":"p","type":"bytes"},{"name":"version","type":"int"},{"name":"random","type":"bytes"}],"type":"messages.DhConfig"},{"id":"1443858741","predicate":"messages.sentEncryptedMessage","params":[{"name":"date","type":"int"}],"type":"messages.SentEncryptedMessage"},{"id":"-1802240206","predicate":"messages.sentEncryptedFile","params":[{"name":"date","type":"int"},{"name":"file","type":"EncryptedFile"}],"type":"messages.SentEncryptedMessage"},{"id":"-95482955","predicate":"inputFileBig","params":[{"name":"id","type":"long"},{"name":"parts","type":"int"},{"name":"name","type":"string"}],"type":"InputFile"},{"id":"767652808","predicate":"inputEncryptedFileBigUploaded","params":[{"name":"id","type":"long"},{"name":"parts","type":"int"},{"name":"key_fingerprint","type":"int"}],"type":"InputEncryptedFile"},{"id":"-364179876","predicate":"updateChatParticipantAdd","params":[{"name":"chat_id","type":"int"},{"name":"user_id","type":"int"},{"name":"inviter_id","type":"int"},{"name":"date","type":"int"},{"name":"version","type":"int"}],"type":"Update"},{"id":"1851755554","predicate":"updateChatParticipantDelete","params":[{"name":"chat_id","type":"int"},{"name":"user_id","type":"int"},{"name":"version","type":"int"}],"type":"Update"},{"id":"-1906403213","predicate":"updateDcOptions","params":[{"name":"dc_options","type":"Vector<DcOption>"}],"type":"Update"},{"id":"1313442987","predicate":"inputMediaUploadedAudio","params":[{"name":"file","type":"InputFile"},{"name":"duration","type":"int"},{"name":"mime_type","type":"string"}],"type":"InputMedia"},{"id":"-1986820223","predicate":"inputMediaAudio","params":[{"name":"id","type":"InputAudio"}],"type":"InputMedia"},{"id":"495530093","predicate":"inputMediaUploadedDocument","params":[{"name":"file","type":"InputFile"},{"name":"mime_type","type":"string"},{"name":"attributes","type":"Vector<DocumentAttribute>"},{"name":"caption","type":"string"}],"type":"InputMedia"},{"id":"-1386138479","predicate":"inputMediaUploadedThumbDocument","params":[{"name":"file","type":"InputFile"},{"name":"thumb","type":"InputFile"},{"name":"mime_type","type":"string"},{"name":"attributes","type":"Vector<DocumentAttribute>"},{"name":"caption","type":"string"}],"type":"InputMedia"},{"id":"444068508","predicate":"inputMediaDocument","params":[{"name":"id","type":"InputDocument"},{"name":"caption","type":"string"}],"type":"InputMedia"},{"id":"-203411800","predicate":"messageMediaDocument","params":[{"name":"document","type":"Document"},{"name":"caption","type":"string"}],"type":"MessageMedia"},{"id":"-961117440","predicate":"messageMediaAudio","params":[{"name":"audio","type":"Audio"}],"type":"MessageMedia"},{"id":"-648356732","predicate":"inputAudioEmpty","params":[],"type":"InputAudio"},{"id":"2010398975","predicate":"inputAudio","params":[{"name":"id","type":"long"},{"name":"access_hash","type":"long"}],"type":"InputAudio"},{"id":"1928391342","predicate":"inputDocumentEmpty","params":[],"type":"InputDocument"},{"id":"410618194","predicate":"inputDocument","params":[{"name":"id","type":"long"},{"name":"access_hash","type":"long"}],"type":"InputDocument"},{"id":"1960591437","predicate":"inputAudioFileLocation","params":[{"name":"id","type":"long"},{"name":"access_hash","type":"long"}],"type":"InputFileLocation"},{"id":"1313188841","predicate":"inputDocumentFileLocation","params":[{"name":"id","type":"long"},{"name":"access_hash","type":"long"}],"type":"InputFileLocation"},{"id":"1483311320","predicate":"audioEmpty","params":[{"name":"id","type":"long"}],"type":"Audio"},{"id":"-102543275","predicate":"audio","params":[{"name":"id","type":"long"},{"name":"access_hash","type":"long"},{"name":"date","type":"int"},{"name":"duration","type":"int"},{"name":"mime_type","type":"string"},{"name":"size","type":"int"},{"name":"dc_id","type":"int"}],"type":"Audio"},{"id":"922273905","predicate":"documentEmpty","params":[{"name":"id","type":"long"}],"type":"Document"},{"id":"-106717361","predicate":"document","params":[{"name":"id","type":"long"},{"name":"access_hash","type":"long"},{"name":"date","type":"int"},{"name":"mime_type","type":"string"},{"name":"size","type":"int"},{"name":"thumb","type":"PhotoSize"},{"name":"dc_id","type":"int"},{"name":"attributes","type":"Vector<DocumentAttribute>"}],"type":"Document"},{"id":"398898678","predicate":"help.support","params":[{"name":"phone_number","type":"string"},{"name":"user","type":"User"}],"type":"help.Support"},{"id":"-1613493288","predicate":"notifyPeer","params":[{"name":"peer","type":"Peer"}],"type":"NotifyPeer"},{"id":"-1261946036","predicate":"notifyUsers","params":[],"type":"NotifyPeer"},{"id":"-1073230141","predicate":"notifyChats","params":[],"type":"NotifyPeer"},{"id":"1959820384","predicate":"notifyAll","params":[],"type":"NotifyPeer"},{"id":"-2131957734","predicate":"updateUserBlocked","params":[{"name":"user_id","type":"int"},{"name":"blocked","type":"Bool"}],"type":"Update"},{"id":"-1094555409","predicate":"updateNotifySettings","params":[{"name":"peer","type":"NotifyPeer"},{"name":"notify_settings","type":"PeerNotifySettings"}],"type":"Update"},{"id":"-484053553","predicate":"auth.sentAppCode","params":[{"name":"phone_registered","type":"Bool"},{"name":"phone_code_hash","type":"string"},{"name":"send_call_timeout","type":"int"},{"name":"is_password","type":"Bool"}],"type":"auth.SentCode"},{"id":"381645902","predicate":"sendMessageTypingAction","params":[],"type":"SendMessageAction"},{"id":"-44119819","predicate":"sendMessageCancelAction","params":[],"type":"SendMessageAction"},{"id":"-1584933265","predicate":"sendMessageRecordVideoAction","params":[],"type":"SendMessageAction"},{"id":"-378127636","predicate":"sendMessageUploadVideoAction","params":[{"name":"progress","type":"int"}],"type":"SendMessageAction"},{"id":"-718310409","predicate":"sendMessageRecordAudioAction","params":[],"type":"SendMessageAction"},{"id":"-212740181","predicate":"sendMessageUploadAudioAction","params":[{"name":"progress","type":"int"}],"type":"SendMessageAction"},{"id":"-774682074","predicate":"sendMessageUploadPhotoAction","params":[{"name":"progress","type":"int"}],"type":"SendMessageAction"},{"id":"-1441998364","predicate":"sendMessageUploadDocumentAction","params":[{"name":"progress","type":"int"}],"type":"SendMessageAction"},{"id":"393186209","predicate":"sendMessageGeoLocationAction","params":[],"type":"SendMessageAction"},{"id":"1653390447","predicate":"sendMessageChooseContactAction","params":[],"type":"SendMessageAction"},{"id":"446822276","predicate":"contacts.found","params":[{"name":"results","type":"Vector<Peer>"},{"name":"chats","type":"Vector<Chat>"},{"name":"users","type":"Vector<User>"}],"type":"contacts.Found"},{"id":"942527460","predicate":"updateServiceNotification","params":[{"name":"type","type":"string"},{"name":"message","type":"string"},{"name":"media","type":"MessageMedia"},{"name":"popup","type":"Bool"}],"type":"Update"},{"id":"-496024847","predicate":"userStatusRecently","params":[],"type":"UserStatus"},{"id":"129960444","predicate":"userStatusLastWeek","params":[],"type":"UserStatus"},{"id":"2011940674","predicate":"userStatusLastMonth","params":[],"type":"UserStatus"},{"id":"-298113238","predicate":"updatePrivacy","params":[{"name":"key","type":"PrivacyKey"},{"name":"rules","type":"Vector<PrivacyRule>"}],"type":"Update"},{"id":"1335282456","predicate":"inputPrivacyKeyStatusTimestamp","params":[],"type":"InputPrivacyKey"},{"id":"-1137792208","predicate":"privacyKeyStatusTimestamp","params":[],"type":"PrivacyKey"},{"id":"218751099","predicate":"inputPrivacyValueAllowContacts","params":[],"type":"InputPrivacyRule"},{"id":"407582158","predicate":"inputPrivacyValueAllowAll","params":[],"type":"InputPrivacyRule"},{"id":"320652927","predicate":"inputPrivacyValueAllowUsers","params":[{"name":"users","type":"Vector<InputUser>"}],"type":"InputPrivacyRule"},{"id":"195371015","predicate":"inputPrivacyValueDisallowContacts","params":[],"type":"InputPrivacyRule"},{"id":"-697604407","predicate":"inputPrivacyValueDisallowAll","params":[],"type":"InputPrivacyRule"},{"id":"-1877932953","predicate":"inputPrivacyValueDisallowUsers","params":[{"name":"users","type":"Vector<InputUser>"}],"type":"InputPrivacyRule"},{"id":"-123988","predicate":"privacyValueAllowContacts","params":[],"type":"PrivacyRule"},{"id":"1698855810","predicate":"privacyValueAllowAll","params":[],"type":"PrivacyRule"},{"id":"1297858060","predicate":"privacyValueAllowUsers","params":[{"name":"users","type":"Vector<int>"}],"type":"PrivacyRule"},{"id":"-125240806","predicate":"privacyValueDisallowContacts","params":[],"type":"PrivacyRule"},{"id":"-1955338397","predicate":"privacyValueDisallowAll","params":[],"type":"PrivacyRule"},{"id":"209668535","predicate":"privacyValueDisallowUsers","params":[{"name":"users","type":"Vector<int>"}],"type":"PrivacyRule"},{"id":"1430961007","predicate":"account.privacyRules","params":[{"name":"rules","type":"Vector<PrivacyRule>"},{"name":"users","type":"Vector<User>"}],"type":"account.PrivacyRules"},{"id":"-1194283041","predicate":"accountDaysTTL","params":[{"name":"days","type":"int"}],"type":"AccountDaysTTL"},{"id":"-1527411636","predicate":"account.sentChangePhoneCode","params":[{"name":"phone_code_hash","type":"string"},{"name":"send_call_timeout","type":"int"}],"type":"account.SentChangePhoneCode"},{"id":"314130811","predicate":"updateUserPhone","params":[{"name":"user_id","type":"int"},{"name":"phone","type":"string"}],"type":"Update"},{"id":"1815593308","predicate":"documentAttributeImageSize","params":[{"name":"w","type":"int"},{"name":"h","type":"int"}],"type":"DocumentAttribute"},{"id":"297109817","predicate":"documentAttributeAnimated","params":[],"type":"DocumentAttribute"},{"id":"978674434","predicate":"documentAttributeSticker","params":[{"name":"alt","type":"string"},{"name":"stickerset","type":"InputStickerSet"}],"type":"DocumentAttribute"},{"id":"1494273227","predicate":"documentAttributeVideo","params":[{"name":"duration","type":"int"},{"name":"w","type":"int"},{"name":"h","type":"int"}],"type":"DocumentAttribute"},{"id":"-556656416","predicate":"documentAttributeAudio","params":[{"name":"duration","type":"int"},{"name":"title","type":"string"},{"name":"performer","type":"string"}],"type":"DocumentAttribute"},{"id":"358154344","predicate":"documentAttributeFilename","params":[{"name":"file_name","type":"string"}],"type":"DocumentAttribute"},{"id":"-244016606","predicate":"messages.stickersNotModified","params":[],"type":"messages.Stickers"},{"id":"-1970352846","predicate":"messages.stickers","params":[{"name":"hash","type":"string"},{"name":"stickers","type":"Vector<Document>"}],"type":"messages.Stickers"},{"id":"313694676","predicate":"stickerPack","params":[{"name":"emoticon","type":"string"},{"name":"documents","type":"Vector<long>"}],"type":"StickerPack"},{"id":"-395967805","predicate":"messages.allStickersNotModified","params":[],"type":"messages.AllStickers"},{"id":"-302170017","predicate":"messages.allStickers","params":[{"name":"hash","type":"int"},{"name":"sets","type":"Vector<StickerSet>"}],"type":"messages.AllStickers"},{"id":"-1369215196","predicate":"disabledFeature","params":[{"name":"feature","type":"string"},{"name":"description","type":"string"}],"type":"DisabledFeature"},{"id":"-1721631396","predicate":"updateReadHistoryInbox","params":[{"name":"peer","type":"Peer"},{"name":"max_id","type":"int"},{"name":"pts","type":"int"},{"name":"pts_count","type":"int"}],"type":"Update"},{"id":"791617983","predicate":"updateReadHistoryOutbox","params":[{"name":"peer","type":"Peer"},{"name":"max_id","type":"int"},{"name":"pts","type":"int"},{"name":"pts_count","type":"int"}],"type":"Update"},{"id":"-2066640507","predicate":"messages.affectedMessages","params":[{"name":"pts","type":"int"},{"name":"pts_count","type":"int"}],"type":"messages.AffectedMessages"},{"id":"1599050311","predicate":"contactLinkUnknown","params":[],"type":"ContactLink"},{"id":"-17968211","predicate":"contactLinkNone","params":[],"type":"ContactLink"},{"id":"646922073","predicate":"contactLinkHasPhone","params":[],"type":"ContactLink"},{"id":"-721239344","predicate":"contactLinkContact","params":[],"type":"ContactLink"},{"id":"2139689491","predicate":"updateWebPage","params":[{"name":"webpage","type":"WebPage"},{"name":"pts","type":"int"},{"name":"pts_count","type":"int"}],"type":"Update"},{"id":"-350980120","predicate":"webPageEmpty","params":[{"name":"id","type":"long"}],"type":"WebPage"},{"id":"-981018084","predicate":"webPagePending","params":[{"name":"id","type":"long"},{"name":"date","type":"int"}],"type":"WebPage"},{"id":"-897446185","predicate":"webPage","params":[{"name":"flags","type":"#"},{"name":"id","type":"long"},{"name":"url","type":"string"},{"name":"display_url","type":"string"},{"name":"type","type":"flags.0?string"},{"name":"site_name","type":"flags.1?string"},{"name":"title","type":"flags.2?string"},{"name":"description","type":"flags.3?string"},{"name":"photo","type":"flags.4?Photo"},{"name":"embed_url","type":"flags.5?string"},{"name":"embed_type","type":"flags.5?string"},{"name":"embed_width","type":"flags.6?int"},{"name":"embed_height","type":"flags.6?int"},{"name":"duration","type":"flags.7?int"},{"name":"author","type":"flags.8?string"},{"name":"document","type":"flags.9?Document"}],"type":"WebPage"},{"id":"-1557277184","predicate":"messageMediaWebPage","params":[{"name":"webpage","type":"WebPage"}],"type":"MessageMedia"},{"id":"2079516406","predicate":"authorization","params":[{"name":"hash","type":"long"},{"name":"flags","type":"int"},{"name":"device_model","type":"string"},{"name":"platform","type":"string"},{"name":"system_version","type":"string"},{"name":"api_id","type":"int"},{"name":"app_name","type":"string"},{"name":"app_version","type":"string"},{"name":"date_created","type":"int"},{"name":"date_active","type":"int"},{"name":"ip","type":"string"},{"name":"country","type":"string"},{"name":"region","type":"string"}],"type":"Authorization"},{"id":"307276766","predicate":"account.authorizations","params":[{"name":"authorizations","type":"Vector<Authorization>"}],"type":"account.Authorizations"},{"id":"-1764049896","predicate":"account.noPassword","params":[{"name":"new_salt","type":"bytes"},{"name":"email_unconfirmed_pattern","type":"string"}],"type":"account.Password"},{"id":"2081952796","predicate":"account.password","params":[{"name":"current_salt","type":"bytes"},{"name":"new_salt","type":"bytes"},{"name":"hint","type":"string"},{"name":"has_recovery","type":"Bool"},{"name":"email_unconfirmed_pattern","type":"string"}],"type":"account.Password"},{"id":"-1212732749","predicate":"account.passwordSettings","params":[{"name":"email","type":"string"}],"type":"account.PasswordSettings"},{"id":"-1124314324","predicate":"account.passwordInputSettings","params":[{"name":"flags","type":"#"},{"name":"new_salt","type":"flags.0?bytes"},{"name":"new_password_hash","type":"flags.0?bytes"},{"name":"hint","type":"flags.0?string"},{"name":"email","type":"flags.1?string"}],"type":"account.PasswordInputSettings"},{"id":"326715557","predicate":"auth.passwordRecovery","params":[{"name":"email_pattern","type":"string"}],"type":"auth.PasswordRecovery"},{"id":"673687578","predicate":"inputMediaVenue","params":[{"name":"geo_point","type":"InputGeoPoint"},{"name":"title","type":"string"},{"name":"address","type":"string"},{"name":"provider","type":"string"},{"name":"venue_id","type":"string"}],"type":"InputMedia"},{"id":"2031269663","predicate":"messageMediaVenue","params":[{"name":"geo","type":"GeoPoint"},{"name":"title","type":"string"},{"name":"address","type":"string"},{"name":"provider","type":"string"},{"name":"venue_id","type":"string"}],"type":"MessageMedia"},{"id":"-1551583367","predicate":"receivedNotifyMessage","params":[{"name":"id","type":"int"},{"name":"flags","type":"int"}],"type":"ReceivedNotifyMessage"},{"id":"1776236393","predicate":"chatInviteEmpty","params":[],"type":"ExportedChatInvite"},{"id":"-64092740","predicate":"chatInviteExported","params":[{"name":"link","type":"string"}],"type":"ExportedChatInvite"},{"id":"1516793212","predicate":"chatInviteAlready","params":[{"name":"chat","type":"Chat"}],"type":"ChatInvite"},{"id":"-1813406880","predicate":"chatInvite","params":[{"name":"flags","type":"#"},{"name":"channel","type":"flags.0?true"},{"name":"broadcast","type":"flags.1?true"},{"name":"public","type":"flags.2?true"},{"name":"megagroup","type":"flags.3?true"},{"name":"title","type":"string"}],"type":"ChatInvite"},{"id":"-123931160","predicate":"messageActionChatJoinedByLink","params":[{"name":"inviter_id","type":"int"}],"type":"MessageAction"},{"id":"1757493555","predicate":"updateReadMessagesContents","params":[{"name":"messages","type":"Vector<int>"},{"name":"pts","type":"int"},{"name":"pts_count","type":"int"}],"type":"Update"},{"id":"-4838507","predicate":"inputStickerSetEmpty","params":[],"type":"InputStickerSet"},{"id":"-1645763991","predicate":"inputStickerSetID","params":[{"name":"id","type":"long"},{"name":"access_hash","type":"long"}],"type":"InputStickerSet"},{"id":"-2044933984","predicate":"inputStickerSetShortName","params":[{"name":"short_name","type":"string"}],"type":"InputStickerSet"},{"id":"-852477119","predicate":"stickerSet","params":[{"name":"flags","type":"#"},{"name":"installed","type":"flags.0?true"},{"name":"disabled","type":"flags.1?true"},{"name":"official","type":"flags.2?true"},{"name":"id","type":"long"},{"name":"access_hash","type":"long"},{"name":"title","type":"string"},{"name":"short_name","type":"string"},{"name":"count","type":"int"},{"name":"hash","type":"int"}],"type":"StickerSet"},{"id":"-1240849242","predicate":"messages.stickerSet","params":[{"name":"set","type":"StickerSet"},{"name":"packs","type":"Vector<StickerPack>"},{"name":"documents","type":"Vector<Document>"}],"type":"messages.StickerSet"},{"id":"-787638374","predicate":"user","params":[{"name":"flags","type":"#"},{"name":"self","type":"flags.10?true"},{"name":"contact","type":"flags.11?true"},{"name":"mutual_contact","type":"flags.12?true"},{"name":"deleted","type":"flags.13?true"},{"name":"bot","type":"flags.14?true"},{"name":"bot_chat_history","type":"flags.15?true"},{"name":"bot_nochats","type":"flags.16?true"},{"name":"verified","type":"flags.17?true"},{"name":"restricted","type":"flags.18?true"},{"name":"id","type":"int"},{"name":"access_hash","type":"flags.0?long"},{"name":"first_name","type":"flags.1?string"},{"name":"last_name","type":"flags.2?string"},{"name":"username","type":"flags.3?string"},{"name":"phone","type":"flags.4?string"},{"name":"photo","type":"flags.5?UserProfilePhoto"},{"name":"status","type":"flags.6?UserStatus"},{"name":"bot_info_version","type":"flags.14?int"},{"name":"restriction_reason","type":"flags.18?string"},{"name":"bot_inline_placeholder","type":"flags.19?string"}],"type":"User"},{"id":"-1032140601","predicate":"botCommand","params":[{"name":"command","type":"string"},{"name":"description","type":"string"}],"type":"BotCommand"},{"id":"-1154598962","predicate":"botInfoEmpty","params":[],"type":"BotInfo"},{"id":"164583517","predicate":"botInfo","params":[{"name":"user_id","type":"int"},{"name":"version","type":"int"},{"name":"share_text","type":"string"},{"name":"description","type":"string"},{"name":"commands","type":"Vector<BotCommand>"}],"type":"BotInfo"},{"id":"-1560655744","predicate":"keyboardButton","params":[{"name":"text","type":"string"}],"type":"KeyboardButton"},{"id":"2002815875","predicate":"keyboardButtonRow","params":[{"name":"buttons","type":"Vector<KeyboardButton>"}],"type":"KeyboardButtonRow"},{"id":"-1606526075","predicate":"replyKeyboardHide","params":[{"name":"flags","type":"#"},{"name":"selective","type":"flags.2?true"}],"type":"ReplyMarkup"},{"id":"-200242528","predicate":"replyKeyboardForceReply","params":[{"name":"flags","type":"#"},{"name":"single_use","type":"flags.1?true"},{"name":"selective","type":"flags.2?true"}],"type":"ReplyMarkup"},{"id":"889353612","predicate":"replyKeyboardMarkup","params":[{"name":"flags","type":"#"},{"name":"resize","type":"flags.0?true"},{"name":"single_use","type":"flags.1?true"},{"name":"selective","type":"flags.2?true"},{"name":"rows","type":"Vector<KeyboardButtonRow>"}],"type":"ReplyMarkup"},{"id":"2072935910","predicate":"inputPeerUser","params":[{"name":"user_id","type":"int"},{"name":"access_hash","type":"long"}],"type":"InputPeer"},{"id":"-668391402","predicate":"inputUser","params":[{"name":"user_id","type":"int"},{"name":"access_hash","type":"long"}],"type":"InputUser"},{"id":"-1350696044","predicate":"help.appChangelogEmpty","params":[],"type":"help.AppChangelog"},{"id":"1181279933","predicate":"help.appChangelog","params":[{"name":"text","type":"string"}],"type":"help.AppChangelog"},{"id":"-1148011883","predicate":"messageEntityUnknown","params":[{"name":"offset","type":"int"},{"name":"length","type":"int"}],"type":"MessageEntity"},{"id":"-100378723","predicate":"messageEntityMention","params":[{"name":"offset","type":"int"},{"name":"length","type":"int"}],"type":"MessageEntity"},{"id":"1868782349","predicate":"messageEntityHashtag","params":[{"name":"offset","type":"int"},{"name":"length","type":"int"}],"type":"MessageEntity"},{"id":"1827637959","predicate":"messageEntityBotCommand","params":[{"name":"offset","type":"int"},{"name":"length","type":"int"}],"type":"MessageEntity"},{"id":"1859134776","predicate":"messageEntityUrl","params":[{"name":"offset","type":"int"},{"name":"length","type":"int"}],"type":"MessageEntity"},{"id":"1692693954","predicate":"messageEntityEmail","params":[{"name":"offset","type":"int"},{"name":"length","type":"int"}],"type":"MessageEntity"},{"id":"-1117713463","predicate":"messageEntityBold","params":[{"name":"offset","type":"int"},{"name":"length","type":"int"}],"type":"MessageEntity"},{"id":"-2106619040","predicate":"messageEntityItalic","params":[{"name":"offset","type":"int"},{"name":"length","type":"int"}],"type":"MessageEntity"},{"id":"681706865","predicate":"messageEntityCode","params":[{"name":"offset","type":"int"},{"name":"length","type":"int"}],"type":"MessageEntity"},{"id":"1938967520","predicate":"messageEntityPre","params":[{"name":"offset","type":"int"},{"name":"length","type":"int"},{"name":"language","type":"string"}],"type":"MessageEntity"},{"id":"1990644519","predicate":"messageEntityTextUrl","params":[{"name":"offset","type":"int"},{"name":"length","type":"int"},{"name":"url","type":"string"}],"type":"MessageEntity"},{"id":"301019932","predicate":"updateShortSentMessage","params":[{"name":"flags","type":"#"},{"name":"unread","type":"flags.0?true"},{"name":"out","type":"flags.1?true"},{"name":"id","type":"int"},{"name":"pts","type":"int"},{"name":"pts_count","type":"int"},{"name":"date","type":"int"},{"name":"media","type":"flags.9?MessageMedia"},{"name":"entities","type":"flags.7?Vector<MessageEntity>"}],"type":"Updates"},{"id":"-292807034","predicate":"inputChannelEmpty","params":[],"type":"InputChannel"},{"id":"-1343524562","predicate":"inputChannel","params":[{"name":"channel_id","type":"int"},{"name":"access_hash","type":"long"}],"type":"InputChannel"},{"id":"-1109531342","predicate":"peerChannel","params":[{"name":"channel_id","type":"int"}],"type":"Peer"},{"id":"548253432","predicate":"inputPeerChannel","params":[{"name":"channel_id","type":"int"},{"name":"access_hash","type":"long"}],"type":"InputPeer"},{"id":"1260090630","predicate":"channel","params":[{"name":"flags","type":"#"},{"name":"creator","type":"flags.0?true"},{"name":"kicked","type":"flags.1?true"},{"name":"left","type":"flags.2?true"},{"name":"editor","type":"flags.3?true"},{"name":"moderator","type":"flags.4?true"},{"name":"broadcast","type":"flags.5?true"},{"name":"verified","type":"flags.7?true"},{"name":"megagroup","type":"flags.8?true"},{"name":"restricted","type":"flags.9?true"},{"name":"id","type":"int"},{"name":"access_hash","type":"long"},{"name":"title","type":"string"},{"name":"username","type":"flags.6?string"},{"name":"photo","type":"ChatPhoto"},{"name":"date","type":"int"},{"name":"version","type":"int"},{"name":"restriction_reason","type":"flags.9?string"}],"type":"Chat"},{"id":"763724588","predicate":"channelForbidden","params":[{"name":"id","type":"int"},{"name":"access_hash","type":"long"},{"name":"title","type":"string"}],"type":"Chat"},{"id":"2131196633","predicate":"contacts.resolvedPeer","params":[{"name":"peer","type":"Peer"},{"name":"chats","type":"Vector<Chat>"},{"name":"users","type":"Vector<User>"}],"type":"contacts.ResolvedPeer"},{"id":"-1640751649","predicate":"channelFull","params":[{"name":"flags","type":"#"},{"name":"can_view_participants","type":"flags.3?true"},{"name":"id","type":"int"},{"name":"about","type":"string"},{"name":"participants_count","type":"flags.0?int"},{"name":"admins_count","type":"flags.1?int"},{"name":"kicked_count","type":"flags.2?int"},{"name":"read_inbox_max_id","type":"int"},{"name":"unread_count","type":"int"},{"name":"unread_important_count","type":"int"},{"name":"chat_photo","type":"Photo"},{"name":"notify_settings","type":"PeerNotifySettings"},{"name":"exported_invite","type":"ExportedChatInvite"},{"name":"bot_info","type":"Vector<BotInfo>"},{"name":"migrated_from_chat_id","type":"flags.4?int"},{"name":"migrated_from_max_id","type":"flags.4?int"}],"type":"ChatFull"},{"id":"1535415986","predicate":"dialogChannel","params":[{"name":"peer","type":"Peer"},{"name":"top_message","type":"int"},{"name":"top_important_message","type":"int"},{"name":"read_inbox_max_id","type":"int"},{"name":"unread_count","type":"int"},{"name":"unread_important_count","type":"int"},{"name":"notify_settings","type":"PeerNotifySettings"},{"name":"pts","type":"int"}],"type":"Dialog"},{"id":"182649427","predicate":"messageRange","params":[{"name":"min_id","type":"int"},{"name":"max_id","type":"int"}],"type":"MessageRange"},{"id":"-399216813","predicate":"messageGroup","params":[{"name":"min_id","type":"int"},{"name":"max_id","type":"int"},{"name":"count","type":"int"},{"name":"date","type":"int"}],"type":"MessageGroup"},{"id":"-1139861572","predicate":"messages.channelMessages","params":[{"name":"flags","type":"#"},{"name":"pts","type":"int"},{"name":"count","type":"int"},{"name":"messages","type":"Vector<Message>"},{"name":"collapsed","type":"flags.0?Vector<MessageGroup>"},{"name":"chats","type":"Vector<Chat>"},{"name":"users","type":"Vector<User>"}],"type":"messages.Messages"},{"id":"-1781355374","predicate":"messageActionChannelCreate","params":[{"name":"title","type":"string"}],"type":"MessageAction"},{"id":"1620337698","predicate":"updateChannelTooLong","params":[{"name":"channel_id","type":"int"}],"type":"Update"},{"id":"-1227598250","predicate":"updateChannel","params":[{"name":"channel_id","type":"int"}],"type":"Update"},{"id":"-1016324548","predicate":"updateChannelGroup","params":[{"name":"channel_id","type":"int"},{"name":"group","type":"MessageGroup"}],"type":"Update"},{"id":"1656358105","predicate":"updateNewChannelMessage","params":[{"name":"message","type":"Message"},{"name":"pts","type":"int"},{"name":"pts_count","type":"int"}],"type":"Update"},{"id":"1108669311","predicate":"updateReadChannelInbox","params":[{"name":"channel_id","type":"int"},{"name":"max_id","type":"int"}],"type":"Update"},{"id":"-1015733815","predicate":"updateDeleteChannelMessages","params":[{"name":"channel_id","type":"int"},{"name":"messages","type":"Vector<int>"},{"name":"pts","type":"int"},{"name":"pts_count","type":"int"}],"type":"Update"},{"id":"-1734268085","predicate":"updateChannelMessageViews","params":[{"name":"channel_id","type":"int"},{"name":"id","type":"int"},{"name":"views","type":"int"}],"type":"Update"},{"id":"1041346555","predicate":"updates.channelDifferenceEmpty","params":[{"name":"flags","type":"#"},{"name":"final","type":"flags.0?true"},{"name":"pts","type":"int"},{"name":"timeout","type":"flags.1?int"}],"type":"updates.ChannelDifference"},{"id":"1578530374","predicate":"updates.channelDifferenceTooLong","params":[{"name":"flags","type":"#"},{"name":"final","type":"flags.0?true"},{"name":"pts","type":"int"},{"name":"timeout","type":"flags.1?int"},{"name":"top_message","type":"int"},{"name":"top_important_message","type":"int"},{"name":"read_inbox_max_id","type":"int"},{"name":"unread_count","type":"int"},{"name":"unread_important_count","type":"int"},{"name":"messages","type":"Vector<Message>"},{"name":"chats","type":"Vector<Chat>"},{"name":"users","type":"Vector<User>"}],"type":"updates.ChannelDifference"},{"id":"543450958","predicate":"updates.channelDifference","params":[{"name":"flags","type":"#"},{"name":"final","type":"flags.0?true"},{"name":"pts","type":"int"},{"name":"timeout","type":"flags.1?int"},{"name":"new_messages","type":"Vector<Message>"},{"name":"other_updates","type":"Vector<Update>"},{"name":"chats","type":"Vector<Chat>"},{"name":"users","type":"Vector<User>"}],"type":"updates.ChannelDifference"},{"id":"-1798033689","predicate":"channelMessagesFilterEmpty","params":[],"type":"ChannelMessagesFilter"},{"id":"-847783593","predicate":"channelMessagesFilter","params":[{"name":"flags","type":"#"},{"name":"important_only","type":"flags.0?true"},{"name":"exclude_new_messages","type":"flags.1?true"},{"name":"ranges","type":"Vector<MessageRange>"}],"type":"ChannelMessagesFilter"},{"id":"-100588754","predicate":"channelMessagesFilterCollapsed","params":[],"type":"ChannelMessagesFilter"},{"id":"367766557","predicate":"channelParticipant","params":[{"name":"user_id","type":"int"},{"name":"date","type":"int"}],"type":"ChannelParticipant"},{"id":"-1557620115","predicate":"channelParticipantSelf","params":[{"name":"user_id","type":"int"},{"name":"inviter_id","type":"int"},{"name":"date","type":"int"}],"type":"ChannelParticipant"},{"id":"-1861910545","predicate":"channelParticipantModerator","params":[{"name":"user_id","type":"int"},{"name":"inviter_id","type":"int"},{"name":"date","type":"int"}],"type":"ChannelParticipant"},{"id":"-1743180447","predicate":"channelParticipantEditor","params":[{"name":"user_id","type":"int"},{"name":"inviter_id","type":"int"},{"name":"date","type":"int"}],"type":"ChannelParticipant"},{"id":"-1933187430","predicate":"channelParticipantKicked","params":[{"name":"user_id","type":"int"},{"name":"kicked_by","type":"int"},{"name":"date","type":"int"}],"type":"ChannelParticipant"},{"id":"-471670279","predicate":"channelParticipantCreator","params":[{"name":"user_id","type":"int"}],"type":"ChannelParticipant"},{"id":"-566281095","predicate":"channelParticipantsRecent","params":[],"type":"ChannelParticipantsFilter"},{"id":"-1268741783","predicate":"channelParticipantsAdmins","params":[],"type":"ChannelParticipantsFilter"},{"id":"1010285434","predicate":"channelParticipantsKicked","params":[],"type":"ChannelParticipantsFilter"},{"id":"-1299865402","predicate":"channelRoleEmpty","params":[],"type":"ChannelParticipantRole"},{"id":"-1776756363","predicate":"channelRoleModerator","params":[],"type":"ChannelParticipantRole"},{"id":"-2113143156","predicate":"channelRoleEditor","params":[],"type":"ChannelParticipantRole"},{"id":"-177282392","predicate":"channels.channelParticipants","params":[{"name":"count","type":"int"},{"name":"participants","type":"Vector<ChannelParticipant>"},{"name":"users","type":"Vector<User>"}],"type":"channels.ChannelParticipants"},{"id":"-791039645","predicate":"channels.channelParticipant","params":[{"name":"participant","type":"ChannelParticipant"},{"name":"users","type":"Vector<User>"}],"type":"channels.ChannelParticipant"},{"id":"-636267638","predicate":"chatParticipantCreator","params":[{"name":"user_id","type":"int"}],"type":"ChatParticipant"},{"id":"-489233354","predicate":"chatParticipantAdmin","params":[{"name":"user_id","type":"int"},{"name":"inviter_id","type":"int"},{"name":"date","type":"int"}],"type":"ChatParticipant"},{"id":"1855224129","predicate":"updateChatAdmins","params":[{"name":"chat_id","type":"int"},{"name":"enabled","type":"Bool"},{"name":"version","type":"int"}],"type":"Update"},{"id":"-1232070311","predicate":"updateChatParticipantAdmin","params":[{"name":"chat_id","type":"int"},{"name":"user_id","type":"int"},{"name":"is_admin","type":"Bool"},{"name":"version","type":"int"}],"type":"Update"},{"id":"1371385889","predicate":"messageActionChatMigrateTo","params":[{"name":"channel_id","type":"int"}],"type":"MessageAction"},{"id":"-1336546578","predicate":"messageActionChannelMigrateFrom","params":[{"name":"title","type":"string"},{"name":"chat_id","type":"int"}],"type":"MessageAction"},{"id":"-1328445861","predicate":"channelParticipantsBots","params":[],"type":"ChannelParticipantsFilter"},{"id":"-236044656","predicate":"help.termsOfService","params":[{"name":"text","type":"string"}],"type":"help.TermsOfService"},{"id":"1753886890","predicate":"updateNewStickerSet","params":[{"name":"stickerset","type":"messages.StickerSet"}],"type":"Update"},{"id":"-253774767","predicate":"updateStickerSetsOrder","params":[{"name":"order","type":"Vector<long>"}],"type":"Update"},{"id":"1135492588","predicate":"updateStickerSets","params":[],"type":"Update"},{"id":"372165663","predicate":"foundGif","params":[{"name":"url","type":"string"},{"name":"thumb_url","type":"string"},{"name":"content_url","type":"string"},{"name":"content_type","type":"string"},{"name":"w","type":"int"},{"name":"h","type":"int"}],"type":"FoundGif"},{"id":"-1670052855","predicate":"foundGifCached","params":[{"name":"url","type":"string"},{"name":"photo","type":"Photo"},{"name":"document","type":"Document"}],"type":"FoundGif"},{"id":"1212395773","predicate":"inputMediaGifExternal","params":[{"name":"url","type":"string"},{"name":"q","type":"string"}],"type":"InputMedia"},{"id":"1158290442","predicate":"messages.foundGifs","params":[{"name":"next_offset","type":"int"},{"name":"results","type":"Vector<FoundGif>"}],"type":"messages.FoundGifs"},{"id":"-402498398","predicate":"messages.savedGifsNotModified","params":[],"type":"messages.SavedGifs"},{"id":"772213157","predicate":"messages.savedGifs","params":[{"name":"hash","type":"int"},{"name":"gifs","type":"Vector<Document>"}],"type":"messages.SavedGifs"},{"id":"-1821035490","predicate":"updateSavedGifs","params":[],"type":"Update"},{"id":"776201607","predicate":"inputBotInlineMessageMediaAuto","params":[{"name":"caption","type":"string"}],"type":"InputBotInlineMessage"},{"id":"-1376723087","predicate":"inputBotInlineMessageText","params":[{"name":"flags","type":"#"},{"name":"no_webpage","type":"flags.0?true"},{"name":"message","type":"string"},{"name":"entities","type":"flags.1?Vector<MessageEntity>"}],"type":"InputBotInlineMessage"},{"id":"750510426","predicate":"inputBotInlineResult","params":[{"name":"flags","type":"#"},{"name":"id","type":"string"},{"name":"type","type":"string"},{"name":"title","type":"flags.1?string"},{"name":"description","type":"flags.2?string"},{"name":"url","type":"flags.3?string"},{"name":"thumb_url","type":"flags.4?string"},{"name":"content_url","type":"flags.5?string"},{"name":"content_type","type":"flags.5?string"},{"name":"w","type":"flags.6?int"},{"name":"h","type":"flags.6?int"},{"name":"duration","type":"flags.7?int"},{"name":"send_message","type":"InputBotInlineMessage"}],"type":"InputBotInlineResult"},{"id":"-61413251","predicate":"botInlineMessageMediaAuto","params":[{"name":"caption","type":"string"}],"type":"BotInlineMessage"},{"id":"-1520330839","predicate":"botInlineMessageText","params":[{"name":"flags","type":"#"},{"name":"no_webpage","type":"flags.0?true"},{"name":"message","type":"string"},{"name":"entities","type":"flags.1?Vector<MessageEntity>"}],"type":"BotInlineMessage"},{"id":"-124267714","predicate":"botInlineMediaResultDocument","params":[{"name":"id","type":"string"},{"name":"type","type":"string"},{"name":"document","type":"Document"},{"name":"send_message","type":"BotInlineMessage"}],"type":"BotInlineResult"},{"id":"-984447609","predicate":"botInlineMediaResultPhoto","params":[{"name":"id","type":"string"},{"name":"type","type":"string"},{"name":"photo","type":"Photo"},{"name":"send_message","type":"BotInlineMessage"}],"type":"BotInlineResult"},{"id":"-1679053127","predicate":"botInlineResult","params":[{"name":"flags","type":"#"},{"name":"id","type":"string"},{"name":"type","type":"string"},{"name":"title","type":"flags.1?string"},{"name":"description","type":"flags.2?string"},{"name":"url","type":"flags.3?string"},{"name":"thumb_url","type":"flags.4?string"},{"name":"content_url","type":"flags.5?string"},{"name":"content_type","type":"flags.5?string"},{"name":"w","type":"flags.6?int"},{"name":"h","type":"flags.6?int"},{"name":"duration","type":"flags.7?int"},{"name":"send_message","type":"BotInlineMessage"}],"type":"BotInlineResult"},{"id":"292597923","predicate":"messages.botResults","params":[{"name":"flags","type":"#"},{"name":"gallery","type":"flags.0?true"},{"name":"query_id","type":"long"},{"name":"next_offset","type":"flags.1?string"},{"name":"results","type":"Vector<BotInlineResult>"}],"type":"messages.BotResults"},{"id":"-1071715832","predicate":"updateBotInlineQuery","params":[{"name":"query_id","type":"long"},{"name":"user_id","type":"int"},{"name":"query","type":"string"},{"name":"offset","type":"string"}],"type":"Update"},{"id":"258597139","predicate":"updateBotInlineSend","params":[{"name":"user_id","type":"int"},{"name":"query","type":"string"},{"name":"id","type":"string"}],"type":"Update"}],"methods":[{"id":"-878758099","method":"invokeAfterMsg","params":[{"name":"msg_id","type":"long"},{"name":"query","type":"!X"}],"type":"X"},{"id":"1036301552","method":"invokeAfterMsgs","params":[{"name":"msg_ids","type":"Vector<long>"},{"name":"query","type":"!X"}],"type":"X"},{"id":"1877286395","method":"auth.checkPhone","params":[{"name":"phone_number","type":"string"}],"type":"auth.CheckedPhone"},{"id":"1988976461","method":"auth.sendCode","params":[{"name":"phone_number","type":"string"},{"name":"sms_type","type":"int"},{"name":"api_id","type":"int"},{"name":"api_hash","type":"string"},{"name":"lang_code","type":"string"}],"type":"auth.SentCode"},{"id":"63247716","method":"auth.sendCall","params":[{"name":"phone_number","type":"string"},{"name":"phone_code_hash","type":"string"}],"type":"Bool"},{"id":"453408308","method":"auth.signUp","params":[{"name":"phone_number","type":"string"},{"name":"phone_code_hash","type":"string"},{"name":"phone_code","type":"string"},{"name":"first_name","type":"string"},{"name":"last_name","type":"string"}],"type":"auth.Authorization"},{"id":"-1126886015","method":"auth.signIn","params":[{"name":"phone_number","type":"string"},{"name":"phone_code_hash","type":"string"},{"name":"phone_code","type":"string"}],"type":"auth.Authorization"},{"id":"1461180992","method":"auth.logOut","params":[],"type":"Bool"},{"id":"-1616179942","method":"auth.resetAuthorizations","params":[],"type":"Bool"},{"id":"1998331287","method":"auth.sendInvites","params":[{"name":"phone_numbers","type":"Vector<string>"},{"name":"message","type":"string"}],"type":"Bool"},{"id":"-440401971","method":"auth.exportAuthorization","params":[{"name":"dc_id","type":"int"}],"type":"auth.ExportedAuthorization"},{"id":"-470837741","method":"auth.importAuthorization","params":[{"name":"id","type":"int"},{"name":"bytes","type":"bytes"}],"type":"auth.Authorization"},{"id":"-841733627","method":"auth.bindTempAuthKey","params":[{"name":"perm_auth_key_id","type":"long"},{"name":"nonce","type":"long"},{"name":"expires_at","type":"int"},{"name":"encrypted_message","type":"bytes"}],"type":"Bool"},{"id":"1147957548","method":"account.registerDevice","params":[{"name":"token_type","type":"int"},{"name":"token","type":"string"},{"name":"device_model","type":"string"},{"name":"system_version","type":"string"},{"name":"app_version","type":"string"},{"name":"app_sandbox","type":"Bool"},{"name":"lang_code","type":"string"}],"type":"Bool"},{"id":"1707432768","method":"account.unregisterDevice","params":[{"name":"token_type","type":"int"},{"name":"token","type":"string"}],"type":"Bool"},{"id":"-2067899501","method":"account.updateNotifySettings","params":[{"name":"peer","type":"InputNotifyPeer"},{"name":"settings","type":"InputPeerNotifySettings"}],"type":"Bool"},{"id":"313765169","method":"account.getNotifySettings","params":[{"name":"peer","type":"InputNotifyPeer"}],"type":"PeerNotifySettings"},{"id":"-612493497","method":"account.resetNotifySettings","params":[],"type":"Bool"},{"id":"-259486360","method":"account.updateProfile","params":[{"name":"first_name","type":"string"},{"name":"last_name","type":"string"}],"type":"User"},{"id":"1713919532","method":"account.updateStatus","params":[{"name":"offline","type":"Bool"}],"type":"Bool"},{"id":"-1068696894","method":"account.getWallPapers","params":[],"type":"Vector<WallPaper>"},{"id":"-1374118561","method":"account.reportPeer","params":[{"name":"peer","type":"InputPeer"},{"name":"reason","type":"ReportReason"}],"type":"Bool"},{"id":"227648840","method":"users.getUsers","params":[{"name":"id","type":"Vector<InputUser>"}],"type":"Vector<User>"},{"id":"-902781519","method":"users.getFullUser","params":[{"name":"id","type":"InputUser"}],"type":"UserFull"},{"id":"-995929106","method":"contacts.getStatuses","params":[],"type":"Vector<ContactStatus>"},{"id":"583445000","method":"contacts.getContacts","params":[{"name":"hash","type":"string"}],"type":"contacts.Contacts"},{"id":"-634342611","method":"contacts.importContacts","params":[{"name":"contacts","type":"Vector<InputContact>"},{"name":"replace","type":"Bool"}],"type":"contacts.ImportedContacts"},{"id":"-847825880","method":"contacts.getSuggested","params":[{"name":"limit","type":"int"}],"type":"contacts.Suggested"},{"id":"-1902823612","method":"contacts.deleteContact","params":[{"name":"id","type":"InputUser"}],"type":"contacts.Link"},{"id":"1504393374","method":"contacts.deleteContacts","params":[{"name":"id","type":"Vector<InputUser>"}],"type":"Bool"},{"id":"858475004","method":"contacts.block","params":[{"name":"id","type":"InputUser"}],"type":"Bool"},{"id":"-448724803","method":"contacts.unblock","params":[{"name":"id","type":"InputUser"}],"type":"Bool"},{"id":"-176409329","method":"contacts.getBlocked","params":[{"name":"offset","type":"int"},{"name":"limit","type":"int"}],"type":"contacts.Blocked"},{"id":"-2065352905","method":"contacts.exportCard","params":[],"type":"Vector<int>"},{"id":"1340184318","method":"contacts.importCard","params":[{"name":"export_card","type":"Vector<int>"}],"type":"User"},{"id":"1109588596","method":"messages.getMessages","params":[{"name":"id","type":"Vector<int>"}],"type":"messages.Messages"},{"id":"1799878989","method":"messages.getDialogs","params":[{"name":"offset_date","type":"int"},{"name":"offset_id","type":"int"},{"name":"offset_peer","type":"InputPeer"},{"name":"limit","type":"int"}],"type":"messages.Dialogs"},{"id":"-1970355494","method":"messages.getHistory","params":[{"name":"peer","type":"InputPeer"},{"name":"offset_id","type":"int"},{"name":"add_offset","type":"int"},{"name":"limit","type":"int"},{"name":"max_id","type":"int"},{"name":"min_id","type":"int"}],"type":"messages.Messages"},{"id":"-732523960","method":"messages.search","params":[{"name":"flags","type":"#"},{"name":"important_only","type":"flags.0?true"},{"name":"peer","type":"InputPeer"},{"name":"q","type":"string"},{"name":"filter","type":"MessagesFilter"},{"name":"min_date","type":"int"},{"name":"max_date","type":"int"},{"name":"offset","type":"int"},{"name":"max_id","type":"int"},{"name":"limit","type":"int"}],"type":"messages.Messages"},{"id":"238054714","method":"messages.readHistory","params":[{"name":"peer","type":"InputPeer"},{"name":"max_id","type":"int"}],"type":"messages.AffectedMessages"},{"id":"-1212072999","method":"messages.deleteHistory","params":[{"name":"peer","type":"InputPeer"},{"name":"max_id","type":"int"}],"type":"messages.AffectedHistory"},{"id":"-1510897371","method":"messages.deleteMessages","params":[{"name":"id","type":"Vector<int>"}],"type":"messages.AffectedMessages"},{"id":"94983360","method":"messages.receivedMessages","params":[{"name":"max_id","type":"int"}],"type":"Vector<ReceivedNotifyMessage>"},{"id":"-1551737264","method":"messages.setTyping","params":[{"name":"peer","type":"InputPeer"},{"name":"action","type":"SendMessageAction"}],"type":"Bool"},{"id":"-91733382","method":"messages.sendMessage","params":[{"name":"flags","type":"#"},{"name":"no_webpage","type":"flags.1?true"},{"name":"broadcast","type":"flags.4?true"},{"name":"peer","type":"InputPeer"},{"name":"reply_to_msg_id","type":"flags.0?int"},{"name":"message","type":"string"},{"name":"random_id","type":"long"},{"name":"reply_markup","type":"flags.2?ReplyMarkup"},{"name":"entities","type":"flags.3?Vector<MessageEntity>"}],"type":"Updates"},{"id":"-923703407","method":"messages.sendMedia","params":[{"name":"flags","type":"#"},{"name":"broadcast","type":"flags.4?true"},{"name":"peer","type":"InputPeer"},{"name":"reply_to_msg_id","type":"flags.0?int"},{"name":"media","type":"InputMedia"},{"name":"random_id","type":"long"},{"name":"reply_markup","type":"flags.2?ReplyMarkup"}],"type":"Updates"},{"id":"1888354709","method":"messages.forwardMessages","params":[{"name":"flags","type":"#"},{"name":"broadcast","type":"flags.4?true"},{"name":"from_peer","type":"InputPeer"},{"name":"id","type":"Vector<int>"},{"name":"random_id","type":"Vector<long>"},{"name":"to_peer","type":"InputPeer"}],"type":"Updates"},{"id":"-820669733","method":"messages.reportSpam","params":[{"name":"peer","type":"InputPeer"}],"type":"Bool"},{"id":"1013621127","method":"messages.getChats","params":[{"name":"id","type":"Vector<int>"}],"type":"messages.Chats"},{"id":"998448230","method":"messages.getFullChat","params":[{"name":"chat_id","type":"int"}],"type":"messages.ChatFull"},{"id":"-599447467","method":"messages.editChatTitle","params":[{"name":"chat_id","type":"int"},{"name":"title","type":"string"}],"type":"Updates"},{"id":"-900957736","method":"messages.editChatPhoto","params":[{"name":"chat_id","type":"int"},{"name":"photo","type":"InputChatPhoto"}],"type":"Updates"},{"id":"-106911223","method":"messages.addChatUser","params":[{"name":"chat_id","type":"int"},{"name":"user_id","type":"InputUser"},{"name":"fwd_limit","type":"int"}],"type":"Updates"},{"id":"-530505962","method":"messages.deleteChatUser","params":[{"name":"chat_id","type":"int"},{"name":"user_id","type":"InputUser"}],"type":"Updates"},{"id":"164303470","method":"messages.createChat","params":[{"name":"users","type":"Vector<InputUser>"},{"name":"title","type":"string"}],"type":"Updates"},{"id":"-304838614","method":"updates.getState","params":[],"type":"updates.State"},{"id":"168039573","method":"updates.getDifference","params":[{"name":"pts","type":"int"},{"name":"date","type":"int"},{"name":"qts","type":"int"}],"type":"updates.Difference"},{"id":"-285902432","method":"photos.updateProfilePhoto","params":[{"name":"id","type":"InputPhoto"},{"name":"crop","type":"InputPhotoCrop"}],"type":"UserProfilePhoto"},{"id":"-720397176","method":"photos.uploadProfilePhoto","params":[{"name":"file","type":"InputFile"},{"name":"caption","type":"string"},{"name":"geo_point","type":"InputGeoPoint"},{"name":"crop","type":"InputPhotoCrop"}],"type":"photos.Photo"},{"id":"-2016444625","method":"photos.deletePhotos","params":[{"name":"id","type":"Vector<InputPhoto>"}],"type":"Vector<long>"},{"id":"-1291540959","method":"upload.saveFilePart","params":[{"name":"file_id","type":"long"},{"name":"file_part","type":"int"},{"name":"bytes","type":"bytes"}],"type":"Bool"},{"id":"-475607115","method":"upload.getFile","params":[{"name":"location","type":"InputFileLocation"},{"name":"offset","type":"int"},{"name":"limit","type":"int"}],"type":"upload.File"},{"id":"-990308245","method":"help.getConfig","params":[],"type":"Config"},{"id":"531836966","method":"help.getNearestDc","params":[],"type":"NearestDc"},{"id":"-938300290","method":"help.getAppUpdate","params":[{"name":"device_model","type":"string"},{"name":"system_version","type":"string"},{"name":"app_version","type":"string"},{"name":"lang_code","type":"string"}],"type":"help.AppUpdate"},{"id":"1862465352","method":"help.saveAppLog","params":[{"name":"events","type":"Vector<InputAppEvent>"}],"type":"Bool"},{"id":"-1532407418","method":"help.getInviteText","params":[{"name":"lang_code","type":"string"}],"type":"help.InviteText"},{"id":"-1848823128","method":"photos.getUserPhotos","params":[{"name":"user_id","type":"InputUser"},{"name":"offset","type":"int"},{"name":"max_id","type":"long"},{"name":"limit","type":"int"}],"type":"photos.Photos"},{"id":"865483769","method":"messages.forwardMessage","params":[{"name":"peer","type":"InputPeer"},{"name":"id","type":"int"},{"name":"random_id","type":"long"}],"type":"Updates"},{"id":"-1082919718","method":"messages.sendBroadcast","params":[{"name":"contacts","type":"Vector<InputUser>"},{"name":"random_id","type":"Vector<long>"},{"name":"message","type":"string"},{"name":"media","type":"InputMedia"}],"type":"Updates"},{"id":"651135312","method":"messages.getDhConfig","params":[{"name":"version","type":"int"},{"name":"random_length","type":"int"}],"type":"messages.DhConfig"},{"id":"-162681021","method":"messages.requestEncryption","params":[{"name":"user_id","type":"InputUser"},{"name":"random_id","type":"int"},{"name":"g_a","type":"bytes"}],"type":"EncryptedChat"},{"id":"1035731989","method":"messages.acceptEncryption","params":[{"name":"peer","type":"InputEncryptedChat"},{"name":"g_b","type":"bytes"},{"name":"key_fingerprint","type":"long"}],"type":"EncryptedChat"},{"id":"-304536635","method":"messages.discardEncryption","params":[{"name":"chat_id","type":"int"}],"type":"Bool"},{"id":"2031374829","method":"messages.setEncryptedTyping","params":[{"name":"peer","type":"InputEncryptedChat"},{"name":"typing","type":"Bool"}],"type":"Bool"},{"id":"2135648522","method":"messages.readEncryptedHistory","params":[{"name":"peer","type":"InputEncryptedChat"},{"name":"max_date","type":"int"}],"type":"Bool"},{"id":"-1451792525","method":"messages.sendEncrypted","params":[{"name":"peer","type":"InputEncryptedChat"},{"name":"random_id","type":"long"},{"name":"data","type":"bytes"}],"type":"messages.SentEncryptedMessage"},{"id":"-1701831834","method":"messages.sendEncryptedFile","params":[{"name":"peer","type":"InputEncryptedChat"},{"name":"random_id","type":"long"},{"name":"data","type":"bytes"},{"name":"file","type":"InputEncryptedFile"}],"type":"messages.SentEncryptedMessage"},{"id":"852769188","method":"messages.sendEncryptedService","params":[{"name":"peer","type":"InputEncryptedChat"},{"name":"random_id","type":"long"},{"name":"data","type":"bytes"}],"type":"messages.SentEncryptedMessage"},{"id":"1436924774","method":"messages.receivedQueue","params":[{"name":"max_qts","type":"int"}],"type":"Vector<long>"},{"id":"-562337987","method":"upload.saveBigFilePart","params":[{"name":"file_id","type":"long"},{"name":"file_part","type":"int"},{"name":"file_total_parts","type":"int"},{"name":"bytes","type":"bytes"}],"type":"Bool"},{"id":"1769565673","method":"initConnection","params":[{"name":"api_id","type":"int"},{"name":"device_model","type":"string"},{"name":"system_version","type":"string"},{"name":"app_version","type":"string"},{"name":"lang_code","type":"string"},{"name":"query","type":"!X"}],"type":"X"},{"id":"-1663104819","method":"help.getSupport","params":[],"type":"help.Support"},{"id":"229241832","method":"auth.sendSms","params":[{"name":"phone_number","type":"string"},{"name":"phone_code_hash","type":"string"}],"type":"Bool"},{"id":"916930423","method":"messages.readMessageContents","params":[{"name":"id","type":"Vector<int>"}],"type":"messages.AffectedMessages"},{"id":"655677548","method":"account.checkUsername","params":[{"name":"username","type":"string"}],"type":"Bool"},{"id":"1040964988","method":"account.updateUsername","params":[{"name":"username","type":"string"}],"type":"User"},{"id":"301470424","method":"contacts.search","params":[{"name":"q","type":"string"},{"name":"limit","type":"int"}],"type":"contacts.Found"},{"id":"-623130288","method":"account.getPrivacy","params":[{"name":"key","type":"InputPrivacyKey"}],"type":"account.PrivacyRules"},{"id":"-906486552","method":"account.setPrivacy","params":[{"name":"key","type":"InputPrivacyKey"},{"name":"rules","type":"Vector<InputPrivacyRule>"}],"type":"account.PrivacyRules"},{"id":"1099779595","method":"account.deleteAccount","params":[{"name":"reason","type":"string"}],"type":"Bool"},{"id":"150761757","method":"account.getAccountTTL","params":[],"type":"AccountDaysTTL"},{"id":"608323678","method":"account.setAccountTTL","params":[{"name":"ttl","type":"AccountDaysTTL"}],"type":"Bool"},{"id":"-627372787","method":"invokeWithLayer","params":[{"name":"layer","type":"int"},{"name":"query","type":"!X"}],"type":"X"},{"id":"-113456221","method":"contacts.resolveUsername","params":[{"name":"username","type":"string"}],"type":"contacts.ResolvedPeer"},{"id":"-1543001868","method":"account.sendChangePhoneCode","params":[{"name":"phone_number","type":"string"}],"type":"account.SentChangePhoneCode"},{"id":"1891839707","method":"account.changePhone","params":[{"name":"phone_number","type":"string"},{"name":"phone_code_hash","type":"string"},{"name":"phone_code","type":"string"}],"type":"User"},{"id":"-1373446075","method":"messages.getStickers","params":[{"name":"emoticon","type":"string"},{"name":"hash","type":"string"}],"type":"messages.Stickers"},{"id":"479598769","method":"messages.getAllStickers","params":[{"name":"hash","type":"int"}],"type":"messages.AllStickers"},{"id":"954152242","method":"account.updateDeviceLocked","params":[{"name":"period","type":"int"}],"type":"Bool"},{"id":"1738800940","method":"auth.importBotAuthorization","params":[{"name":"flags","type":"int"},{"name":"api_id","type":"int"},{"name":"api_hash","type":"string"},{"name":"bot_auth_token","type":"string"}],"type":"auth.Authorization"},{"id":"623001124","method":"messages.getWebPagePreview","params":[{"name":"message","type":"string"}],"type":"MessageMedia"},{"id":"-484392616","method":"account.getAuthorizations","params":[],"type":"account.Authorizations"},{"id":"-545786948","method":"account.resetAuthorization","params":[{"name":"hash","type":"long"}],"type":"Bool"},{"id":"1418342645","method":"account.getPassword","params":[],"type":"account.Password"},{"id":"-1131605573","method":"account.getPasswordSettings","params":[{"name":"current_password_hash","type":"bytes"}],"type":"account.PasswordSettings"},{"id":"-92517498","method":"account.updatePasswordSettings","params":[{"name":"current_password_hash","type":"bytes"},{"name":"new_settings","type":"account.PasswordInputSettings"}],"type":"Bool"},{"id":"174260510","method":"auth.checkPassword","params":[{"name":"password_hash","type":"bytes"}],"type":"auth.Authorization"},{"id":"-661144474","method":"auth.requestPasswordRecovery","params":[],"type":"auth.PasswordRecovery"},{"id":"1319464594","method":"auth.recoverPassword","params":[{"name":"code","type":"string"}],"type":"auth.Authorization"},{"id":"-1080796745","method":"invokeWithoutUpdates","params":[{"name":"query","type":"!X"}],"type":"X"},{"id":"2106086025","method":"messages.exportChatInvite","params":[{"name":"chat_id","type":"int"}],"type":"ExportedChatInvite"},{"id":"1051570619","method":"messages.checkChatInvite","params":[{"name":"hash","type":"string"}],"type":"ChatInvite"},{"id":"1817183516","method":"messages.importChatInvite","params":[{"name":"hash","type":"string"}],"type":"Updates"},{"id":"639215886","method":"messages.getStickerSet","params":[{"name":"stickerset","type":"InputStickerSet"}],"type":"messages.StickerSet"},{"id":"2066793382","method":"messages.installStickerSet","params":[{"name":"stickerset","type":"InputStickerSet"},{"name":"disabled","type":"Bool"}],"type":"Bool"},{"id":"-110209570","method":"messages.uninstallStickerSet","params":[{"name":"stickerset","type":"InputStickerSet"}],"type":"Bool"},{"id":"-421563528","method":"messages.startBot","params":[{"name":"bot","type":"InputUser"},{"name":"peer","type":"InputPeer"},{"name":"random_id","type":"long"},{"name":"start_param","type":"string"}],"type":"Updates"},{"id":"1537966002","method":"help.getAppChangelog","params":[{"name":"device_model","type":"string"},{"name":"system_version","type":"string"},{"name":"app_version","type":"string"},{"name":"lang_code","type":"string"}],"type":"help.AppChangelog"},{"id":"-993483427","method":"messages.getMessagesViews","params":[{"name":"peer","type":"InputPeer"},{"name":"id","type":"Vector<int>"},{"name":"increment","type":"Bool"}],"type":"Vector<int>"},{"id":"-1445735863","method":"channels.getDialogs","params":[{"name":"offset","type":"int"},{"name":"limit","type":"int"}],"type":"messages.Dialogs"},{"id":"-575067701","method":"channels.getImportantHistory","params":[{"name":"channel","type":"InputChannel"},{"name":"offset_id","type":"int"},{"name":"add_offset","type":"int"},{"name":"limit","type":"int"},{"name":"max_id","type":"int"},{"name":"min_id","type":"int"}],"type":"messages.Messages"},{"id":"-871347913","method":"channels.readHistory","params":[{"name":"channel","type":"InputChannel"},{"name":"max_id","type":"int"}],"type":"Bool"},{"id":"-2067661490","method":"channels.deleteMessages","params":[{"name":"channel","type":"InputChannel"},{"name":"id","type":"Vector<int>"}],"type":"messages.AffectedMessages"},{"id":"-787622117","method":"channels.deleteUserHistory","params":[{"name":"channel","type":"InputChannel"},{"name":"user_id","type":"InputUser"}],"type":"messages.AffectedHistory"},{"id":"-32999408","method":"channels.reportSpam","params":[{"name":"channel","type":"InputChannel"},{"name":"user_id","type":"InputUser"},{"name":"id","type":"Vector<int>"}],"type":"Bool"},{"id":"-1814580409","method":"channels.getMessages","params":[{"name":"channel","type":"InputChannel"},{"name":"id","type":"Vector<int>"}],"type":"messages.Messages"},{"id":"618237842","method":"channels.getParticipants","params":[{"name":"channel","type":"InputChannel"},{"name":"filter","type":"ChannelParticipantsFilter"},{"name":"offset","type":"int"},{"name":"limit","type":"int"}],"type":"channels.ChannelParticipants"},{"id":"1416484774","method":"channels.getParticipant","params":[{"name":"channel","type":"InputChannel"},{"name":"user_id","type":"InputUser"}],"type":"channels.ChannelParticipant"},{"id":"176122811","method":"channels.getChannels","params":[{"name":"id","type":"Vector<InputChannel>"}],"type":"messages.Chats"},{"id":"141781513","method":"channels.getFullChannel","params":[{"name":"channel","type":"InputChannel"}],"type":"messages.ChatFull"},{"id":"-192332417","method":"channels.createChannel","params":[{"name":"flags","type":"#"},{"name":"broadcast","type":"flags.0?true"},{"name":"megagroup","type":"flags.1?true"},{"name":"title","type":"string"},{"name":"about","type":"string"}],"type":"Updates"},{"id":"333610782","method":"channels.editAbout","params":[{"name":"channel","type":"InputChannel"},{"name":"about","type":"string"}],"type":"Bool"},{"id":"-344583728","method":"channels.editAdmin","params":[{"name":"channel","type":"InputChannel"},{"name":"user_id","type":"InputUser"},{"name":"role","type":"ChannelParticipantRole"}],"type":"Updates"},{"id":"1450044624","method":"channels.editTitle","params":[{"name":"channel","type":"InputChannel"},{"name":"title","type":"string"}],"type":"Updates"},{"id":"-248621111","method":"channels.editPhoto","params":[{"name":"channel","type":"InputChannel"},{"name":"photo","type":"InputChatPhoto"}],"type":"Updates"},{"id":"-1432183160","method":"channels.toggleComments","params":[{"name":"channel","type":"InputChannel"},{"name":"enabled","type":"Bool"}],"type":"Updates"},{"id":"283557164","method":"channels.checkUsername","params":[{"name":"channel","type":"InputChannel"},{"name":"username","type":"string"}],"type":"Bool"},{"id":"890549214","method":"channels.updateUsername","params":[{"name":"channel","type":"InputChannel"},{"name":"username","type":"string"}],"type":"Bool"},{"id":"615851205","method":"channels.joinChannel","params":[{"name":"channel","type":"InputChannel"}],"type":"Updates"},{"id":"-130635115","method":"channels.leaveChannel","params":[{"name":"channel","type":"InputChannel"}],"type":"Updates"},{"id":"429865580","method":"channels.inviteToChannel","params":[{"name":"channel","type":"InputChannel"},{"name":"users","type":"Vector<InputUser>"}],"type":"Updates"},{"id":"-1502421484","method":"channels.kickFromChannel","params":[{"name":"channel","type":"InputChannel"},{"name":"user_id","type":"InputUser"},{"name":"kicked","type":"Bool"}],"type":"Updates"},{"id":"-950663035","method":"channels.exportInvite","params":[{"name":"channel","type":"InputChannel"}],"type":"ExportedChatInvite"},{"id":"-1072619549","method":"channels.deleteChannel","params":[{"name":"channel","type":"InputChannel"}],"type":"Updates"},{"id":"-1154295872","method":"updates.getChannelDifference","params":[{"name":"channel","type":"InputChannel"},{"name":"filter","type":"ChannelMessagesFilter"},{"name":"pts","type":"int"},{"name":"limit","type":"int"}],"type":"updates.ChannelDifference"},{"id":"-326379039","method":"messages.toggleChatAdmins","params":[{"name":"chat_id","type":"int"},{"name":"enabled","type":"Bool"}],"type":"Updates"},{"id":"-1444503762","method":"messages.editChatAdmin","params":[{"name":"chat_id","type":"int"},{"name":"user_id","type":"InputUser"},{"name":"is_admin","type":"Bool"}],"type":"Bool"},{"id":"363051235","method":"messages.migrateChat","params":[{"name":"chat_id","type":"int"}],"type":"Updates"},{"id":"-1640190800","method":"messages.searchGlobal","params":[{"name":"q","type":"string"},{"name":"offset_date","type":"int"},{"name":"offset_peer","type":"InputPeer"},{"name":"offset_id","type":"int"},{"name":"limit","type":"int"}],"type":"messages.Messages"},{"id":"936873859","method":"help.getTermsOfService","params":[{"name":"lang_code","type":"string"}],"type":"help.TermsOfService"},{"id":"-1613775824","method":"messages.reorderStickerSets","params":[{"name":"order","type":"Vector<long>"}],"type":"Bool"},{"id":"864953444","method":"messages.getDocumentByHash","params":[{"name":"sha256","type":"bytes"},{"name":"size","type":"int"},{"name":"mime_type","type":"string"}],"type":"Document"},{"id":"-1080395925","method":"messages.searchGifs","params":[{"name":"q","type":"string"},{"name":"offset","type":"int"}],"type":"messages.FoundGifs"},{"id":"-2084618926","method":"messages.getSavedGifs","params":[{"name":"hash","type":"int"}],"type":"messages.SavedGifs"},{"id":"846868683","method":"messages.saveGif","params":[{"name":"id","type":"InputDocument"},{"name":"unsave","type":"Bool"}],"type":"Bool"},{"id":"-1826332659","method":"messages.getInlineBotResults","params":[{"name":"bot","type":"InputUser"},{"name":"query","type":"string"},{"name":"offset","type":"string"}],"type":"messages.BotResults"},{"id":"1059318802","method":"messages.setInlineBotResults","params":[{"name":"flags","type":"#"},{"name":"gallery","type":"flags.0?true"},{"name":"private","type":"flags.1?true"},{"name":"query_id","type":"long"},{"name":"results","type":"Vector<InputBotInlineResult>"},{"name":"cache_time","type":"int"},{"name":"next_offset","type":"flags.2?string"}],"type":"Bool"},{"id":"-1318189314","method":"messages.sendInlineBotResult","params":[{"name":"flags","type":"#"},{"name":"broadcast","type":"flags.4?true"},{"name":"peer","type":"InputPeer"},{"name":"reply_to_msg_id","type":"flags.0?int"},{"name":"random_id","type":"long"},{"name":"query_id","type":"long"},{"name":"id","type":"string"}],"type":"Updates"}]};
-
-Config.Schema.API.layer = 45;
-
-// ConfigStorage
-(function (window) {
-  var keyPrefix = '';
-  var noPrefix = false;
-  var cache = {};
-  var useCs = !!(window.chrome && chrome.storage && chrome.storage.local);
-  var useLs = !useCs && !!window.localStorage;
-
-  function storageSetPrefix (newPrefix) {
-    keyPrefix = newPrefix;
-  }
-
-  function storageSetNoPrefix() {
-    noPrefix = true;
-  }
-
-  function storageGetPrefix () {
-    if (noPrefix) {
-      noPrefix = false;
-      return '';
-    }
-    return keyPrefix;
-  }
-
-  function storageGetValue() {
-    var keys = Array.prototype.slice.call(arguments),
-        callback = keys.pop(),
-        result = [],
-        single = keys.length == 1,
-        value,
-        allFound = true,
-        prefix = storageGetPrefix(),
-        i, key;
-
-    for (i = 0; i < keys.length; i++) {
-      key = keys[i] = prefix + keys[i];
-      if (key.substr(0, 3) != 'xt_' && cache[key] !== undefined) {
-        result.push(cache[key]);
-      }
-      else if (useLs) {
-        try {
-          value = localStorage.getItem(key);
-        } catch (e) {
-          useLs = false;
-        }
-        try {
-          value = (value === undefined || value === null) ? false : JSON.parse(value);
-        } catch (e) {
-          value = false;
-        }
-        result.push(cache[key] = value);
-      }
-      else if (!useCs) {
-        result.push(cache[key] = false);
-      }
-      else {
-        allFound = false;
-      }
-    }
-
-    if (allFound) {
-      return callback(single ? result[0] : result);
-    }
-
-    chrome.storage.local.get(keys, function (resultObj) {
-      var value;
-      result = [];
-      for (i = 0; i < keys.length; i++) {
-        key = keys[i];
-        value = resultObj[key];
-        value = value === undefined || value === null ? false : JSON.parse(value);
-        result.push(cache[key] = value);
-      }
-
-      callback(single ? result[0] : result);
-    });
-  }
-
-  function storageSetValue(obj, callback) {
-    var keyValues = {},
-        prefix = storageGetPrefix(),
-        key, value;
-
-    for (key in obj) {
-      if (obj.hasOwnProperty(key)) {
-        value = obj[key];
-        key = prefix + key;
-        cache[key] = value;
-        value = JSON.stringify(value);
-        if (useLs) {
-          try {
-            localStorage.setItem(key, value);
-          } catch (e) {
-            useLs = false;
-          }
-        } else {
-          keyValues[key] = value;
-        }
-      }
-    }
-
-    if (useLs || !useCs) {
-      if (callback) {
-        callback();
-      }
-      return;
-    }
-
-    chrome.storage.local.set(keyValues, callback);
-  }
-
-  function storageRemoveValue () {
-    var keys = Array.prototype.slice.call(arguments),
-        prefix = storageGetPrefix(),
-        i, key, callback;
-
-    if (typeof keys[keys.length - 1] === 'function') {
-      callback = keys.pop();
-    }
-
-    for (i = 0; i < keys.length; i++) {
-      key = keys[i] = prefix + keys[i];
-      delete cache[key];
-      if (useLs) {
-        try {
-          localStorage.removeItem(key);
-        } catch (e) {
-          useLs = false;
-        }
-      }
-    }
-    if (useCs) {
-      chrome.storage.local.remove(keys, callback);
-    }
-    else if (callback) {
-      callback();
-    }
-  }
-
-  window.ConfigStorage = {
-    prefix: storageSetPrefix,
-    noPrefix: storageSetNoPrefix,
-    get: storageGetValue,
-    set: storageSetValue,
-    remove: storageRemoveValue
-  };
-
-})(this);
-
-// Console-polyfill. MIT license.
-// https://github.com/paulmillr/console-polyfill
-// Make it safe to do console.log() always.
-;(function(global) {
-  'use strict';
-  global.console = global.console || {};
-  var con = global.console;
-  var prop, method;
-  var empty = {};
-  var dummy = function() {};
-  var properties = 'memory'.split(',');
-  var methods = ('assert,clear,count,debug,dir,dirxml,error,exception,group,' +
-     'groupCollapsed,groupEnd,info,log,markTimeline,profile,profiles,profileEnd,' +
-     'show,table,time,timeEnd,timeline,timelineEnd,timeStamp,trace,warn').split(',');
-  while (prop = properties.pop()) if (!con[prop]) con[prop] = empty;
-  while (method = methods.pop()) if (!con[method]) con[method] = dummy;
-})(typeof window === 'undefined' ? this : window);
-// Using `this` for web workers while maintaining compatibility with browser
-// targeted script loaders such as Browserify or Webpack where the only way to
-// get to the global object is via `window`.
-
-/* Array.indexOf polyfill */
-if (!Array.prototype.indexOf) {
-  Array.prototype.indexOf = function(searchElement, fromIndex) {
-    var k;
-    if (this == null) {
-      throw new TypeError('"this" is null or not defined');
-    }
-
-    var O = Object(this);
-    var len = O.length >>> 0;
-    if (len === 0) {
-      return -1;
-    }
-    var n = +fromIndex || 0;
-
-    if (Math.abs(n) === Infinity) {
-      n = 0;
-    }
-    if (n >= len) {
-      return -1;
-    }
-    k = Math.max(n >= 0 ? n : len - Math.abs(n), 0);
-    while (k < len) {
-      if (k in O && O[k] === searchElement) {
-        return k;
-      }
-      k++;
-    }
-    return -1;
-  };
-}
-
-/* Array.isArray polyfill */
-if (!Array.isArray) {
-  Array.isArray = function(arg) {
-    return Object.prototype.toString.call(arg) === '[object Array]';
-  };
-}
-
-/* Object.create polyfill */
-if (typeof Object.create != 'function') {
-  Object.create = (function() {
-    var Object = function() {};
-    return function (prototype) {
-      if (arguments.length > 1) {
-        throw Error('Second argument not supported');
-      }
-      if (typeof prototype != 'object') {
-        throw TypeError('Argument must be an object');
-      }
-      Object.prototype = prototype;
-      var result = new Object();
-      Object.prototype = null;
-      return result;
-    };
-  })();
-}
-
-/* Function.bind polyfill */
-if (!Function.prototype.bind) {
-  Function.prototype.bind = function (oThis) {
-    if (typeof this !== "function") {
-      throw new TypeError("Function.prototype.bind - what is trying to be bound is not callable");
-    }
-
-    var aArgs = Array.prototype.slice.call(arguments, 1),
-        fToBind = this,
-        fNOP = function () {},
-        fBound = function () {
-          return fToBind.apply(this instanceof fNOP && oThis
-                 ? this
-                 : oThis,
-                 aArgs.concat(Array.prototype.slice.call(arguments)));
-        };
-
-    fNOP.prototype = this.prototype;
-    fBound.prototype = new fNOP();
-
-    return fBound;
-  };
-}
-
-/* setZeroTimeout polyfill, from http://dbaron.org/log/20100309-faster-timeouts */
-(function(global) {
-  var timeouts = [];
-  var messageName = 'zero-timeout-message';
-
-  function setZeroTimeout(fn) {
-    timeouts.push(fn);
-    global.postMessage(messageName, '*');
-  }
-
-  function handleMessage(event) {
-    if (event.source == global && event.data == messageName) {
-      event.stopPropagation();
-      if (timeouts.length > 0) {
-        var fn = timeouts.shift();
-        fn();
-      }
-    }
-  }
-
-  global.addEventListener('message', handleMessage, true);
-
-  var originalSetTimeout = global.setTimeout;
-  global.setTimeout = function (callback, delay) {
-    if (!delay || delay <= 5) {
-      return setZeroTimeout(callback);
-    }
-    return originalSetTimeout(callback, delay);
-  };
-
-  global.setZeroTimeout = setZeroTimeout;
-})(this);
-
-/*!
- * Webogram v0.5.3 - messaging web application for MTProto
- * https://github.com/zhukov/webogram
- * Copyright (C) 2014 Igor Zhukov <igor.beatle@gmail.com>
- * https://github.com/zhukov/webogram/blob/master/LICENSE
- */
-
- function TLSerialization (options) {
-  options = options || {};
-  this.maxLength = options.startMaxLength || 2048; // 2Kb
-  this.offset = 0; // in bytes
-
-  this.createBuffer();
-
-  // this.debug = options.debug !== undefined ? options.debug : Config.Modes.debug;
-  this.mtproto = options.mtproto || false;
-  return this;
-}
-
-TLSerialization.prototype.createBuffer = function () {
-  this.buffer   = new ArrayBuffer(this.maxLength);
-  this.intView  = new Int32Array(this.buffer);
-  this.byteView = new Uint8Array(this.buffer);
-};
-
-TLSerialization.prototype.getArray = function () {
-  var resultBuffer = new ArrayBuffer(this.offset);
-  var resultArray  = new Int32Array(resultBuffer);
-
-  resultArray.set(this.intView.subarray(0, this.offset / 4));
-
-  return resultArray;
-};
-
-TLSerialization.prototype.getBuffer = function () {
-  return this.getArray().buffer;
-};
-
-TLSerialization.prototype.getBytes = function (typed) {
-  if (typed) {
-    var resultBuffer = new ArrayBuffer(this.offset);
-    var resultArray  = new Uint8Array(resultBuffer);
-
-    resultArray.set(this.byteView.subarray(0, this.offset));
-
-    return resultArray;
-  }
-
-  var bytes = [];
-  for (var i = 0; i < this.offset; i++) {
-    bytes.push(this.byteView[i]);
-  }
-  return bytes;
-};
-
-TLSerialization.prototype.checkLength = function (needBytes) {
-  if (this.offset + needBytes < this.maxLength) {
-    return;
-  }
-
-  console.trace('Increase buffer', this.offset, needBytes, this.maxLength);
-  this.maxLength = Math.ceil(Math.max(this.maxLength * 2, this.offset + needBytes + 16) / 4) * 4;
-  var previousBuffer = this.buffer,
-      previousArray = new Int32Array(previousBuffer);
-
-  this.createBuffer();
-
-  new Int32Array(this.buffer).set(previousArray);
-};
-
-TLSerialization.prototype.writeInt = function (i, field) {
-  this.debug && console.log('>>>', i.toString(16), i, field);
-
-  this.checkLength(4);
-  this.intView[this.offset / 4] = i;
-  this.offset += 4;
-};
-
-TLSerialization.prototype.storeInt = function (i, field) {
-  this.writeInt(i, (field || '') + ':int');
-};
-
-TLSerialization.prototype.storeBool = function (i, field) {
-  if (i) {
-    this.writeInt(0x997275b5, (field || '') + ':bool');
-  } else {
-    this.writeInt(0xbc799737, (field || '') + ':bool');
-  }
-};
-
-TLSerialization.prototype.storeLongP = function (iHigh, iLow, field) {
-  this.writeInt(iLow, (field || '') + ':long[low]');
-  this.writeInt(iHigh, (field || '') + ':long[high]');
-};
-
-TLSerialization.prototype.storeLong = function (sLong, field) {
-  if (isArray(sLong)) {
-    if (sLong.length == 2) {
-      return this.storeLongP(sLong[0], sLong[1], field);
-    } else {
-      return this.storeIntBytes(sLong, 64, field);
-    }
-  }
-
-  if (typeof sLong != 'string') {
-    sLong = sLong ? sLong.toString() : '0';
-  }
-  var divRem = bigStringInt(sLong).divideAndRemainder(bigint(0x100000000));
-
-  this.writeInt(intToUint(divRem[1].intValue()), (field || '') + ':long[low]');
-  this.writeInt(intToUint(divRem[0].intValue()), (field || '') + ':long[high]');
-};
-
-TLSerialization.prototype.storeDouble = function (f) {
-  var buffer     = new ArrayBuffer(8);
-  var intView    = new Int32Array(buffer);
-  var doubleView = new Float64Array(buffer);
-
-  doubleView[0] = f;
-
-  this.writeInt(intView[0], (field || '') + ':double[low]');
-  this.writeInt(intView[1], (field || '') + ':double[high]');
-};
-
-TLSerialization.prototype.storeString = function (s, field) {
-  this.debug && console.log('>>>', s, (field || '') + ':string');
-
-  if (s === undefined) {
-    s = '';
-  }
-  var sUTF8 = unescape(encodeURIComponent(s));
-
-  this.checkLength(sUTF8.length + 8);
-
-
-  var len = sUTF8.length;
-  if (len <= 253) {
-    this.byteView[this.offset++] = len;
-  } else {
-    this.byteView[this.offset++] = 254;
-    this.byteView[this.offset++] = len & 0xFF;
-    this.byteView[this.offset++] = (len & 0xFF00) >> 8;
-    this.byteView[this.offset++] = (len & 0xFF0000) >> 16;
-  }
-  for (var i = 0; i < len; i++) {
-    this.byteView[this.offset++] = sUTF8.charCodeAt(i);
-  }
-
-  // Padding
-  while (this.offset % 4) {
-    this.byteView[this.offset++] = 0;
-  }
-}
-
-
-TLSerialization.prototype.storeBytes = function (bytes, field) {
-  if (bytes instanceof ArrayBuffer) {
-    bytes = new Uint8Array(bytes);
-  }
-  else if (bytes === undefined) {
-    bytes = [];
-  }
-  this.debug && console.log('>>>', bytesToHex(bytes), (field || '') + ':bytes');
-
-  var len = bytes.byteLength || bytes.length;
-  this.checkLength(len + 8);
-  if (len <= 253) {
-    this.byteView[this.offset++] = len;
-  } else {
-    this.byteView[this.offset++] = 254;
-    this.byteView[this.offset++] = len & 0xFF;
-    this.byteView[this.offset++] = (len & 0xFF00) >> 8;
-    this.byteView[this.offset++] = (len & 0xFF0000) >> 16;
-  }
-
-  this.byteView.set(bytes, this.offset);
-  this.offset += len;
-
-  // Padding
-  while (this.offset % 4) {
-    this.byteView[this.offset++] = 0;
-  }
-}
-
-TLSerialization.prototype.storeIntBytes = function (bytes, bits, field) {
-  if (bytes instanceof ArrayBuffer) {
-    bytes = new Uint8Array(bytes);
-  }
-  var len = bytes.length;
-  if ((bits % 32) || (len * 8) != bits) {
-    throw new Error('Invalid bits: ' + bits + ', ' + bytes.length);
-  }
-
-  this.debug && console.log('>>>', bytesToHex(bytes), (field || '') + ':int' + bits);
-  this.checkLength(len);
-
-  this.byteView.set(bytes, this.offset);
-  this.offset += len;
-};
-
-TLSerialization.prototype.storeRawBytes = function (bytes, field) {
-  if (bytes instanceof ArrayBuffer) {
-    bytes = new Uint8Array(bytes);
-  }
-  var len = bytes.length;
-
-  this.debug && console.log('>>>', bytesToHex(bytes), (field || ''));
-  this.checkLength(len);
-
-  this.byteView.set(bytes, this.offset);
-  this.offset += len;
-};
-
-
-TLSerialization.prototype.storeMethod = function (methodName, params) {
-  var schema = this.mtproto ? Config.Schema.MTProto : Config.Schema.API,
-      methodData = false,
-      i;
-
-  for (i = 0; i < schema.methods.length; i++) {
-    if (schema.methods[i].method == methodName) {
-      methodData = schema.methods[i];
-      break
-    }
-  }
-  if (!methodData) {
-    throw new Error('No method ' + methodName + ' found');
-  }
-
-  this.storeInt(intToUint(methodData.id), methodName + '[id]');
-
-  var param, type, i, condType, fieldBit;
-  var len = methodData.params.length;
-  for (i = 0; i < len; i++) {
-    param = methodData.params[i];
-    type = param.type;
-    if (type.indexOf('?') !== -1) {
-      condType = type.split('?');
-      fieldBit = condType[0].split('.');
-      if (!(params[fieldBit[0]] & (1 << fieldBit[1]))) {
-        continue;
-      }
-      type = condType[1];
-    }
-
-    this.storeObject(params[param.name], type, methodName + '[' + param.name + ']');
-  }
-
-  return methodData.type;
-};
-
-TLSerialization.prototype.storeObject = function (obj, type, field) {
-  switch (type) {
-    case '#':
-    case 'int':    return this.storeInt(obj,  field);
-    case 'long':   return this.storeLong(obj,  field);
-    case 'int128': return this.storeIntBytes(obj, 128, field);
-    case 'int256': return this.storeIntBytes(obj, 256, field);
-    case 'int512': return this.storeIntBytes(obj, 512, field);
-    case 'string': return this.storeString(obj,   field);
-    case 'bytes':  return this.storeBytes(obj,  field);
-    case 'double': return this.storeDouble(obj,   field);
-    case 'Bool':   return this.storeBool(obj,   field);
-    case 'true':   return;
-  }
-
-  if (isArray(obj)) {
-    if (type.substr(0, 6) == 'Vector') {
-      this.writeInt(0x1cb5c415, field + '[id]');
-    }
-    else if (type.substr(0, 6) != 'vector') {
-      throw new Error('Invalid vector type ' + type);
-    }
-    var itemType = type.substr(7, type.length - 8); // for "Vector<itemType>"
-    this.writeInt(obj.length, field + '[count]');
-    for (var i = 0; i < obj.length; i++) {
-      this.storeObject(obj[i], itemType, field + '[' + i + ']');
-    }
-    return true;
-  }
-  else if (type.substr(0, 6).toLowerCase() == 'vector') {
-    throw new Error('Invalid vector object');
-  }
-
-  if (!isObject(obj)) {
-    throw new Error('Invalid object for type ' + type);
-  }
-
-  var schema = this.mtproto ? Config.Schema.MTProto : Config.Schema.API,
-      predicate = obj['_'],
-      isBare = false,
-      constructorData = false,
-      i;
-
-  if (isBare = (type.charAt(0) == '%')) {
-    type = type.substr(1);
-  }
-
-  for (i = 0; i < schema.constructors.length; i++) {
-    if (schema.constructors[i].predicate == predicate) {
-      constructorData = schema.constructors[i];
-      break
-    }
-  }
-  if (!constructorData) {
-    throw new Error('No predicate ' + predicate + ' found');
-  }
-
-  if (predicate == type) {
-    isBare = true;
-  }
-
-  if (!isBare) {
-    this.writeInt(intToUint(constructorData.id), field + '[' + predicate + '][id]');
-  }
-
-  var param, type, i, condType, fieldBit;
-  var len = constructorData.params.length;
-  for (i = 0; i < len; i++) {
-    param = constructorData.params[i];
-    type = param.type;
-    if (type.indexOf('?') !== -1) {
-      condType = type.split('?');
-      fieldBit = condType[0].split('.');
-      if (!(obj[fieldBit[0]] & (1 << fieldBit[1]))) {
-        continue;
-      }
-      type = condType[1];
-    }
-
-    this.storeObject(obj[param.name], type, field + '[' + predicate + '][' + param.name + ']');
-  }
-
-  return constructorData.type;
-};
-
-
-
-function TLDeserialization (buffer, options) {
-  options = options || {};
-
-  this.offset = 0; // in bytes
-  this.override = options.override || {};
-
-  this.buffer = buffer;
-  this.intView  = new Uint32Array(this.buffer);
-  this.byteView = new Uint8Array(this.buffer);
-
-  // this.debug = options.debug !== undefined ? options.debug : Config.Modes.debug;
-  this.mtproto = options.mtproto || false;
-  return this;
-}
-
-TLDeserialization.prototype.readInt = function (field) {
-  if (this.offset >= this.intView.length * 4) {
-    throw new Error('Nothing to fetch: ' + field);
-  }
-
-  var i = this.intView[this.offset / 4];
-
-  this.debug && console.log('<<<', i.toString(16), i, field);
-
-  this.offset += 4;
-
-  return i;
-};
-
-TLDeserialization.prototype.fetchInt = function (field) {
-  return this.readInt((field || '') + ':int');
-}
-
-TLDeserialization.prototype.fetchDouble = function (field) {
-  var buffer     = new ArrayBuffer(8);
-  var intView    = new Int32Array(buffer);
-  var doubleView = new Float64Array(buffer);
-
-  intView[0] = this.readInt((field || '') + ':double[low]'),
-  intView[1] = this.readInt((field || '') + ':double[high]');
-
-  return doubleView[0];
-};
-
-TLDeserialization.prototype.fetchLong = function (field) {
-  var iLow = this.readInt((field || '') + ':long[low]'),
-      iHigh = this.readInt((field || '') + ':long[high]');
-
-  var longDec = bigint(iHigh).shiftLeft(32).add(bigint(iLow)).toString();
-
-  return longDec;
-}
-
-TLDeserialization.prototype.fetchBool = function (field) {
-  var i = this.readInt((field || '') + ':bool');
-  if (i == 0x997275b5) {
-    return true;
-  } else if (i == 0xbc799737) {
-    return false
-  }
-
-  this.offset -= 4;
-  return this.fetchObject('Object', field);
-}
-
-TLDeserialization.prototype.fetchString = function (field) {
-  var len = this.byteView[this.offset++];
-
-  if (len == 254) {
-    var len = this.byteView[this.offset++] |
-              (this.byteView[this.offset++] << 8) |
-              (this.byteView[this.offset++] << 16);
-  }
-
-  var sUTF8 = '';
-  for (var i = 0; i < len; i++) {
-    sUTF8 += String.fromCharCode(this.byteView[this.offset++]);
-  }
-
-  // Padding
-  while (this.offset % 4) {
-    this.offset++;
-  }
-
-  try {
-    var s = decodeURIComponent(escape(sUTF8));
-  } catch (e) {
-    var s = sUTF8;
-  }
-
-  this.debug && console.log('<<<', s, (field || '') + ':string');
-
-  return s;
-}
-
-
-TLDeserialization.prototype.fetchBytes = function (field) {
-  var len = this.byteView[this.offset++];
-
-  if (len == 254) {
-    var len = this.byteView[this.offset++] |
-              (this.byteView[this.offset++] << 8) |
-              (this.byteView[this.offset++] << 16);
-  }
-
-  var bytes = this.byteView.subarray(this.offset, this.offset + len);
-  this.offset += len;
-
-  // Padding
-  while (this.offset % 4) {
-    this.offset++;
-  }
-
-  this.debug && console.log('<<<', bytesToHex(bytes), (field || '') + ':bytes');
-
-  return bytes;
-}
-
-TLDeserialization.prototype.fetchIntBytes = function (bits, typed, field) {
-  if (bits % 32) {
-    throw new Error('Invalid bits: ' + bits);
-  }
-
-  var len = bits / 8;
-  if (typed) {
-    var result = this.byteView.subarray(this.offset, this.offset + len);
-    this.offset += len;
-    return result;
-  }
-
-  var bytes = [];
-  for (var i = 0; i < len; i++) {
-    bytes.push(this.byteView[this.offset++]);
-  }
-
-  this.debug && console.log('<<<', bytesToHex(bytes), (field || '') + ':int' + bits);
-
-  return bytes;
-};
-
-
-TLDeserialization.prototype.fetchRawBytes = function (len, typed, field) {
-  if (len === false) {
-    len = this.readInt((field || '') + '_length');
-  }
-
-  if (typed) {
-    var bytes = new Uint8Array(len);
-    bytes.set(this.byteView.subarray(this.offset, this.offset + len));
-    this.offset += len;
-    return bytes;
-  }
-
-  var bytes = [];
-  for (var i = 0; i < len; i++) {
-    bytes.push(this.byteView[this.offset++]);
-  }
-
-  this.debug && console.log('<<<', bytesToHex(bytes), (field || ''));
-
-  return bytes;
-};
-
-TLDeserialization.prototype.fetchObject = function (type, field) {
-  switch (type) {
-    case '#':
-    case 'int':    return this.fetchInt(field);
-    case 'long':   return this.fetchLong(field);
-    case 'int128': return this.fetchIntBytes(128, false, field);
-    case 'int256': return this.fetchIntBytes(256, false, field);
-    case 'int512': return this.fetchIntBytes(512, false, field);
-    case 'string': return this.fetchString(field);
-    case 'bytes':  return this.fetchBytes(field);
-    case 'double': return this.fetchDouble(field);
-    case 'Bool':   return this.fetchBool(field);
-    case 'true':   return true;
-  }
-
-  field = field || type || 'Object';
-
-  if (type.substr(0, 6) == 'Vector' || type.substr(0, 6) == 'vector') {
-    if (type.charAt(0) == 'V') {
-      var constructor = this.readInt(field + '[id]'),
-          constructorCmp = uintToInt(constructor);
-
-      if (constructorCmp == 0x3072cfa1) { // Gzip packed
-        var compressed = this.fetchBytes(field + '[packed_string]'),
-            uncompressed = gzipUncompress(compressed),
-            buffer = bytesToArrayBuffer(uncompressed),
-            newDeserializer = (new TLDeserialization(buffer));
-
-        return newDeserializer.fetchObject(type, field);
-      }
-      if (constructorCmp != 0x1cb5c415) {
-        throw new Error('Invalid vector constructor ' + constructor);
-      }
-    }
-    var len = this.readInt(field + '[count]');
-    var result = [];
-    if (len > 0) {
-      var itemType = type.substr(7, type.length - 8); // for "Vector<itemType>"
-      for (var i = 0; i < len; i++) {
-        result.push(this.fetchObject(itemType, field + '[' + i + ']'))
-      }
-    }
-
-    return result;
-  }
-
-  var schema = this.mtproto ? Config.Schema.MTProto : Config.Schema.API,
-      predicate = false,
-      constructorData = false;
-
-  if (type.charAt(0) == '%') {
-    var checkType = type.substr(1);
-    for (var i = 0; i < schema.constructors.length; i++) {
-      if (schema.constructors[i].type == checkType) {
-        constructorData = schema.constructors[i];
-        break
-      }
-    }
-    if (!constructorData) {
-      throw new Error('Constructor not found for type: ' + type);
-    }
-  }
-  else if (type.charAt(0) >= 97 && type.charAt(0) <= 122) {
-    for (var i = 0; i < schema.constructors.length; i++) {
-      if (schema.constructors[i].predicate == type) {
-        constructorData = schema.constructors[i];
-        break
-      }
-    }
-    if (!constructorData) {
-      throw new Error('Constructor not found for predicate: ' + type);
-    }
-  }
-  else {
-    var constructor = this.readInt(field + '[id]'),
-        constructorCmp = uintToInt(constructor);
-
-    if (constructorCmp == 0x3072cfa1) { // Gzip packed
-      var compressed = this.fetchBytes(field + '[packed_string]'),
-          uncompressed = gzipUncompress(compressed),
-          buffer = bytesToArrayBuffer(uncompressed),
-          newDeserializer = (new TLDeserialization(buffer));
-
-      return newDeserializer.fetchObject(type, field);
-    }
-
-    var index = schema.constructorsIndex;
-    if (!index) {
-      schema.constructorsIndex = index = {};
-      for (var i = 0; i < schema.constructors.length; i++) {
-        index[schema.constructors[i].id] = i;
-      }
-    }
-    var i = index[constructorCmp];
-    if (i) {
-      constructorData = schema.constructors[i];
-    }
-
-    var fallback = false;
-    if (!constructorData && this.mtproto) {
-      var schemaFallback = Config.Schema.API;
-      for (i = 0; i < schemaFallback.constructors.length; i++) {
-        if (schemaFallback.constructors[i].id == constructorCmp) {
-          constructorData = schemaFallback.constructors[i];
-
-          delete this.mtproto;
-          fallback = true;
-          break;
-        }
-      }
-    }
-    if (!constructorData) {
-      throw new Error('Constructor not found: ' + constructor +' '+ this.fetchInt()+' '+ this.fetchInt());
-    }
-  }
-
-  predicate = constructorData.predicate;
-
-  var result = {'_': predicate},
-      overrideKey = (this.mtproto ? 'mt_' : '') + predicate,
-      self = this;
-
-
-  if (this.override[overrideKey]) {
-    this.override[overrideKey].apply(this, [result, field + '[' + predicate + ']']);
-  } else {
-    var i, param, type, isCond, condType, fieldBit, value;
-    var len = constructorData.params.length;
-    for (i = 0; i < len; i++) {
-      param = constructorData.params[i];
-      type = param.type;
-      if (type == '#' && result.pFlags === undefined) {
-        result.pFlags = {};
-      }
-      if (isCond = (type.indexOf('?') !== -1)) {
-        condType = type.split('?');
-        fieldBit = condType[0].split('.');
-        if (!(result[fieldBit[0]] & (1 << fieldBit[1]))) {
-          continue;
-        }
-        type = condType[1];
-      }
-
-      value = self.fetchObject(type, field + '[' + predicate + '][' + param.name + ']');
-
-      if (isCond && type === 'true') {
-        result.pFlags[param.name] = value;
-      } else {
-        result[param.name] = value;
-      }
-    }
-  }
-
-  if (fallback) {
-    this.mtproto = true;
-  }
-
-  return result;
-};
-
-TLDeserialization.prototype.getOffset = function () {
-  return this.offset;
-};
-
-TLDeserialization.prototype.fetchEnd = function () {
-  if (this.offset != this.byteView.length) {
-    throw new Error('Fetch end with non-empty buffer');
-  }
-  return true;
-};
-
-/*!
- * Webogram v0.5.3 - messaging web application for MTProto
- * https://github.com/zhukov/webogram
- * Copyright (C) 2014 Igor Zhukov <igor.beatle@gmail.com>
- * https://github.com/zhukov/webogram/blob/master/LICENSE
- */
-
-var _logTimer = (new Date()).getTime();
-
-function dT () {
-  return '[' + (((new Date()).getTime() - _logTimer) / 1000).toFixed(3) + ']';
-}
-
-function tsNow (seconds) {
-  var t = +new Date() + (window.tsOffset || 0);
-  return seconds ? Math.floor(t / 1000) : t;
-}
-
-function safeReplaceObject (wasObject, newObject) {
-  for (var key in wasObject) {
-    if (!newObject.hasOwnProperty(key) && key.charAt(0) != '$') {
-      delete wasObject[key];
-    }
-  }
-  for (var key in newObject) {
-    if (newObject.hasOwnProperty(key)) {
-      wasObject[key] = newObject[key];
-    }
-  }
-}
 
 function TelegramApiModule(MtpApiManager, AppPeersManager, MtpApiFileManager, AppUsersManager, AppProfileManager, AppChatsManager, MtpNetworkerFactory, $q, $timeout) {
     var options = {dcID: 2, createNetworker: true};
@@ -5130,6 +5147,7 @@ builder.register('IdleManager', IdleManagerModule.dependencies, IdleManagerModul
 builder.register('qSync', qSyncModule.dependencies, qSyncModule);
 builder.register('Storage', StorageModule.dependencies, StorageModule);
 builder.register('TelegramMeWebService', TelegramMeWebServiceModule.dependencies, TelegramMeWebServiceModule);
+builder.register('jQuery', jQueryModule.dependencies, jQueryModule);
 
 // Register TelegramApi module
 builder.register('TelegramApi', TelegramApiModule.dependencies, TelegramApiModule);

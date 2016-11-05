@@ -1,4 +1,4 @@
-function $qModule() {
+function $qModule($) {
     return {
         defer: function () {
             var deferred = $.Deferred();
@@ -35,4 +35,6 @@ function $qModule() {
     };
 }
 
-$qModule.dependencies = [];
+$qModule.dependencies = [
+    'jQuery'
+];

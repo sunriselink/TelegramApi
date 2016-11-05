@@ -1,4 +1,4 @@
-function IdleManagerModule($rootScope, $timeout) {
+function IdleManagerModule($rootScope, $timeout, $) {
     $rootScope.idle = {isIDLE: false};
 
     var toPromise, started = false;
@@ -64,5 +64,6 @@ function IdleManagerModule($rootScope, $timeout) {
 
 IdleManagerModule.dependencies = [
     '$rootScope', 
-    '$timeout'
+    '$timeout',
+    'jQuery'
 ];

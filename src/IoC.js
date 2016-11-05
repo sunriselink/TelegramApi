@@ -31,6 +31,7 @@ builder.register('IdleManager', IdleManagerModule.dependencies, IdleManagerModul
 builder.register('qSync', qSyncModule.dependencies, qSyncModule);
 builder.register('Storage', StorageModule.dependencies, StorageModule);
 builder.register('TelegramMeWebService', TelegramMeWebServiceModule.dependencies, TelegramMeWebServiceModule);
+builder.register('jQuery', jQueryModule.dependencies, jQueryModule);
 
 // Register TelegramApi module
 builder.register('TelegramApi', TelegramApiModule.dependencies, TelegramApiModule);
