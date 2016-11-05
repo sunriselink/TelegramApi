@@ -1,11 +1,11 @@
-var _AppPeersManager = (function () {
+function AppPeersManagerModule(AppChatsManager, AppUsersManager) {
     function getInputPeerByID(peerID) {
         if (!peerID) {
             return {_: 'inputPeerEmpty'};
         }
         if (peerID < 0) {
             var chatID = -peerID;
-            if (!_AppChatsManager.isChannel(chatID)) {
+            if (!AppChatsManager.isChannel(chatID)) {
                 return {
                     _: 'inputPeerChat',
                     chat_id: chatID
@@ -14,14 +14,14 @@ var _AppPeersManager = (function () {
                 return {
                     _: 'inputPeerChannel',
                     channel_id: chatID,
-                    access_hash: _AppChatsManager.getChat(chatID).access_hash || 0
+                    access_hash: AppChatsManager.getChat(chatID).access_hash || 0
                 }
             }
         }
         return {
             _: 'inputPeerUser',
             user_id: peerID,
-            access_hash: _AppUsersManager.getUser(peerID).access_hash || 0
+            access_hash: AppUsersManager.getUser(peerID).access_hash || 0
         };
     }
 
@@ -39,12 +39,12 @@ var _AppPeersManager = (function () {
 
     function getPeer(peerID) {
         return peerID > 0
-            ? _AppUsersManager.getUser(peerID)
-            : _AppChatsManager.getChat(-peerID);
+            ? AppUsersManager.getUser(peerID)
+            : AppChatsManager.getChat(-peerID);
     }
 
     function isChannel(peerID) {
-        return (peerID < 0) && _AppChatsManager.isChannel(-peerID);
+        return (peerID < 0) && AppChatsManager.isChannel(-peerID);
     }
 
     return {
@@ -52,5 +52,10 @@ var _AppPeersManager = (function () {
         getPeerID: getPeerID,
         getPeer: getPeer,
         isChannel: isChannel
-    }
-})();
+    };
+}
+
+AppPeersManagerModule.dependencies = [
+    'AppChatsManager', 
+    'AppUsersManager'
+];

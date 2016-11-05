@@ -1,7 +1,6 @@
-var _MtpTimeManager = (function () {
+function MtpTimeManagerModule(Storage) {
     var lastMessageID = [0, 0],
-        timeOffset = 0,
-        Storage = _Storage;
+        timeOffset = 0;
 
     Storage.get('server_time_offset').then(function (to) {
         if (to) {
@@ -24,8 +23,6 @@ var _MtpTimeManager = (function () {
 
         lastMessageID = messageID;
 
-        // console.log('generated msg id', messageID, timeOffset);
-
         return longFromInts(messageID[0], messageID[1]);
     }
 
@@ -45,4 +42,8 @@ var _MtpTimeManager = (function () {
         generateID: generateMessageID,
         applyServerTime: applyServerTime
     };
-})();
+}
+
+MtpTimeManagerModule.dependencies = [
+    'Storage'
+];

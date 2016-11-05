@@ -1,12 +1,12 @@
-var _TelegramMeWebService = (function () {
+function TelegramMeWebServiceModule(Storage) {
     var disabled = location.protocol != 'http:' && location.protocol != 'https:';
 
     function sendAsyncRequest(canRedirect) {
         if (disabled) {
             return false;
         }
-        
-        _Storage.get('tgme_sync').then(function (curValue) {
+
+        Storage.get('tgme_sync').then(function (curValue) {
             var ts = tsNow(true);
             if (canRedirect &&
                 curValue &&
@@ -14,7 +14,7 @@ var _TelegramMeWebService = (function () {
                 curValue.ts + 86400 > ts) {
                 return false;
             }
-            _Storage.set({tgme_sync: {canRedirect: canRedirect, ts: ts}});
+            Storage.set({tgme_sync: {canRedirect: canRedirect, ts: ts}});
 
             var script = $('<script>').appendTo('body')
                 .on('load error', function () {
@@ -27,4 +27,8 @@ var _TelegramMeWebService = (function () {
     return {
         setAuthorized: sendAsyncRequest
     };
-})();
+}
+
+TelegramMeWebServiceModule.dependencies = [
+    'Storage'
+];

@@ -1,4 +1,4 @@
-var _MtpRsaKeysManager = (function () {
+function MtpRsaKeysManagerModule() {
     /**
      *  Server public key, obtained from here: https://core.telegram.org/api/obtaining_api_id
      *
@@ -64,4 +64,6 @@ var _MtpRsaKeysManager = (function () {
         prepare: prepareRsaKeys,
         select: selectRsaKeyByFingerPrint
     };
-})();
+}
+
+MtpRsaKeysManagerModule.dependencies = [];

@@ -1,4 +1,4 @@
-var _MtpAuthorizer = (function () {
+function MtpAuthorizerModule(MtpTimeManager, MtpDcConfigurator, MtpRsaKeysManager, CryptoWorker, MtpSecureRandom, $q, $timeout, $http) {
     var chromeMatches = navigator.userAgent.match(/Chrome\/(\d+(\.\d+)?)/),
         chromeVersion = chromeMatches && parseFloat(chromeMatches[1]) || false,
         xhrSendBuffer = !('ArrayBufferView' in window) && (!chromeVersion || chromeVersion < 30);
@@ -9,7 +9,7 @@ var _MtpAuthorizer = (function () {
 
         var header = new TLSerialization();
         header.storeLongP(0, 0, 'auth_key_id'); // Auth key
-        header.storeLong(_MtpTimeManager.generateID(), 'msg_id'); // Msg_id
+        header.storeLong(MtpTimeManager.generateID(), 'msg_id'); // Msg_id
         header.storeInt(requestLength, 'request_length');
 
         var headerBuffer = header.getBuffer(),
@@ -24,7 +24,7 @@ var _MtpAuthorizer = (function () {
 
         var requestData = xhrSendBuffer ? resultBuffer : resultArray,
             requestPromise;
-        var url = _MtpDcConfigurator.chooseServer(dcID);
+        var url = MtpDcConfigurator.chooseServer(dcID);
         var baseError = {code: 406, type: 'NETWORK_BAD_RESPONSE', url: url};
         try {
             requestPromise = $http.post(url, requestData, {
@@ -86,14 +86,14 @@ var _MtpAuthorizer = (function () {
 
             console.log(dT(), 'Got ResPQ', bytesToHex(auth.serverNonce), bytesToHex(auth.pq), auth.fingerprints);
 
-            auth.publicKey = _MtpRsaKeysManager.select(auth.fingerprints);
+            auth.publicKey = MtpRsaKeysManager.select(auth.fingerprints);
 
             if (!auth.publicKey) {
                 throw new Error('No public key found');
             }
 
             console.log(dT(), 'PQ factorization start', auth.pq);
-            _CryptoWorker.factorize(auth.pq).then(function (pAndQ) {
+            CryptoWorker.factorize(auth.pq).then(function (pAndQ) {
                 auth.p = pAndQ[0];
                 auth.q = pAndQ[1];
                 console.log(dT(), 'PQ factorization done', pAndQ[2]);
@@ -108,7 +108,7 @@ var _MtpAuthorizer = (function () {
         });
 
         $timeout(function () {
-            _MtpRsaKeysManager.prepare();
+            MtpRsaKeysManager.prepare();
         });
     }
 
@@ -116,7 +116,7 @@ var _MtpAuthorizer = (function () {
         var deferred = auth.deferred;
 
         auth.newNonce = new Array(32);
-        _MtpSecureRandom.nextBytes(auth.newNonce);
+        MtpSecureRandom.nextBytes(auth.newNonce);
 
         var data = new TLSerialization({mtproto: true});
         data.storeObject({
@@ -223,7 +223,7 @@ var _MtpAuthorizer = (function () {
             throw new Error('server_DH_inner_data SHA1-hash mismatch');
         }
 
-        _MtpTimeManager.applyServerTime(auth.serverTime, auth.localTime);
+        MtpTimeManager.applyServerTime(auth.serverTime, auth.localTime);
     }
 
     function mtpSendSetClientDhParams(auth) {
@@ -231,10 +231,9 @@ var _MtpAuthorizer = (function () {
             gBytes = bytesFromHex(auth.g.toString(16));
 
         auth.b = new Array(256);
-        _MtpSecureRandom.nextBytes(auth.b);
+        MtpSecureRandom.nextBytes(auth.b);
 
-        _CryptoWorker.modPow(gBytes, auth.b, auth.dhPrime).then(function (gB) {
-
+        CryptoWorker.modPow(gBytes, auth.b, auth.dhPrime).then(function (gB) {
             var data = new TLSerialization({mtproto: true});
             data.storeObject({
                 _: 'client_DH_inner_data',
@@ -274,7 +273,7 @@ var _MtpAuthorizer = (function () {
                     return false;
                 }
 
-                _CryptoWorker.modPow(auth.gA, auth.b, auth.dhPrime).then(function (authKey) {
+                CryptoWorker.modPow(auth.gA, auth.b, auth.dhPrime).then(function (authKey) {
                     var authKeyHash = sha1BytesSync(authKey),
                         authKeyAux = authKeyHash.slice(0, 8),
                         authKeyID = authKeyHash.slice(-8);
@@ -341,7 +340,7 @@ var _MtpAuthorizer = (function () {
             nonce.push(nextRandomInt(0xFF));
         }
 
-        if (!_MtpDcConfigurator.chooseServer(dcID)) {
+        if (!MtpDcConfigurator.chooseServer(dcID)) {
             return $q.reject(new Error('No server found for dc ' + dcID));
         }
 
@@ -367,4 +366,15 @@ var _MtpAuthorizer = (function () {
     return {
         auth: mtpAuth
     };
-})();
+}
+
+MtpAuthorizerModule.dependencies = [
+    'MtpTimeManager', 
+    'MtpDcConfigurator', 
+    'MtpRsaKeysManager', 
+    'CryptoWorker', 
+    'MtpSecureRandom', 
+    '$q', 
+    '$timeout', 
+    '$http'
+];

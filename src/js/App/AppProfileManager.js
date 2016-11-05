@@ -1,13 +1,13 @@
-var _AppProfileManager = (function () {
+function AppProfileManagerModule(AppChatsManager, AppUsersManager, MtpApiManager, $q) {
     var chatsFull = {};
     var chatFullPromises = {};
 
     function getChatFull(id) {
-        if (_AppChatsManager.isChannel(id)) {
+        if (AppChatsManager.isChannel(id)) {
             return getChannelFull(id);
         }
         if (chatsFull[id] !== undefined) {
-            var chat = _AppChatsManager.getChat(id);
+            var chat = AppChatsManager.getChat(id);
             if (chat.version == chatsFull[id].participants.version ||
                 chat.pFlags.left) {
                 return $q.when(chatsFull[id]);
@@ -16,12 +16,12 @@ var _AppProfileManager = (function () {
         if (chatFullPromises[id] !== undefined) {
             return chatFullPromises[id];
         }
-        console.trace(dT(), 'Get chat full', id, _AppChatsManager.getChat(id));
-        return chatFullPromises[id] = _MtpApiManager.invokeApi('messages.getFullChat', {
-            chat_id: _AppChatsManager.getChatInput(id)
+        console.trace(dT(), 'Get chat full', id, AppChatsManager.getChat(id));
+        return chatFullPromises[id] = MtpApiManager.invokeApi('messages.getFullChat', {
+            chat_id: AppChatsManager.getChatInput(id)
         }).then(function (result) {
-            _AppChatsManager.saveApiChats(result.chats);
-            _AppUsersManager.saveApiUsers(result.users);
+            AppChatsManager.saveApiChats(result.chats);
+            AppUsersManager.saveApiUsers(result.users);
             var fullChat = result.full_chat;
             delete chatFullPromises[id];
             chatsFull[id] = fullChat;
@@ -38,13 +38,13 @@ var _AppProfileManager = (function () {
                 return chatFull.exported_invite.link;
             }
             var promise;
-            if (_AppChatsManager.isChannel(id)) {
-                promise = _MtpApiManager.invokeApi('channels.exportInvite', {
-                    channel: _AppChatsManager.getChannelInput(id)
+            if (AppChatsManager.isChannel(id)) {
+                promise = MtpApiManager.invokeApi('channels.exportInvite', {
+                    channel: AppChatsManager.getChannelInput(id)
                 });
             } else {
-                promise = _MtpApiManager.invokeApi('messages.exportChatInvite', {
-                    chat_id: _AppChatsManager.getChatInput(id)
+                promise = MtpApiManager.invokeApi('messages.exportChatInvite', {
+                    chat_id: AppChatsManager.getChatInput(id)
                 });
             }
             return promise.then(function (exportedInvite) {
@@ -57,18 +57,18 @@ var _AppProfileManager = (function () {
     }
 
     function getChannelParticipants(id) {
-        return _MtpApiManager.invokeApi('channels.getParticipants', {
-            channel: _AppChatsManager.getChannelInput(id),
+        return MtpApiManager.invokeApi('channels.getParticipants', {
+            channel: AppChatsManager.getChannelInput(id),
             filter: {_: 'channelParticipantsRecent'},
             offset: 0,
             limit: 200
         }).then(function (result) {
-            _AppUsersManager.saveApiUsers(result.users);
+            AppUsersManager.saveApiUsers(result.users);
             var participants = result.participants;
 
-            var chat = _AppChatsManager.getChat(id);
+            var chat = AppChatsManager.getChat(id);
             if (!chat.pFlags.kicked && !chat.pFlags.left) {
-                var myID = _AppUsersManager.getSelf().id;
+                var myID = AppUsersManager.getSelf().id;
                 var myIndex = false;
                 var myParticipant;
                 for (var i = 0, len = participants.length; i < len; i++) {
@@ -98,13 +98,13 @@ var _AppProfileManager = (function () {
             return chatFullPromises[id];
         }
 
-        return chatFullPromises[id] = _MtpApiManager.invokeApi('channels.getFullChannel', {
-            channel: _AppChatsManager.getChannelInput(id)
+        return chatFullPromises[id] = MtpApiManager.invokeApi('channels.getFullChannel', {
+            channel: AppChatsManager.getChannelInput(id)
         }).then(function (result) {
-            _AppChatsManager.saveApiChats(result.chats);
-            _AppUsersManager.saveApiUsers(result.users);
+            AppChatsManager.saveApiChats(result.chats);
+            AppUsersManager.saveApiUsers(result.users);
             var fullChannel = result.full_chat;
-            var chat = _AppChatsManager.getChat(id);
+            var chat = AppChatsManager.getChat(id);
             var participantsPromise;
             if (fullChannel.flags & 8) {
                 participantsPromise = getChannelParticipants(id).then(function (participants) {
@@ -132,5 +132,12 @@ var _AppProfileManager = (function () {
 
     return {
         getChatInviteLink: getChatInviteLink
-    }
-})();
+    };
+}
+
+AppProfileManagerModule.dependencies = [
+    'AppChatsManager',
+    'AppUsersManager',
+    'MtpApiManager',
+    '$q'
+];

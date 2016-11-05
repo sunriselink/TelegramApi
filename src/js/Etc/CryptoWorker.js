@@ -1,4 +1,4 @@
-var _CryptoWorker = (function () {
+function CryptoWorkerModule($timeout) {
     return {
         sha1Hash: function (bytes) {
             return $timeout(function () {
@@ -33,4 +33,8 @@ var _CryptoWorker = (function () {
             });
         }
     };
-})();
+}
+
+CryptoWorkerModule.dependencies = [
+    '$timeout'
+];

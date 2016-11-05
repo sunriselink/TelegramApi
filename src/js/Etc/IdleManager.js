@@ -1,10 +1,10 @@
-var _IdleManager = (function () {
+function IdleManagerModule($rootScope, $timeout) {
     $rootScope.idle = {isIDLE: false};
 
     var toPromise, started = false;
     var hidden = 'hidden';
     var visibilityChange = 'visibilitychange';
-    
+
     if (typeof document.hidden !== 'undefined') {
         // default
     } else if (typeof document.mozHidden !== 'undefined') {
@@ -22,7 +22,7 @@ var _IdleManager = (function () {
         start: start
     };
 
-    function start () {
+    function start() {
         if (!started) {
             started = true;
             $(window).on(visibilityChange + ' blur focus keydown mousedown touchstart', onEvent);
@@ -33,7 +33,7 @@ var _IdleManager = (function () {
         }
     }
 
-    function onEvent (e) {
+    function onEvent(e) {
         // console.log('event', e.type);
         if (e.type == 'mousemove') {
             var e = e.originalEvent || e;
@@ -60,4 +60,9 @@ var _IdleManager = (function () {
             $(window).on('mousemove', onEvent);
         }
     }
-})();
+}
+
+IdleManagerModule.dependencies = [
+    '$rootScope', 
+    '$timeout'
+];

@@ -1,6 +1,6 @@
-var _Storage = (function () {
+function StorageModule($q) {
     var methods = {};
-    
+
     forEach(['get', 'set', 'remove'], function (methodName) {
         methods[methodName] = function () {
             var deferred = $q.defer(),
@@ -16,9 +16,9 @@ var _Storage = (function () {
         };
     });
 
-    return {
-        get: methods['get'],
-        set: methods['set'],
-        remove: methods['remove']
-    }
-})();
+    return methods;
+}
+
+StorageModule.dependencies = [
+    '$q'
+];

@@ -17,34 +17,13 @@ gulp.task('js', function () {
         'node_modules/long/dist/long.min.js',
         'node_modules/zlibjs/bin/gunzip.min.js',
         'node_modules/rusha/rusha.min.js',
+        'node_modules/ioc-js/dist/ioc-js.min.js',
 
         'src/vendor/**/*.js',
-        'src/js/lib/*.js',
+        'src/js/**/*.js',
 
-        'src/helpers/Etc/Helper.js',
-        'src/helpers/Etc/qSync.js',
-        'src/helpers/Etc/Storage.js',
-        'src/helpers/Etc/CryptoWorker.js',
-        'src/helpers/Etc/IdleManager.js',
-        'src/helpers/Etc/TelegramMeWebService.js',
-        'src/helpers/Etc/NotificationsManager.js',
-
-        'src/helpers/Mtp/MtpDcConfigurator.js',
-        'src/helpers/Mtp/MtpTimeManager.js',
-        'src/helpers/Mtp/MtpSecureRandom.js',
-        'src/helpers/Mtp/MtpRsaKeysManager.js',
-        'src/helpers/Mtp/MtpAuthorizer.js',
-        'src/helpers/Mtp/MtpNetworkerFactory.js',
-        'src/helpers/Mtp/MtpSingleInstanceService.js',
-        'src/helpers/Mtp/MtpApiManager.js',
-        'src/helpers/Mtp/MtpApiFileManager.js',
-
-        'src/helpers/App/AppPeersManager.js',
-        'src/helpers/App/AppChatsManager.js',
-        'src/helpers/App/AppUsersManager.js',
-        'src/helpers/App/AppProfileManager.js',
-
-        'src/telegramApi.js'
+        'src/telegramApi.js',
+        'src/IoC.js'
     ])
         .pipe($.concat('telegramApi.js'))
         .pipe($.replace(/<%TELEGRAM-API-VERSION%>/g, version))

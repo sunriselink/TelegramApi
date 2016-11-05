@@ -1,4 +1,4 @@
-var _MtpDcConfigurator = (function () {
+function MtpDcConfiguratorModule() {
     var chosenServers = {};
 
     function chooseServer(dcID, upload) {
@@ -24,4 +24,6 @@ var _MtpDcConfigurator = (function () {
     return {
         chooseServer: chooseServer
     };
-})();
+}
+
+MtpDcConfiguratorModule.dependencies = [];

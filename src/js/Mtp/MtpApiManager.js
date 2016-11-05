@@ -1,4 +1,4 @@
-var _MtpApiManager = (function () {
+function MtpApiManagerModule(MtpSingleInstanceService, MtpNetworkerFactory, MtpAuthorizer, Storage, TelegramMeWebService, qSync, $q) {
     var cachedNetworkers = {},
         cachedUploadNetworkers = {},
         cachedExportPromise = {},
@@ -6,9 +6,9 @@ var _MtpApiManager = (function () {
 
     var telegramMeNotified;
 
-    _MtpSingleInstanceService.start();
+    MtpSingleInstanceService.start();
 
-    _Storage.get('dc').then(function (dcID) {
+    Storage.get('dc').then(function (dcID) {
         if (dcID) {
             baseDcID = dcID;
         }
@@ -17,13 +17,13 @@ var _MtpApiManager = (function () {
     function telegramMeNotify(newValue) {
         if (telegramMeNotified !== newValue) {
             telegramMeNotified = newValue;
-            _TelegramMeWebService.setAuthorized(telegramMeNotified);
+            TelegramMeWebService.setAuthorized(telegramMeNotified);
         }
     }
 
     function mtpSetUserAuth(dcID, userAuth) {
         var fullUserAuth = extend({dcID: dcID}, userAuth);
-        _Storage.set({
+        Storage.set({
             dc: dcID,
             user_auth: fullUserAuth
         });
@@ -37,7 +37,7 @@ var _MtpApiManager = (function () {
         for (var dcID = 1; dcID <= 5; dcID++) {
             storageKeys.push('dc' + dcID + '_auth_key');
         }
-        return _Storage.get.apply(_Storage, storageKeys).then(function (storageResult) {
+        return Storage.get.apply(Storage, storageKeys).then(function (storageResult) {
             var logoutPromises = [];
             for (var i = 0; i < storageResult.length; i++) {
                 if (storageResult[i]) {
@@ -45,12 +45,12 @@ var _MtpApiManager = (function () {
                 }
             }
             return $q.all(logoutPromises).then(function () {
-                _Storage.remove('dc', 'user_auth');
+                Storage.remove('dc', 'user_auth');
                 baseDcID = false;
                 telegramMeNotify(false);
             }, function (error) {
-                _Storage.remove.apply(storageKeys);
-                _Storage.remove('dc', 'user_auth');
+                Storage.remove.apply(storageKeys);
+                Storage.remove('dc', 'user_auth');
                 baseDcID = false;
                 error.handled = true;
                 telegramMeNotify(false);
@@ -69,13 +69,13 @@ var _MtpApiManager = (function () {
         }
 
         if (cache[dcID] !== undefined) {
-            return _qSync.when(cache[dcID]);
+            return qSync.when(cache[dcID]);
         }
 
         var akk = 'dc' + dcID + '_auth_key',
             ssk = 'dc' + dcID + '_server_salt';
 
-        return _Storage.get(akk, ssk).then(function (result) {
+        return Storage.get(akk, ssk).then(function (result) {
 
             if (cache[dcID] !== undefined) {
                 return cache[dcID];
@@ -88,26 +88,26 @@ var _MtpApiManager = (function () {
                 var authKey = bytesFromHex(authKeyHex);
                 var serverSalt = bytesFromHex(serverSaltHex);
 
-                return cache[dcID] = _MtpNetworkerFactory.getNetworker(dcID, authKey, serverSalt, options);
+                return cache[dcID] = MtpNetworkerFactory.getNetworker(dcID, authKey, serverSalt, options);
             }
 
             if (!options.createNetworker) {
                 return $q.reject({type: 'AUTH_KEY_EMPTY', code: 401});
             }
 
-            return _MtpAuthorizer.auth(dcID).then(function (auth) {
+            return MtpAuthorizer.auth(dcID).then(function (auth) {
                 var storeObj = {};
                 storeObj[akk] = bytesToHex(auth.authKey);
                 storeObj[ssk] = bytesToHex(auth.serverSalt);
-                _Storage.set(storeObj);
+                Storage.set(storeObj);
 
-                return cache[dcID] = _MtpNetworkerFactory.getNetworker(dcID, auth.authKey, auth.serverSalt, options);
+                return cache[dcID] = MtpNetworkerFactory.getNetworker(dcID, auth.authKey, auth.serverSalt, options);
             }, function (error) {
                 console.log('Get networker error', error, error.stack);
                 return $q.reject(error);
             });
         });
-    };
+    }
 
     function mtpInvokeApi(method, params, options) {
         options = options || {};
@@ -154,7 +154,7 @@ var _MtpApiManager = (function () {
                 function (error) {
                     console.error(dT(), 'Error', error.code, error.type, baseDcID, dcID);
                     if (error.code == 401 && baseDcID == dcID) {
-                        _Storage.remove('dc', 'user_auth');
+                        Storage.remove('dc', 'user_auth');
                         telegramMeNotify(false);
                         rejectPromise(error);
                     }
@@ -190,7 +190,7 @@ var _MtpApiManager = (function () {
                             if (options.dcID) {
                                 options.dcID = newDcID;
                             } else {
-                                _Storage.set({dc: baseDcID = newDcID});
+                                Storage.set({dc: baseDcID = newDcID});
                             }
 
                             mtpGetNetworker(newDcID, options).then(function (networker) {
@@ -232,7 +232,7 @@ var _MtpApiManager = (function () {
         if (dcID = (options.dcID || baseDcID)) {
             mtpGetNetworker(dcID, options).then(performRequest, rejectPromise);
         } else {
-            _Storage.get('dc').then(function (baseDcID) {
+            Storage.get('dc').then(function (baseDcID) {
                 mtpGetNetworker(dcID = baseDcID || 2, options).then(performRequest, rejectPromise);
             });
         }
@@ -241,7 +241,7 @@ var _MtpApiManager = (function () {
     }
 
     function mtpGetUserID() {
-        return _Storage.get('user_auth').then(function (auth) {
+        return Storage.get('user_auth').then(function (auth) {
             telegramMeNotify(auth && auth.id > 0 || false);
             return auth.id || 0;
         });
@@ -258,5 +258,15 @@ var _MtpApiManager = (function () {
         getNetworker: mtpGetNetworker,
         setUserAuth: mtpSetUserAuth,
         logOut: mtpLogOut
-    }
-})();
+    };
+}
+
+MtpApiManagerModule.dependencies = [
+    'MtpSingleInstanceService', 
+    'MtpNetworkerFactory', 
+    'MtpAuthorizer', 
+    'Storage', 
+    'TelegramMeWebService', 
+    'qSync', 
+    '$q'
+];

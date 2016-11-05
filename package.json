@@ -1,12 +1,20 @@
 {
   "name": "telegram-api-js",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "JavaScript library for using Telegram API. Based on Webogram project.",
   "repository": {
     "type": "git",
     "url": "https://github.com/sunriselink/TelegramApi.git"
   },
-  "author": "Infinnity Solutions",
+  "author": {
+    "name": "Infinnity Solutions"
+  },
+  "contributors": [
+    {
+      "name": "Maxim Sadofyev",
+      "email": "m.sadofyev@infinnity.ru"
+    }
+  ],
   "license": "GPL-3.0",
   "keywords": [
     "telegram",
@@ -31,6 +39,7 @@
     "gulp-uglify": "^2.0.0",
     "gulp-webserver": "^0.9.1",
     "gulp-wrapper": "^1.0.0",
+    "ioc-js": "0.0.1",
     "long": "3.2.0",
     "rusha": "0.8.4",
     "zlibjs": "0.2.0"

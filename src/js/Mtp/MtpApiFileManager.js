@@ -1,4 +1,4 @@
-var _MtpApiFileManager = (function () {
+function MtpApiFileManagerModule(MtpApiManager, $q) {
     var cachedFs = false;
     var cachedFsPromise = false;
     var cachedSavePromises = {};
@@ -116,7 +116,7 @@ var _MtpApiFileManager = (function () {
                         if (e.target.readyState != FileReader.DONE) {
                             return;
                         }
-                        _MtpApiManager.invokeApi(isBigFile ? 'upload.saveBigFilePart' : 'upload.saveFilePart', {
+                        MtpApiManager.invokeApi(isBigFile ? 'upload.saveBigFilePart' : 'upload.saveFilePart', {
                             file_id: fileID,
                             file_part: part,
                             file_total_parts: totalParts,
@@ -159,4 +159,9 @@ var _MtpApiFileManager = (function () {
     return {
         uploadFile: uploadFile
     };
-})();
+}
+
+MtpApiFileManagerModule.dependencies = [
+    'MtpApiManager', 
+    '$q'
+];

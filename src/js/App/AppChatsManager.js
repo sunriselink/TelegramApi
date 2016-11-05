@@ -1,4 +1,4 @@
-var _AppChatsManager = (function () {
+function AppChatsManagerModule() {
     var chats = {},
         channelAccess = {};
 
@@ -56,5 +56,7 @@ var _AppChatsManager = (function () {
         isChannel: isChannel,
         getChatInput: getChatInput,
         getChannelInput: getChannelInput
-    }
-})();
+    };
+}
+
+AppChatsManagerModule.dependencies = [];

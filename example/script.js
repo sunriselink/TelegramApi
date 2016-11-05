@@ -101,7 +101,9 @@ angular.module('myApp', [])
         };
 
         for (var key in telegramApi) {
-            $scope.methods.push(key);
+            if (telegramApi.hasOwnProperty(key) && typeof telegramApi[key] == 'function') {
+                $scope.methods.push(key);
+            }
         }
 
         /* Initialize */

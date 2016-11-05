@@ -1,16 +1,16 @@
-var _AppUsersManager = (function () {
+function AppUsersManagerModule(Storage, MtpApiManager) {
     var users = {},
         userAccess = {},
         myID,
         serverTimeOffset = 0;
 
-    _Storage.get('server_time_offset').then(function (to) {
+    Storage.get('server_time_offset').then(function (to) {
         if (to) {
             serverTimeOffset = to;
         }
     });
 
-    _MtpApiManager.getUserID().then(function (id) {
+    MtpApiManager.getUserID().then(function (id) {
         myID = id;
     });
 
@@ -19,8 +19,7 @@ var _AppUsersManager = (function () {
     }
 
     function saveApiUser(apiUser, noReplace) {
-        if (!isObject(apiUser) ||
-            noReplace && isObject(users[apiUser.id]) && users[apiUser.id].first_name) {
+        if (!isObject(apiUser) || noReplace && isObject(users[apiUser.id]) && users[apiUser.id].first_name) {
             return;
         }
 
@@ -105,4 +104,9 @@ var _AppUsersManager = (function () {
         getSelf: getSelf,
         getUserInput: getUserInput
     };
-})();
+}
+
+AppUsersManagerModule.dependencies = [
+    'Storage', 
+    'MtpApiManager'
+];

@@ -1,10 +1,5 @@
-window.telegramApi = (function () {
+function TelegramApiModule(MtpApiManager, AppPeersManager, MtpApiFileManager, AppUsersManager, AppProfileManager, AppChatsManager, MtpNetworkerFactory, $q, $timeout) {
     var options = {dcID: 2, createNetworker: true};
-    var photoTypes = [
-        'base64',
-        'blob',
-        'byteArray'
-    ];
 
     return {
         checkPhone: checkPhone,
@@ -40,7 +35,7 @@ window.telegramApi = (function () {
         logOut: logOut,
 
         dT: dT,
-        invokeApi: _MtpApiManager.invokeApi,
+        invokeApi: MtpApiManager.invokeApi,
 
         VERSION: '<%TELEGRAM-API-VERSION%>'
     };
@@ -48,7 +43,7 @@ window.telegramApi = (function () {
     /* Public Functions */
 
     function sendCode(phone_number) {
-        return _MtpApiManager.invokeApi('auth.sendCode', {
+        return MtpApiManager.invokeApi('auth.sendCode', {
             phone_number: phone_number,
             sms_type: 5,
             api_id: Config.App.id,
@@ -58,35 +53,35 @@ window.telegramApi = (function () {
     }
 
     function signIn(phone_number, phone_code_hash, phone_code) {
-        return _MtpApiManager.invokeApi('auth.signIn', {
+        return MtpApiManager.invokeApi('auth.signIn', {
             phone_number: phone_number,
             phone_code_hash: phone_code_hash,
             phone_code: phone_code
         }, options).then(function (result) {
-            _MtpApiManager.setUserAuth(options.dcID, {
+            MtpApiManager.setUserAuth(options.dcID, {
                 id: result.user.id
             });
         });
     }
 
     function signUp(phone_number, phone_code_hash, phone_code, first_name, last_name) {
-        return _MtpApiManager.invokeApi('auth.signUp', {
+        return MtpApiManager.invokeApi('auth.signUp', {
             phone_number: phone_number,
             phone_code_hash: phone_code_hash,
             phone_code: phone_code,
             first_name: first_name || '',
             last_name: last_name || ''
         }, options).then(function (result) {
-            _MtpApiManager.setUserAuth(options.dcID, {
+            MtpApiManager.setUserAuth(options.dcID, {
                 id: result.user.id
             });
         });
     }
 
     function sendMessage(id, message) {
-        return _MtpApiManager.invokeApi('messages.sendMessage', {
+        return MtpApiManager.invokeApi('messages.sendMessage', {
             flags: 0,
-            peer: _AppPeersManager.getInputPeerByID(id),
+            peer: AppPeersManager.getInputPeerByID(id),
             message: message,
             random_id: [nextRandomInt(0xFFFFFFFF), nextRandomInt(0xFFFFFFFF)],
             reply_to_msg_id: 0,
@@ -95,14 +90,14 @@ window.telegramApi = (function () {
     }
 
     function startBot(botName) {
-        return _MtpApiManager.invokeApi('contacts.search', {q: botName, limit: 1}).then(function (result) {
-            _AppUsersManager.saveApiUsers(result.users);
+        return MtpApiManager.invokeApi('contacts.search', {q: botName, limit: 1}).then(function (result) {
+            AppUsersManager.saveApiUsers(result.users);
             return sendMessage(result.users[0].id, '/start');
         });
     }
 
     function sendSms(phone_number, phone_code_hash) {
-        return _MtpApiManager.invokeApi('auth.sendSms', {
+        return MtpApiManager.invokeApi('auth.sendSms', {
             phone_number: phone_number,
             phone_code_hash: phone_code_hash
         }, options);
@@ -124,9 +119,9 @@ window.telegramApi = (function () {
         Config.Server.Test = config.server.test;
         Config.Server.Production = config.server.production;
 
-        _MtpApiManager.invokeApi('help.getNearestDc', {}, options).then(function (nearestDcResult) {
+        MtpApiManager.invokeApi('help.getNearestDc', {}, options).then(function (nearestDcResult) {
             if (nearestDcResult.nearest_dc != nearestDcResult.this_dc) {
-                _MtpApiManager.getNetworker(nearestDcResult.nearest_dc, {createNetworker: true});
+                MtpApiManager.getNetworker(nearestDcResult.nearest_dc, {createNetworker: true});
             }
         });
     }
@@ -142,15 +137,15 @@ window.telegramApi = (function () {
         var inputUsers = [];
 
         for (var i = 0; i < userIDs.length; i++) {
-            inputUsers.push(_AppUsersManager.getUserInput(userIDs[i]))
+            inputUsers.push(AppUsersManager.getUserInput(userIDs[i]))
         }
 
-        return _MtpApiManager.invokeApi('messages.createChat', {
+        return MtpApiManager.invokeApi('messages.createChat', {
             title: title,
             users: inputUsers
         }).then(function (updates) {
             if (updates.chats && updates.chats[0]) {
-                return _MtpApiManager.invokeApi('messages.toggleChatAdmins', {
+                return MtpApiManager.invokeApi('messages.toggleChatAdmins', {
                     chat_id: updates.chats[0].id,
                     enabled: true
                 });
@@ -161,33 +156,27 @@ window.telegramApi = (function () {
     }
 
     function getChatLink(chatID, forse) {
-        return _AppProfileManager.getChatInviteLink(chatID, forse);
+        return AppProfileManager.getChatInviteLink(chatID, forse);
     }
 
     function getUserInfo() {
-        return _MtpApiManager.getUserID().then(function (id) {
-            var user = _AppUsersManager.getUser(id);
+        return MtpApiManager.getUserID().then(function (id) {
+            var user = AppUsersManager.getUser(id);
 
             if (!user.id || !user.deleted) {
                 return user;
             } else {
-                return _MtpApiManager.invokeApi('users.getFullUser', {
+                return MtpApiManager.invokeApi('users.getFullUser', {
                     id: {_: 'inputUserSelf'}
                 }).then(function (userInfoFull) {
-                    _AppUsersManager.saveApiUser(userInfoFull.user);
-                    return _AppUsersManager.getUser(id);
+                    AppUsersManager.saveApiUser(userInfoFull.user);
+                    return AppUsersManager.getUser(id);
                 });
             }
         });
     }
 
     function getUserPhoto(type, size) {
-        type = type || 'base64';
-
-        if (photoTypes.indexOf(type) == -1) {
-            throw new Error('Invalid photo type "' + type + '"');
-        }
-
         return getUserInfo().then(function (user) {
             if (!user.photo) {
                 return null;
@@ -209,7 +198,7 @@ window.telegramApi = (function () {
                 createNetworker: true
             };
 
-            return _MtpApiManager.invokeApi('upload.getFile', {
+            return MtpApiManager.invokeApi('upload.getFile', {
                 location: location,
                 offset: 0,
                 limit: 524288
@@ -217,29 +206,28 @@ window.telegramApi = (function () {
                 switch (type) {
                     case 'byteArray':
                         return result.bytes;
-                        break;
                     case 'base64':
                         return "data:image/jpeg;base64," + btoa(String.fromCharCode.apply(null, result.bytes));
-                        break;
                     case 'blob':
                         return new Blob([result.bytes], {type: 'image/jpeg'});
-                        break;
+                    default:
+                        return result.bytes;
                 }
             });
         });
     }
 
     function logOut() {
-        return _MtpApiManager.logOut();
+        return MtpApiManager.logOut();
     }
 
     function createChannel(title, about) {
-        return _MtpApiManager.invokeApi('channels.createChannel', {
+        return MtpApiManager.invokeApi('channels.createChannel', {
             title: title || '',
             flags: 0,
             about: about || ''
         }, options).then(function (data) {
-            _AppChatsManager.saveApiChats(data.chats);
+            AppChatsManager.saveApiChats(data.chats);
             return data;
         });
     }
@@ -255,8 +243,8 @@ window.telegramApi = (function () {
             params.id = params.id * -1;
         }
 
-        return _MtpApiManager.invokeApi('messages.getHistory', {
-            peer: _AppPeersManager.getInputPeerByID(params.id),
+        return MtpApiManager.invokeApi('messages.getHistory', {
+            peer: AppPeersManager.getInputPeerByID(params.id),
             offset_id: 0,
             add_offset: params.skip,
             limit: params.take
@@ -274,7 +262,7 @@ window.telegramApi = (function () {
             params.id = params.id * -1;
         }
 
-        return _MtpApiFileManager.uploadFile(params.file).then(function (inputFile) {
+        return MtpApiFileManager.uploadFile(params.file).then(function (inputFile) {
             var file = params.file;
 
             inputFile.name = file.name;
@@ -289,8 +277,8 @@ window.telegramApi = (function () {
                 ]
             };
 
-            return _MtpApiManager.invokeApi('messages.sendMedia', {
-                peer: _AppPeersManager.getInputPeerByID(params.id),
+            return MtpApiManager.invokeApi('messages.sendMedia', {
+                peer: AppPeersManager.getInputPeerByID(params.id),
                 media: inputMedia,
                 random_id: [nextRandomInt(0xFFFFFFFF), nextRandomInt(0xFFFFFFFF)]
             });
@@ -334,7 +322,7 @@ window.telegramApi = (function () {
 
         function download() {
             if (offset < size) {
-                _MtpApiManager.invokeApi('upload.getFile', {
+                MtpApiManager.invokeApi('upload.getFile', {
                     location: location,
                     offset: offset,
                     limit: limit
@@ -364,7 +352,7 @@ window.telegramApi = (function () {
             hash = link;
         }
 
-        return _MtpApiManager.invokeApi('messages.importChatInvite', {hash: hash});
+        return MtpApiManager.invokeApi('messages.importChatInvite', {hash: hash});
     }
 
     function editChatAdmin(chatID, userID, isAdmin) {
@@ -373,10 +361,10 @@ window.telegramApi = (function () {
         }
 
         isAdmin = !!isAdmin;
-        chatID = _AppChatsManager.getChatInput(chatID);
-        userID = _AppUsersManager.getUserInput(userID);
+        chatID = AppChatsManager.getChatInput(chatID);
+        userID = AppUsersManager.getUserInput(userID);
 
-        return _MtpApiManager.invokeApi('messages.editChatAdmin', {
+        return MtpApiManager.invokeApi('messages.editChatAdmin', {
             chat_id: chatID,
             user_id: userID,
             is_admin: isAdmin
@@ -384,22 +372,22 @@ window.telegramApi = (function () {
     }
 
     function editChatTitle(chat_id, title) {
-        return _MtpApiManager.invokeApi('messages.editChatTitle', {
+        return MtpApiManager.invokeApi('messages.editChatTitle', {
             chat_id: chat_id,
             title: title
         });
     }
 
     function editChannelAdmin(channel_id, user_id) {
-        return _MtpApiManager.invokeApi('channels.editAdmin', {
-            channel: _AppChatsManager.getChannelInput(channel_id),
-            user_id: _AppUsersManager.getUserInput(user_id),
+        return MtpApiManager.invokeApi('channels.editAdmin', {
+            channel: AppChatsManager.getChannelInput(channel_id),
+            user_id: AppUsersManager.getUserInput(user_id),
             role: {_: 'channelRoleEditor'}
         });
     }
 
     function getFullChat(chat_id) {
-        return _MtpApiManager.invokeApi('messages.getFullChat', {chat_id: chat_id});
+        return MtpApiManager.invokeApi('messages.getFullChat', {chat_id: chat_id});
     }
 
     function downloadPhoto(photo, progress) {
@@ -430,7 +418,7 @@ window.telegramApi = (function () {
 
         function download() {
             if (offset < size) {
-                _MtpApiManager.invokeApi('upload.getFile', {
+                MtpApiManager.invokeApi('upload.getFile', {
                     location: location,
                     offset: offset,
                     limit: limit
@@ -451,8 +439,8 @@ window.telegramApi = (function () {
     }
 
     function editChannelTitle(channel_id, title) {
-        return _MtpApiManager.invokeApi('channels.editTitle', {
-            channel: _AppChatsManager.getChannelInput(channel_id),
+        return MtpApiManager.invokeApi('channels.editTitle', {
+            channel: AppChatsManager.getChannelInput(channel_id),
             title: title
         });
     }
@@ -462,15 +450,15 @@ window.telegramApi = (function () {
             ids = [ids];
         }
 
-        return _MtpApiManager.invokeApi('messages.deleteMessages', {id: ids});
+        return MtpApiManager.invokeApi('messages.deleteMessages', {id: ids});
     }
 
     function subscribe(id, handler) {
-        _MtpNetworkerFactory.subscribe(id, handler);
+        MtpNetworkerFactory.subscribe(id, handler);
     }
 
     function unSubscribe(id) {
-        _MtpNetworkerFactory.unSubscribe(id);
+        MtpNetworkerFactory.unSubscribe(id);
     }
 
     function getPeerByID(id, type) {
@@ -480,7 +468,7 @@ window.telegramApi = (function () {
             id = -id;
         }
 
-        var peer = _AppPeersManager.getPeer(id);
+        var peer = AppPeersManager.getPeer(id);
         var defer = $q.defer();
 
         if (!peer.deleted) {
@@ -492,18 +480,18 @@ window.telegramApi = (function () {
         var totalCount = 0;
 
         (function load() {
-            _MtpApiManager.invokeApi('messages.getDialogs', {
+            MtpApiManager.invokeApi('messages.getDialogs', {
                 offset_peer: {_: 'inputPeerEmpty'},
                 limit: 100,
                 offset_date: offsetDate
             }).then(function (result) {
-                _AppChatsManager.saveApiChats(result.chats);
-                _AppUsersManager.saveApiUsers(result.users);
+                AppChatsManager.saveApiChats(result.chats);
+                AppUsersManager.saveApiUsers(result.users);
 
                 dialogsLoaded += result.dialogs.length;
                 totalCount = result.count;
 
-                var peer = _AppPeersManager.getPeer(id);
+                var peer = AppPeersManager.getPeer(id);
 
                 if (!peer.deleted) {
                     defer.resolve(peer);
@@ -538,7 +526,7 @@ window.telegramApi = (function () {
             throw new Error('Size of document exceed limit');
         }
 
-        return _MtpApiManager.invokeApi('upload.getFile', {
+        return MtpApiManager.invokeApi('upload.getFile', {
             location: location,
             offset: 0,
             limit: limit
@@ -546,8 +534,8 @@ window.telegramApi = (function () {
     }
 
     function editChatPhoto(chat_id, photo) {
-        return _MtpApiFileManager.uploadFile(photo).then(function (inputFile) {
-            return _MtpApiManager.invokeApi('messages.editChatPhoto', {
+        return MtpApiFileManager.uploadFile(photo).then(function (inputFile) {
+            return MtpApiManager.invokeApi('messages.editChatPhoto', {
                 chat_id: chat_id,
                 photo: {
                     _: 'inputChatUploadedPhoto',
@@ -561,9 +549,9 @@ window.telegramApi = (function () {
     }
 
     function editChannelPhoto(channel_id, photo) {
-        return _MtpApiFileManager.uploadFile(photo).then(function (inputFile) {
-            return _MtpApiManager.invokeApi('channels.editPhoto', {
-                channel: _AppChatsManager.getChannelInput(channel_id),
+        return MtpApiFileManager.uploadFile(photo).then(function (inputFile) {
+            return MtpApiManager.invokeApi('channels.editPhoto', {
+                channel: AppChatsManager.getChannelInput(channel_id),
                 photo: {
                     _: 'inputChatUploadedPhoto',
                     file: inputFile,
@@ -576,7 +564,7 @@ window.telegramApi = (function () {
     }
 
     function checkPhone(phone_number) {
-        return _MtpApiManager.invokeApi('auth.checkPhone', {phone_number: phone_number});
+        return MtpApiManager.invokeApi('auth.checkPhone', {phone_number: phone_number});
     }
 
     /* Private Functions */
@@ -621,4 +609,16 @@ window.telegramApi = (function () {
 
         return result;
     }
-})();
+}
+
+TelegramApiModule.dependencies = [
+    'MtpApiManager', 
+    'AppPeersManager', 
+    'MtpApiFileManager',
+    'AppUsersManager', 
+    'AppProfileManager', 
+    'AppChatsManager', 
+    'MtpNetworkerFactory',
+    '$q',
+    '$timeout'
+];
