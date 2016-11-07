@@ -1,5 +1,5 @@
 /**
- * telegram-api v1.2.1
+ * telegram-api v1.2.2
  * Infinnity Solutions
  */
 (function(){
@@ -3234,7 +3234,7 @@ function MtpDcConfiguratorModule() {
             for (i = 0; i < dcOptions.length; i++) {
                 dcOption = dcOptions[i];
                 if (dcOption.id == dcID) {
-                    chosenServer = location.protocol + '//' + dcOption.host + (dcOption.port != 80 ? ':' + dcOption.port : '') + '/apiw1';
+                    chosenServer = chooseProtocol() + '//' + dcOption.host + (dcOption.port != 80 ? ':' + dcOption.port : '') + '/apiw1';
                     break;
                 }
             }
@@ -3242,6 +3242,14 @@ function MtpDcConfiguratorModule() {
         }
 
         return chosenServers[dcID];
+    }
+
+    function chooseProtocol() {
+        if (location.protocol.indexOf('http') != -1) {
+            return location.protocol;
+        }
+
+        return 'http:';
     }
 
     return {
@@ -4528,7 +4536,7 @@ function TelegramApiModule(MtpApiManager, AppPeersManager, MtpApiFileManager, Ap
         dT: dT,
         invokeApi: MtpApiManager.invokeApi,
 
-        VERSION: '1.2.1'
+        VERSION: '1.2.2'
     };
 
     /* Public Functions */

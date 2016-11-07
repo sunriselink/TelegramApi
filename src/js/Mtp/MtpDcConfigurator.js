@@ -11,7 +11,7 @@ function MtpDcConfiguratorModule() {
             for (i = 0; i < dcOptions.length; i++) {
                 dcOption = dcOptions[i];
                 if (dcOption.id == dcID) {
-                    chosenServer = location.protocol + '//' + dcOption.host + (dcOption.port != 80 ? ':' + dcOption.port : '') + '/apiw1';
+                    chosenServer = chooseProtocol() + '//' + dcOption.host + (dcOption.port != 80 ? ':' + dcOption.port : '') + '/apiw1';
                     break;
                 }
             }
@@ -19,6 +19,14 @@ function MtpDcConfiguratorModule() {
         }
 
         return chosenServers[dcID];
+    }
+
+    function chooseProtocol() {
+        if (location.protocol.indexOf('http') != -1) {
+            return location.protocol;
+        }
+
+        return 'http:';
     }
 
     return {
