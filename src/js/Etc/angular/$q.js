@@ -16,18 +16,18 @@ function $qModule($) {
 
             var p = [];
             var keys = Object.keys(promises);
-
-            for (var i = 0; i < keys.length; i++) {
-                p.push(promises[keys[i]]);
-            }
+            
+            forEach(keys, function (key) {
+                p.push(promises[key]);
+            });
 
             return this.all(p).then(function () {
-                var objects = Array.prototype.slice.call(arguments);
+                var objects = toArray(arguments);
                 var result = {};
-
-                for (var i = 0; i < keys.length; i++) {
-                    result[keys[i]] = objects[i];
-                }
+                
+                forEach(keys, function (key, i) {
+                    result[key] = objects[i];
+                });
 
                 return result;
             });

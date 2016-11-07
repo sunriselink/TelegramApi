@@ -1,4 +1,4 @@
-function TelegramApiModule(MtpApiManager, AppPeersManager, MtpApiFileManager, AppUsersManager, AppProfileManager, AppChatsManager, MtpNetworkerFactory, $q, $timeout) {
+function TelegramApiModule(MtpApiManager, AppPeersManager, MtpApiFileManager, AppUsersManager, AppProfileManager, AppChatsManager, MtpNetworkerFactory, FileSaver, $q, $timeout) {
     var options = {dcID: 2, createNetworker: true};
 
     return {
@@ -15,6 +15,7 @@ function TelegramApiModule(MtpApiManager, AppPeersManager, MtpApiFileManager, Ap
         editChatTitle: editChatTitle,
         editChatPhoto: editChatPhoto,
         getChatLink: getChatLink,
+        getDialogs: getDialogs,
         getDocumentPreview: getDocumentPreview,
         getFullChat: getFullChat,
         getHistory: getHistory,
@@ -144,6 +145,7 @@ function TelegramApiModule(MtpApiManager, AppPeersManager, MtpApiFileManager, Ap
             title: title,
             users: inputUsers
         }).then(function (updates) {
+            // TODO: Remove
             if (updates.chats && updates.chats[0]) {
                 return MtpApiManager.invokeApi('messages.toggleChatAdmins', {
                     chat_id: updates.chats[0].id,
@@ -333,7 +335,8 @@ function TelegramApiModule(MtpApiManager, AppPeersManager, MtpApiFileManager, Ap
                     download();
                 });
             } else {
-                _downloadFile(bytes, fileName, done);
+                FileSaver.save(bytes, fileName);
+                done.resolve();
             }
         }
 
@@ -429,7 +432,8 @@ function TelegramApiModule(MtpApiManager, AppPeersManager, MtpApiFileManager, Ap
                     download();
                 });
             } else {
-                _downloadFile(bytes, fileName, done);
+                FileSaver.save(bytes, fileName);
+                done.resolve();
             }
         }
 
@@ -481,7 +485,7 @@ function TelegramApiModule(MtpApiManager, AppPeersManager, MtpApiFileManager, Ap
 
         (function load() {
             MtpApiManager.invokeApi('messages.getDialogs', {
-                offset_peer: {_: 'inputPeerEmpty'},
+                offset_peer: AppPeersManager.getInputPeerByID(0),
                 limit: 100,
                 offset_date: offsetDate
             }).then(function (result) {
@@ -499,10 +503,10 @@ function TelegramApiModule(MtpApiManager, AppPeersManager, MtpApiFileManager, Ap
                 }
 
                 if (totalCount && dialogsLoaded < totalCount) {
-                    var dates = _aggregate(result.messages, function (msg) {
+                    var dates = map(result.messages, function (msg) {
                         return msg.date;
                     });
-                    offsetDate = _getMin(dates);
+                    offsetDate = min(dates);
                     load();
                     return;
                 }
@@ -566,48 +570,28 @@ function TelegramApiModule(MtpApiManager, AppPeersManager, MtpApiFileManager, Ap
     function checkPhone(phone_number) {
         return MtpApiManager.invokeApi('auth.checkPhone', {phone_number: phone_number});
     }
+    
+    function getDialogs(offset, limit) {
+        offset = offset || 0;
+        limit = limit || 50;
 
-    /* Private Functions */
+        return MtpApiManager.invokeApi('messages.getDialogs', {
+            offset_peer: AppPeersManager.getInputPeerByID(0),
+            offset_date: offset,
+            limit: limit
+        }).then(function (dialogsResult) {
+            AppUsersManager.saveApiUsers(dialogsResult.users);
+            AppChatsManager.saveApiChats(dialogsResult.chats);
 
-    function _downloadFile(bytes, fileName, defer) {
-        // TODO: Improve
-        var a = document.createElement('a');
-        var blob = new Blob(bytes, {type: 'octet/stream'});
+            var dates = map(dialogsResult.messages, function (msg) {
+                return msg.date;
+            });
 
-        document.body.appendChild(a);
-        a.style = 'display: none';
-        a.href = window.URL.createObjectURL(blob);
-        a.download = fileName;
-        a.click();
-
-        setTimeout(function () {
-            window.URL.revokeObjectURL(a.href);
-            a.remove();
-        }, 100);
-
-        defer.resolve();
-    }
-
-    function _getMin(arr) {
-        var min = arr[0];
-
-        for (var i = 0; i < arr.length; i++) {
-            if (arr[i] < min) {
-                min = arr[i];
-            }
-        }
-
-        return min;
-    }
-
-    function _aggregate(arr, iterator) {
-        var result = [];
-
-        arr.forEach(function (item) {
-            result.push(iterator(item));
+            return {
+                result: dialogsResult,
+                offset: min(dates)
+            };
         });
-
-        return result;
     }
 }
 
@@ -619,6 +603,7 @@ TelegramApiModule.dependencies = [
     'AppProfileManager', 
     'AppChatsManager', 
     'MtpNetworkerFactory',
+    'FileSaver',
     '$q',
     '$timeout'
 ];

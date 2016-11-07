@@ -35,12 +35,7 @@ function isFunction(value) {
 }
 
 function extend() {
-    var objects = Array.prototype.slice.call(arguments);
-
-    if (objects.length < 2) {
-        return objects[0];
-    }
-
+    var objects = toArray(arguments);
     var obj = objects[0];
 
     for (var i = 1; i < objects.length; i++) {
@@ -50,6 +45,31 @@ function extend() {
     }
 
     return obj;
+}
+
+function map(array, iterator) {
+    var result = [];
+
+    forEach(array, function (obj) {
+        result.push(iterator(obj));
+    });
+
+    return result;
+}
+
+function min(array) {
+    var min = array[0];
+
+    forEach(array, function (obj) {
+        if (obj < min) {
+            min = obj;
+        }
+    });
+
+    return min;
+}
+function toArray(obj) {
+    return Array.prototype.slice.call(obj);
 }
 
 function noop() {

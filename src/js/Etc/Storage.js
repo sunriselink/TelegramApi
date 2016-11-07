@@ -4,7 +4,7 @@ function StorageModule($q) {
     forEach(['get', 'set', 'remove'], function (methodName) {
         methods[methodName] = function () {
             var deferred = $q.defer(),
-                args = Array.prototype.slice.call(arguments);
+                args = toArray(arguments);
 
             args.push(function (result) {
                 deferred.resolve(result);
