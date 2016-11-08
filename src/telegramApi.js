@@ -287,7 +287,7 @@ function TelegramApiModule(MtpApiManager, AppPeersManager, MtpApiFileManager, Ap
         });
     }
 
-    function downloadDocument(doc, progress) {
+    function downloadDocument(doc, progress, autosave) {
         doc = doc || {};
         doc.id = doc.id || 0;
         doc.access_hash = doc.access_hash || 0;
@@ -335,8 +335,14 @@ function TelegramApiModule(MtpApiManager, AppPeersManager, MtpApiFileManager, Ap
                     download();
                 });
             } else {
-                FileSaver.save(bytes, fileName);
-                done.resolve();
+                if (autosave) {
+                    FileSaver.save(bytes, fileName);
+                }
+                done.resolve({
+                    bytes: bytes,
+                    fileName: fileName,
+                    type: doc.mime_type
+                });
             }
         }
 
@@ -393,7 +399,7 @@ function TelegramApiModule(MtpApiManager, AppPeersManager, MtpApiFileManager, Ap
         return MtpApiManager.invokeApi('messages.getFullChat', {chat_id: chat_id});
     }
 
-    function downloadPhoto(photo, progress) {
+    function downloadPhoto(photo, progress, autosave) {
         var photoSize = photo.sizes[photo.sizes.length - 1];
         var location = {
             _: 'inputFileLocation',
@@ -432,8 +438,14 @@ function TelegramApiModule(MtpApiManager, AppPeersManager, MtpApiFileManager, Ap
                     download();
                 });
             } else {
-                FileSaver.save(bytes, fileName);
-                done.resolve();
+                if (autosave) {
+                    FileSaver.save(bytes, fileName);
+                }
+                done.resolve({
+                    bytes: bytes,
+                    fileName: fileName,
+                    type: 'image/jpeg'
+                });
             }
         }
 
@@ -570,7 +582,7 @@ function TelegramApiModule(MtpApiManager, AppPeersManager, MtpApiFileManager, Ap
     function checkPhone(phone_number) {
         return MtpApiManager.invokeApi('auth.checkPhone', {phone_number: phone_number});
     }
-    
+
     function getDialogs(offset, limit) {
         offset = offset || 0;
         limit = limit || 50;
@@ -596,12 +608,12 @@ function TelegramApiModule(MtpApiManager, AppPeersManager, MtpApiFileManager, Ap
 }
 
 TelegramApiModule.dependencies = [
-    'MtpApiManager', 
-    'AppPeersManager', 
+    'MtpApiManager',
+    'AppPeersManager',
     'MtpApiFileManager',
-    'AppUsersManager', 
-    'AppProfileManager', 
-    'AppChatsManager', 
+    'AppUsersManager',
+    'AppProfileManager',
+    'AppChatsManager',
     'MtpNetworkerFactory',
     'FileSaver',
     '$q',
