@@ -1,6 +1,6 @@
 {
   "name": "telegram-api-js",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "JavaScript library for using Telegram API. Based on Webogram project.",
   "repository": {
     "type": "git",
