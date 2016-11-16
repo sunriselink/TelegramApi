@@ -1,5 +1,5 @@
 /**
- * telegram-api v1.2.4
+ * telegram-api v1.2.5
  * Infinnity Solutions
  */
 (function(){
@@ -4548,6 +4548,15 @@ MtpTimeManagerModule.dependencies = [
 function TelegramApiModule(MtpApiManager, AppPeersManager, MtpApiFileManager, AppUsersManager, AppProfileManager, AppChatsManager, MtpNetworkerFactory, FileSaver, $q, $timeout) {
     var options = {dcID: 2, createNetworker: true};
 
+    MtpNetworkerFactory.setUpdatesProcessor(function (message) {
+        switch (message._) {
+            case 'updates':
+                AppChatsManager.saveApiChats(message.chats);
+                AppUsersManager.saveApiUsers(message.users);
+                break;
+        }
+    });
+
     return {
         checkPhone: checkPhone,
         createChat: createChat,
@@ -4585,7 +4594,7 @@ function TelegramApiModule(MtpApiManager, AppPeersManager, MtpApiFileManager, Ap
         dT: dT,
         invokeApi: MtpApiManager.invokeApi,
 
-        VERSION: '1.2.4'
+        VERSION: '1.2.5'
     };
 
     /* Public Functions */
@@ -4908,7 +4917,10 @@ function TelegramApiModule(MtpApiManager, AppPeersManager, MtpApiFileManager, Ap
             hash = link;
         }
 
-        return MtpApiManager.invokeApi('messages.importChatInvite', {hash: hash});
+        return MtpApiManager.invokeApi('messages.importChatInvite', {hash: hash}).then(function (updates) {
+            AppChatsManager.saveApiChats(updates.chats);
+            AppUsersManager.saveApiUsers(updates.users);
+        });
     }
 
     function editChatAdmin(chatID, userID, isAdmin) {
