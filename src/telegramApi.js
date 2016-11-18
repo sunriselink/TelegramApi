@@ -44,14 +44,29 @@ function TelegramApiModule(MtpApiManager, AppPeersManager, MtpApiFileManager, Ap
         unSubscribe: unSubscribe,
         logOut: logOut,
 
+        invokeApi: invokeApi,
         dT: dT,
-        invokeApi: MtpApiManager.invokeApi,
 
         VERSION: '<%TELEGRAM-API-VERSION%>'
     };
 
-    /* Public Functions */
+    /**
+     * @function invokeApi
+     * @description Invoke any method from .files/schema.txt
+     * @param {String} method - Method name
+     * @param {Object} [params] - Parameters
+     * @example <%example:invokeApi.js%>
+     */
+    function invokeApi(method, params) {
+        return MtpApiManager.invokeApi(method, params);
+    }
 
+    /**
+     * @function sendCode
+     * @description Send code by phone number
+     * @param {String} phone_number - Phone number
+     * @example <%example:sendCode.js%>
+     */
     function sendCode(phone_number) {
         return MtpApiManager.invokeApi('auth.sendCode', {
             phone_number: phone_number,
@@ -62,6 +77,14 @@ function TelegramApiModule(MtpApiManager, AppPeersManager, MtpApiFileManager, Ap
         }, options);
     }
 
+    /**
+     * @function signIn
+     * @description Sign in
+     * @param {String} phone_number - Phone number
+     * @param {String} phone_code_hash - Code hash (was received in sendCode method)
+     * @param {String} phone_code - Code by Telegram
+     * @example <%example:signIn.js%>
+     */
     function signIn(phone_number, phone_code_hash, phone_code) {
         return MtpApiManager.invokeApi('auth.signIn', {
             phone_number: phone_number,
@@ -74,6 +97,16 @@ function TelegramApiModule(MtpApiManager, AppPeersManager, MtpApiFileManager, Ap
         });
     }
 
+    /**
+     * @function signUp
+     * @description Sign up
+     * @param {String} phone_number - Phone number
+     * @param {String} phone_code_hash - Code hash (was received in sendCode method)
+     * @param {String} phone_code - Code by Telegram
+     * @param {String} first_name - User first name
+     * @param {String} [last_name] - User last name
+     * @example <%example:signUp.js%>
+     */
     function signUp(phone_number, phone_code_hash, phone_code, first_name, last_name) {
         return MtpApiManager.invokeApi('auth.signUp', {
             phone_number: phone_number,

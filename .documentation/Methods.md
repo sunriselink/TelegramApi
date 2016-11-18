@@ -1,9 +1,0 @@
-# Методы
-
-* [Авторизация/Регистрация](./methods/AUTH.md)
-* [Конфигурация](./methods/CONFIG.md)
-* [Работа с пользователями](./methods/USERS.md)
-* [Работа с сообщениями и чатами](./methods/MESSAGES.md)
-* [Работа с ботами](./methods/BOTS.md)
-
-Все методы возвращают объекты типа Promise (jQuery.Deferred().promise())

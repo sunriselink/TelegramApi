@@ -1,3 +1,5 @@
 .idea
 node_modules
 example/js/
+
+docs/OUTPUT.md

@@ -1,7 +1,7 @@
 {
   "name": "telegram-api-js",
-  "version": "1.2.5",
-  "description": "JavaScript library for using Telegram API. Based on Webogram project.",
+  "version": "1.2.6",
+  "description": "JavaScript library for using Telegram API.",
   "repository": {
     "type": "git",
     "url": "https://github.com/sunriselink/TelegramApi.git"
@@ -31,6 +31,7 @@
   "scripts": {
     "build": "gulp build",
     "build-lib": "npm i && npm run build",
+    "build-doc": "node docs/build.js",
     "example": "npm run build && gulp copy",
     "start": "npm run example && gulp server"
   },
@@ -45,6 +46,7 @@
     "gulp-webserver": "^0.9.1",
     "gulp-wrapper": "^1.0.0",
     "ioc-js": "0.0.4",
+    "jsdoc-to-markdown": "^2.0.1",
     "long": "3.2.0",
     "rusha": "0.8.4",
     "zlibjs": "0.2.0"
