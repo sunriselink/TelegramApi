@@ -2,40 +2,40 @@
 var builder = new ContainerModule();
 
 // Register App modules
-builder.register('AppChatsManager', AppChatsManagerModule.dependencies, AppChatsManagerModule);
-builder.register('AppPeersManager', AppPeersManagerModule.dependencies, AppPeersManagerModule);
-builder.register('AppProfileManager', AppProfileManagerModule.dependencies, AppProfileManagerModule);
-builder.register('AppUsersManager', AppUsersManagerModule.dependencies, AppUsersManagerModule);
+builder.register('AppChatsManager', AppChatsManagerModule);
+builder.register('AppPeersManager', AppPeersManagerModule);
+builder.register('AppProfileManager', AppProfileManagerModule);
+builder.register('AppUsersManager', AppUsersManagerModule);
 
 // Register Mtp modules
-builder.register('MtpApiFileManager', MtpApiFileManagerModule.dependencies, MtpApiFileManagerModule);
-builder.register('MtpApiManager', MtpApiManagerModule.dependencies, MtpApiManagerModule);
-builder.register('MtpAuthorizer', MtpAuthorizerModule.dependencies, MtpAuthorizerModule);
-builder.register('MtpDcConfigurator', MtpDcConfiguratorModule.dependencies, MtpDcConfiguratorModule);
-builder.register('MtpNetworkerFactory', MtpNetworkerFactoryModule.dependencies, MtpNetworkerFactoryModule);
-builder.register('MtpRsaKeysManager', MtpRsaKeysManagerModule.dependencies, MtpRsaKeysManagerModule);
-builder.register('MtpSecureRandom', MtpSecureRandomModule.dependencies, MtpSecureRandomModule);
-builder.register('MtpSingleInstanceService', MtpSingleInstanceServiceModule.dependencies, MtpSingleInstanceServiceModule);
-builder.register('MtpTimeManager', MtpTimeManagerModule.dependencies, MtpTimeManagerModule);
+builder.register('MtpApiFileManager', MtpApiFileManagerModule);
+builder.register('MtpApiManager', MtpApiManagerModule);
+builder.register('MtpAuthorizer', MtpAuthorizerModule);
+builder.register('MtpDcConfigurator', MtpDcConfiguratorModule);
+builder.register('MtpNetworkerFactory', MtpNetworkerFactoryModule);
+builder.register('MtpRsaKeysManager', MtpRsaKeysManagerModule);
+builder.register('MtpSecureRandom', MtpSecureRandomModule);
+builder.register('MtpSingleInstanceService', MtpSingleInstanceServiceModule);
+builder.register('MtpTimeManager', MtpTimeManagerModule);
 
 // Register Angular modules
-builder.register('$http', $httpModule.dependencies, $httpModule);
-builder.register('$interval', $intervalModule.dependencies, $intervalModule);
-builder.register('$q', $qModule.dependencies, $qModule);
-builder.register('$rootScope', $rootScopeModule.dependencies, $rootScopeModule);
-builder.register('$timeout', $timeoutModule.dependencies, $timeoutModule);
+builder.register('$http', $httpModule);
+builder.register('$interval', $intervalModule);
+builder.register('$q', $qModule);
+builder.register('$rootScope', $rootScopeModule);
+builder.register('$timeout', $timeoutModule);
 
 // Register other modules
-builder.register('CryptoWorker', CryptoWorkerModule.dependencies, CryptoWorkerModule);
-builder.register('IdleManager', IdleManagerModule.dependencies, IdleManagerModule);
-builder.register('qSync', qSyncModule.dependencies, qSyncModule);
-builder.register('Storage', StorageModule.dependencies, StorageModule);
-builder.register('TelegramMeWebService', TelegramMeWebServiceModule.dependencies, TelegramMeWebServiceModule);
-builder.register('jQuery', jQueryModule.dependencies, jQueryModule);
-builder.register('FileSaver', FileSaverModule.dependencies, FileSaverModule);
+builder.register('CryptoWorker', CryptoWorkerModule);
+builder.register('IdleManager', IdleManagerModule);
+builder.register('qSync', qSyncModule);
+builder.register('Storage', StorageModule);
+builder.register('TelegramMeWebService', TelegramMeWebServiceModule);
+builder.register('jQuery', jQueryModule);
+builder.register('FileSaver', FileSaverModule);
 
 // Register TelegramApi module
-builder.register('TelegramApi', TelegramApiModule.dependencies, TelegramApiModule);
+builder.register('TelegramApi', TelegramApiModule);
 
 // Initialize modules
 builder.init();

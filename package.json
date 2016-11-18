@@ -7,7 +7,8 @@
     "url": "https://github.com/sunriselink/TelegramApi.git"
   },
   "author": {
-    "name": "Infinnity Solutions"
+    "name": "Infinnity Solutions",
+    "email": "info@infinnity.ru"
   },
   "contributors": [
     {
@@ -43,7 +44,7 @@
     "gulp-uglify": "^2.0.0",
     "gulp-webserver": "^0.9.1",
     "gulp-wrapper": "^1.0.0",
-    "ioc-js": "0.0.1",
+    "ioc-js": "0.0.4",
     "long": "3.2.0",
     "rusha": "0.8.4",
     "zlibjs": "0.2.0"
