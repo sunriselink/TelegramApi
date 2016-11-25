@@ -3,6 +3,6 @@ telegramApi.sendCode('some_phone_number').then(function(sent_code) {
         // New user
     }
 
-    // phone_code_hash will need to sigh in or sign up
+    // phone_code_hash will need to sign in or sign up
     window.phone_code_hash = sent_code.phone_code_hash;
 });

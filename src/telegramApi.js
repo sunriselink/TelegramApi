@@ -121,6 +121,13 @@ function TelegramApiModule(MtpApiManager, AppPeersManager, MtpApiFileManager, Ap
         });
     }
 
+    /**
+     * @function sendMessage
+     * @description Send message
+     * @param {Number} id - Peer ID
+     * @param {String} message - Message text
+     * @example <%example:sendMessage.js%>
+     */
     function sendMessage(id, message) {
         return MtpApiManager.invokeApi('messages.sendMessage', {
             flags: 0,
@@ -132,6 +139,12 @@ function TelegramApiModule(MtpApiManager, AppPeersManager, MtpApiFileManager, Ap
         });
     }
 
+    /**
+     * @function startBot
+     * @description Send bot command /start
+     * @param {String} botName - Bot name
+     * @example <%example:startBot.js%>
+     */
     function startBot(botName) {
         return MtpApiManager.invokeApi('contacts.search', {q: botName, limit: 1}).then(function (result) {
             AppUsersManager.saveApiUsers(result.users);
@@ -139,6 +152,13 @@ function TelegramApiModule(MtpApiManager, AppPeersManager, MtpApiFileManager, Ap
         });
     }
 
+    /**
+     * @function sendSms
+     * @description Send code via SMS
+     * @param {String} phone_number - Phone number
+     * @param {String} phone_code_hash - Code hash (was received in sendCode method)
+     * @example <%example:sendSms.js%>
+     */
     function sendSms(phone_number, phone_code_hash) {
         return MtpApiManager.invokeApi('auth.sendSms', {
             phone_number: phone_number,
@@ -146,6 +166,17 @@ function TelegramApiModule(MtpApiManager, AppPeersManager, MtpApiFileManager, Ap
         }, options);
     }
 
+    /**
+     * @function setConfig
+     * @description Configure your application
+     * @param {Object} config - Configuration object
+     * @param {Number} config.app.id - Application ID
+     * @param {String} config.app.hash - App hash
+     * @param {String} config.app.version - App version
+     * @param {Array<Object>} config.server.test - List test servers
+     * @param {Array<Object>} config.server.production - List production servers
+     * @example <%example:setConfig.js%>
+     */
     function setConfig(config) {
         config = config || {};
 
@@ -169,6 +200,13 @@ function TelegramApiModule(MtpApiManager, AppPeersManager, MtpApiFileManager, Ap
         });
     }
 
+    /**
+     * @function createChat
+     * @description Create telegram chat (By default only creator will admin. In the future it will be changed)
+     * @param {String} title - Chat title
+     * @param {Array<Number>} userIDs - User ids list
+     * @example <%example:createChat.js%>
+     */
     function createChat(title, userIDs) {
         title = title || '';
         userIDs = userIDs || [];
@@ -199,10 +237,22 @@ function TelegramApiModule(MtpApiManager, AppPeersManager, MtpApiFileManager, Ap
         });
     }
 
-    function getChatLink(chatID, forse) {
-        return AppProfileManager.getChatInviteLink(chatID, forse);
+    /**
+     * @function getChatLink
+     * @description Get chat invite link
+     * @param {Number|String} chatID - Chat id
+     * @param {Boolean} [force] - Force generate
+     * @example <%example:getChatLink.js%>
+     */
+    function getChatLink(chatID, force) {
+        return AppProfileManager.getChatInviteLink(chatID, force);
     }
 
+    /**
+     * @function getUserInfo
+     * @description Get self information
+     * @example <%example:getUserInfo.js%>
+     */
     function getUserInfo() {
         return MtpApiManager.getUserID().then(function (id) {
             var user = AppUsersManager.getUser(id);
