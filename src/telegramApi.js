@@ -270,6 +270,13 @@ function TelegramApiModule(MtpApiManager, AppPeersManager, MtpApiFileManager, Ap
         });
     }
 
+    /**
+     * @function getUserPhoto
+     * @description Get user photo
+     * @param {String} [type] - Photo type (values: byteArray (default), base64, blob)
+     * @param {String} [size] - Photo size (values: big (default), small)
+     * @example <%example:getUserPhoto.js%>
+     */
     function getUserPhoto(type, size) {
         return getUserInfo().then(function (user) {
             if (!user.photo) {
@@ -311,10 +318,22 @@ function TelegramApiModule(MtpApiManager, AppPeersManager, MtpApiFileManager, Ap
         });
     }
 
+    /**
+     * @function logOut
+     * @description Logout from Telegram
+     * @example <%example:logOut.js%>
+     */
     function logOut() {
         return MtpApiManager.logOut();
     }
 
+    /**
+     * @function createChannel
+     * @description Create channel (use carefully)
+     * @param {String} title - Channel title
+     * @param {String} [about] - About text
+     * @example <%example:createChannel.js%>
+     */
     function createChannel(title, about) {
         return MtpApiManager.invokeApi('channels.createChannel', {
             title: title || '',
@@ -326,6 +345,16 @@ function TelegramApiModule(MtpApiManager, AppPeersManager, MtpApiFileManager, Ap
         });
     }
 
+    /**
+     * @function getHistory
+     * @description Get chat messages
+     * @param {Object} params - Parameters
+     * @param {Number} params.id - Chat ID
+     * @param {Number} [params.take] - How much messages you will receive (default: 15)
+     * @param {Number} [params.skip] - How much messages you will skip (default: 0)
+     * @param {String} [params.type] - Chat type (for chat and channel use 'chat' (default))
+     * @example <%example:getHistory.js%>
+     */
     function getHistory(params) {
         params = params || {};
         params.id = params.id || 0;

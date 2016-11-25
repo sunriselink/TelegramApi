@@ -36,6 +36,18 @@
 <dt><a href="#getUserInfo">getUserInfo()</a></dt>
 <dd><p>Get self information</p>
 </dd>
+<dt><a href="#getUserPhoto">getUserPhoto([type], [size])</a></dt>
+<dd><p>Get user photo</p>
+</dd>
+<dt><a href="#logOut">logOut()</a></dt>
+<dd><p>Logout from Telegram</p>
+</dd>
+<dt><a href="#createChannel">createChannel(title, [about])</a></dt>
+<dd><p>Create channel (use carefully)</p>
+</dd>
+<dt><a href="#getHistory">getHistory(params)</a></dt>
+<dd><p>Get chat messages</p>
+</dd>
 </dl>
 
 <a name="invokeApi"></a>
@@ -282,6 +294,96 @@ telegramApi.getUserInfo().then(function(user) {
     } else {
         // Open log in page
     }
+});
+```
+<a name="getUserPhoto"></a>
+
+## getUserPhoto([type], [size])
+Get user photo
+
+  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| [type] | <code>String</code> | Photo type (values: byteArray (default), base64, blob) |
+| [size] | <code>String</code> | Photo size (values: big (default), small) |
+
+**Example**  
+```js
+telegramApi.getUserPhoto('base64', 'small').then(function(base64) {
+    $('img#avatar').attr('src', base64);
+});
+```
+<a name="logOut"></a>
+
+## logOut()
+Logout from Telegram
+
+  
+**Example**  
+```js
+telegramApi.logOut().then(function() {
+    setTimeout(function() {
+        // Do something after logouts
+        // Use setTimeout (It will be fixed)
+    }, 1500);
+});
+```
+<a name="createChannel"></a>
+
+## createChannel(title, [about])
+Create channel (use carefully)
+
+  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| title | <code>String</code> | Channel title |
+| [about] | <code>String</code> | About text |
+
+**Example**  
+```js
+telegramApi.createChannel('New channel', 'This is example channel').then(function(updates) {
+    var channel = updates.chats[0];
+
+    /**
+     * WARNING!
+     * If you often call this method, you will receive a reply FLOOD_WAIT_{seconds}
+     */
+});
+```
+<a name="getHistory"></a>
+
+## getHistory(params)
+Get chat messages
+
+  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| params | <code>Object</code> | Parameters |
+| params.id | <code>Number</code> | Chat ID |
+| [params.take] | <code>Number</code> | How much messages you will receive (default: 15) |
+| [params.skip] | <code>Number</code> | How much messages you will skip (default: 0) |
+| [params.type] | <code>String</code> | Chat type (for chat and channel use 'chat' (default)) |
+
+**Example**  
+```js
+telegramApi.getHistory({
+    id: 12345678,
+    take: 50,
+    type: 'user'
+}).then(function(data) {
+    var totalCount = data.count || data.messages.length;
+
+    data.messages.forEach(function(message) {
+        /**
+         * message.from_id - Sender ID
+         * message.date - Date
+         * message.media - If message is Document or Photo
+         * message.message - Message text
+         */
+    });
 });
 ```
 
