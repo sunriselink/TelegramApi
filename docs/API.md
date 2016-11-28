@@ -48,6 +48,21 @@
 <dt><a href="#getHistory">getHistory(params)</a></dt>
 <dd><p>Get chat messages</p>
 </dd>
+<dt><a href="#sendFile">sendFile(params)</a></dt>
+<dd><p>Send file</p>
+</dd>
+<dt><a href="#downloadDocument">downloadDocument(doc, [progress], [autosave])</a></dt>
+<dd><p>Download Telegram document</p>
+</dd>
+<dt><a href="#joinChat">joinChat(link)</a></dt>
+<dd><p>Join to chat by link or hash</p>
+</dd>
+<dt><a href="#editChatAdmin">editChatAdmin(chatID, userID, [isAdmin])</a></dt>
+<dd><p>Edit chat administrator</p>
+</dd>
+<dt><a href="#editChatTitle">editChatTitle(chat_id, title)</a></dt>
+<dd><p>Edit chat title</p>
+</dd>
 </dl>
 
 <a name="invokeApi"></a>
@@ -384,6 +399,121 @@ telegramApi.getHistory({
          * message.message - Message text
          */
     });
+});
+```
+<a name="sendFile"></a>
+
+## sendFile(params)
+Send file
+
+  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| params | <code>Object</code> | Parameters |
+| params.id | <code>Number</code> | Peer ID |
+| params.type | <code>String</code> | Chat type (for chat and channel use 'chat' (default)) |
+| params.file | <code>File</code> | File |
+| [params.caption] | <code>String</code> | File caption |
+
+**Example**  
+```js
+telegramApi.sendFile({
+    id: 123456789,
+    type: 'user',
+    file: $('input[type=file]').val(),
+    caption: 'This is file'
+}).then(function(updates) {
+    // Do something
+});
+```
+<a name="downloadDocument"></a>
+
+## downloadDocument(doc, [progress], [autosave])
+Download Telegram document
+
+  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| doc | <code>Object</code> | Telegram document |
+| [progress] | <code>function</code> | Progress callback |
+| [autosave] | <code>Boolean</code> | Save file on device |
+
+**Example**  
+```js
+telegramApi.getHistory({
+    id: 123456789,
+    type: 'user',
+    take: 1,
+    skip: 0
+}).then(function(data) {
+    var message = data.messages[0];
+    var doc = message.media.document;
+
+    telegramApi.downloadDocument(doc, function(downloaded, total) {
+        console.log('Loaded ' + downloaded + ' bytes. Total ' + total + ' bytes');
+    }).then(function(result) {
+        /**
+         * result.bytes - file data
+         * result.fileName - file name
+         * result.type - file MIME-type
+         */
+    });
+});
+```
+<a name="joinChat"></a>
+
+## joinChat(link)
+Join to chat by link or hash
+
+  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| link | <code>String</code> | Chat invite link or hash |
+
+**Example**  
+```js
+telegramApi.joinChat('https://telegram.me/joinchat/some-hash').then(function(updates) {
+    // Do something
+});
+```
+<a name="editChatAdmin"></a>
+
+## editChatAdmin(chatID, userID, [isAdmin])
+Edit chat administrator
+
+  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| chatID | <code>Number</code> | Chat ID |
+| userID | <code>Number</code> | User ID |
+| [isAdmin] | <code>Boolean</code> | Admin status (default: true) |
+
+**Example**  
+```js
+telegramApi.editChatAdmin(123456789, 987654321, false).then(function() {
+    // Do something
+});
+```
+<a name="editChatTitle"></a>
+
+## editChatTitle(chat_id, title)
+Edit chat title
+
+  
+
+| Param | Type | Description |
+| --- | --- | --- |
+| chat_id | <code>Number</code> | Chat ID |
+| title | <code>String</code> | New title |
+
+**Example**  
+```js
+telegramApi.editChatTitle(123456789, 'New title').then(function() {
+    // Do something
 });
 ```
 

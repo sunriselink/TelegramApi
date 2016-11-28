@@ -374,6 +374,16 @@ function TelegramApiModule(MtpApiManager, AppPeersManager, MtpApiFileManager, Ap
         });
     }
 
+    /**
+     * @function sendFile
+     * @description Send file
+     * @param {Object} params - Parameters
+     * @param {Number} params.id - Peer ID
+     * @param {String} params.type - Chat type (for chat and channel use 'chat' (default))
+     * @param {File} params.file - File
+     * @param {String} [params.caption] - File caption
+     * @example <%example:sendFile.js%>
+     */
     function sendFile(params) {
         params = params || {};
         params.id = params.id || 0;
@@ -408,6 +418,14 @@ function TelegramApiModule(MtpApiManager, AppPeersManager, MtpApiFileManager, Ap
         });
     }
 
+    /**
+     * @function downloadDocument
+     * @description Download Telegram document
+     * @param {Object} doc - Telegram document
+     * @param {Function} [progress] - Progress callback
+     * @param {Boolean} [autosave] - Save file on device
+     * @example <%example:downloadDocument.js%>
+     */
     function downloadDocument(doc, progress, autosave) {
         doc = doc || {};
         doc.id = doc.id || 0;
@@ -472,6 +490,12 @@ function TelegramApiModule(MtpApiManager, AppPeersManager, MtpApiFileManager, Ap
         return done.promise;
     }
 
+    /**
+     * @function joinChat
+     * @description Join to chat by link or hash
+     * @param {String} link - Chat invite link or hash
+     * @example <%example:joinChat.js%>
+     */
     function joinChat(link) {
         var regex;
         var hash;
@@ -488,6 +512,14 @@ function TelegramApiModule(MtpApiManager, AppPeersManager, MtpApiFileManager, Ap
         });
     }
 
+    /**
+     * @function editChatAdmin
+     * @description Edit chat administrator
+     * @param {Number} chatID - Chat ID
+     * @param {Number} userID - User ID
+     * @param {Boolean} [isAdmin] - Admin status (default: true)
+     * @example <%example:editChatAdmin.js%>
+     */
     function editChatAdmin(chatID, userID, isAdmin) {
         if (typeof isAdmin == 'undefined') {
             isAdmin = true;
@@ -504,6 +536,13 @@ function TelegramApiModule(MtpApiManager, AppPeersManager, MtpApiFileManager, Ap
         });
     }
 
+    /**
+     * @function editChatTitle
+     * @description Edit chat title
+     * @param {Number} chat_id - Chat ID
+     * @param {String} title - New title
+     * @example <%example:editChatTitle.js%>
+     */
     function editChatTitle(chat_id, title) {
         return MtpApiManager.invokeApi('messages.editChatTitle', {
             chat_id: chat_id,
