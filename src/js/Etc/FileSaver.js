@@ -4,6 +4,11 @@ function FileSaverModule($timeout) {
         var a = document.createElement('a');
         var blob = new Blob(bytes, {type: 'octet/stream'});
 
+        if (window.navigator && window.navigator.msSaveBlob) {
+            window.navigator.msSaveBlob(blob, fileName);
+            return;
+        }
+
         document.body.appendChild(a);
 
         a.style = 'display: none';
@@ -11,7 +16,7 @@ function FileSaverModule($timeout) {
         a.download = fileName;
         a.click();
 
-        $timeout(function () {
+        $timeout(function() {
             window.URL.revokeObjectURL(a.href);
             a.remove();
         }, 100);
