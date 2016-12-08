@@ -1,5 +1,5 @@
 /**
- * telegram-api v1.2.8
+ * telegram-api v1.2.9
  * Infinnity Solutions
  */
 (function(){
@@ -593,6 +593,11 @@ function FileSaverModule($timeout) {
         var a = document.createElement('a');
         var blob = new Blob(bytes, {type: 'octet/stream'});
 
+        if (window.navigator && window.navigator.msSaveBlob) {
+            window.navigator.msSaveBlob(blob, fileName);
+            return;
+        }
+
         document.body.appendChild(a);
 
         a.style = 'display: none';
@@ -600,7 +605,7 @@ function FileSaverModule($timeout) {
         a.download = fileName;
         a.click();
 
-        $timeout(function () {
+        $timeout(function() {
             window.URL.revokeObjectURL(a.href);
             a.remove();
         }, 100);
@@ -4595,7 +4600,7 @@ function TelegramApiModule(MtpApiManager, AppPeersManager, MtpApiFileManager, Ap
         invokeApi: invokeApi,
         dT: dT,
 
-        VERSION: '1.2.8'
+        VERSION: '1.2.9'
     };
 
     /**
