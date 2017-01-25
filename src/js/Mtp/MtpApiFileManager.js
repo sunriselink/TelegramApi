@@ -1,4 +1,4 @@
-function MtpApiFileManagerModule(MtpApiManager, $q) {
+function MtpApiFileManagerModule(MtpApiManager, $q, $timeout) {
     var cachedFs = false;
     var cachedFsPromise = false;
     var cachedSavePromises = {};
@@ -16,7 +16,8 @@ function MtpApiFileManagerModule(MtpApiManager, $q) {
         var downloadPull = downloadPulls[dcID];
         var deferred = $q.defer();
         downloadPull.push({cb: cb, deferred: deferred, activeDelta: activeDelta});
-        setZeroTimeout(function () {
+        
+        $timeout(function() {
             downloadCheck(dcID);
         });
 
@@ -163,5 +164,6 @@ function MtpApiFileManagerModule(MtpApiManager, $q) {
 
 MtpApiFileManagerModule.dependencies = [
     'MtpApiManager', 
-    '$q'
+    '$q',
+    '$timeout'
 ];

@@ -5,15 +5,16 @@ var about = require('fs')
     .readFileSync('./.files/about.txt', 'utf8')
     .replace('{VERSION}', version);
 
-gulp.task('clean', function () {
-    return gulp.src([
+gulp.task('clean', function() {
+    gulp.src([
         'example/js',
         'dist/'
-    ]).pipe($.clean({force: true}));
+    ])
+        .pipe($.clean({force: true}));
 });
 
-gulp.task('js', function () {
-    return gulp.src([
+gulp.task('js', function() {
+    gulp.src([
         'node_modules/long/dist/long.min.js',
         'node_modules/zlibjs/bin/gunzip.min.js',
         'node_modules/rusha/rusha.min.js',
@@ -39,12 +40,12 @@ gulp.task('js', function () {
         .pipe(gulp.dest('dist'));
 });
 
-gulp.task('copy', function () {
+gulp.task('copy', function() {
     gulp.src('dist/**/*.js')
         .pipe(gulp.dest('example/js'));
 });
 
-gulp.task('server', function () {
+gulp.task('server', function() {
     gulp.src('example')
         .pipe($.webserver({open: true}));
 });

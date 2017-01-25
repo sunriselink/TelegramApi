@@ -22,10 +22,6 @@ function isObject(value) {
     return value !== null && typeof value === 'object';
 }
 
-function isString(value) {
-    return typeof value == 'string';
-}
-
 function isArray(value) {
     return Array.isArray(value);
 }
@@ -68,6 +64,7 @@ function min(array) {
 
     return min;
 }
+
 function toArray(obj) {
     return Array.prototype.slice.call(obj);
 }

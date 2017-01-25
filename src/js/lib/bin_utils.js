@@ -305,32 +305,7 @@ function pqPrimeFactorization (pqBytes) {
   var what = new BigInteger(pqBytes),
       result = false;
 
-  // console.log(dT(), 'PQ start', pqBytes, what.toString(16), what.bitLength());
-
-  try {
-    result = pqPrimeLeemon(str2bigInt(what.toString(16), 16, Math.ceil(64 / bpe) + 1))
-  } catch (e) {
-    console.error('Pq leemon Exception', e);
-  }
-
-  if (result === false && what.bitLength() <= 64) {
-    // console.time('PQ long');
-    try {
-      result = pqPrimeLong(goog.math.Long.fromString(what.toString(16), 16));
-    } catch (e) {
-      console.error('Pq long Exception', e);
-    }
-    // console.timeEnd('PQ long');
-  }
-  // console.log(result);
-
-  if (result === false) {
-    // console.time('pq BigInt');
     result = pqPrimeBigInteger(what);
-    // console.timeEnd('pq BigInt');
-  }
-
-  // console.log(dT(), 'PQ finish');
 
   return result;
 }
@@ -466,93 +441,6 @@ function pqPrimeLong(what) {
   return [bytesFromHex(P.toString(16)), bytesFromHex(Q.toString(16)), it];
 }
 
-
-function pqPrimeLeemon (what) {
-  var minBits = 64,
-      minLen = Math.ceil(minBits / bpe) + 1,
-      it = 0, i, q, j, lim, g, P, Q,
-      a = new Array(minLen),
-      b = new Array(minLen),
-      c = new Array(minLen),
-      g = new Array(minLen),
-      z = new Array(minLen),
-      x = new Array(minLen),
-      y = new Array(minLen);
-
-  for (i = 0; i < 3; i++) {
-    q = (nextRandomInt(128) & 15) + 17;
-    copyInt_(x, nextRandomInt(1000000000) + 1);
-    copy_(y, x);
-    lim = 1 << (i + 18);
-
-    for (j = 1; j < lim; j++) {
-      ++it;
-      copy_(a, x);
-      copy_(b, x);
-      copyInt_(c, q);
-
-      while (!isZero(b)) {
-        if (b[0] & 1) {
-          add_(c, a);
-          if (greater(c, what)) {
-            sub_(c, what);
-          }
-        }
-        add_(a, a);
-        if (greater(a, what)) {
-          sub_(a, what);
-        }
-        rightShift_(b, 1);
-      }
-
-      copy_(x, c);
-      if (greater(x,y)) {
-        copy_(z, x);
-        sub_(z, y);
-      } else {
-        copy_(z, y);
-        sub_(z, x);
-      }
-      eGCD_(z, what, g, a, b);
-      if (!equalsInt(g, 1)) {
-        break;
-      }
-      if ((j & (j - 1)) == 0) {
-        copy_(y, x);
-      }
-    }
-    if (greater(g, one)) {
-      break;
-    }
-  }
-
-  divide_(what, g, x, y);
-
-  if (greater(g, x)) {
-    P = x;
-    Q = g;
-  } else {
-    P = g;
-    Q = x;
-  }
-
-  // console.log(dT(), 'done', bigInt2str(what, 10), bigInt2str(P, 10), bigInt2str(Q, 10));
-
-  return [bytesFromLeemonBigInt(P), bytesFromLeemonBigInt(Q), it];
-}
-
-
 function bytesModPow (x, y, m) {
-  try {
-    var xBigInt = str2bigInt(bytesToHex(x), 16),
-        yBigInt = str2bigInt(bytesToHex(y), 16),
-        mBigInt = str2bigInt(bytesToHex(m), 16),
-        resBigInt = powMod(xBigInt, yBigInt, mBigInt);
-
-    return bytesFromHex(bigInt2str(resBigInt, 16));
-  } catch (e) {
-    console.error('mod pow error', e);
-  }
-
   return bytesFromBigInt(new BigInteger(x).modPow(new BigInteger(y), new BigInteger(m)), 256);
 }

@@ -210,7 +210,7 @@ function MtpNetworkerFactoryModule(MtpSecureRandom, MtpTimeManager, Storage, Cry
             longPoll: true
         }).then(function () {
             delete self.longPollPending;
-            setZeroTimeout(self.checkLongPoll.bind(self));
+            $timeout(self.checkLongPoll.bind(self));
         }, function () {
             console.log('Long-poll failed');
         });
@@ -752,7 +752,7 @@ function MtpNetworkerFactoryModule(MtpSecureRandom, MtpTimeManager, Storage, Cry
         if (delay > 0) {
             this.nextReqPromise = $timeout(this.performSheduledRequest.bind(this), delay || 0);
         } else {
-            setZeroTimeout(this.performSheduledRequest.bind(this))
+            $timeout(this.performSheduledRequest.bind(this));
         }
 
         this.nextReq = nextReq;

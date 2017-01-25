@@ -1,5 +1,5 @@
 function TelegramApiModule(MtpApiManager, AppPeersManager, MtpApiFileManager, AppUsersManager, AppProfileManager, AppChatsManager, MtpNetworkerFactory, FileSaver, $q, $timeout) {
-    var options = {dcID: 2, createNetworker: true};
+    var options = {createNetworker: true};
 
     MtpNetworkerFactory.setUpdatesProcessor(function(message) {
         switch (message._) {
@@ -194,7 +194,8 @@ function TelegramApiModule(MtpApiManager, AppPeersManager, MtpApiFileManager, Ap
         Config.Server.Test = config.server.test;
         Config.Server.Production = config.server.production;
 
-        MtpApiManager.invokeApi('help.getNearestDc', {}, options).then(function(nearestDcResult) {
+        return MtpApiManager.invokeApi('help.getNearestDc', {}, options).then(function(nearestDcResult) {
+            options.dcID = nearestDcResult.nearest_dc;
             if (nearestDcResult.nearest_dc != nearestDcResult.this_dc) {
                 MtpApiManager.getNetworker(nearestDcResult.nearest_dc, {createNetworker: true});
             }
